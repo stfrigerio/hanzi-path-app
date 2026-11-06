@@ -14,7 +14,7 @@ import java.text.DateFormat;
 import java.util.Date;
 
 /**
- * Settings and progress: how much is new at a time and per day, how reviews ask, the voice;
+ * Settings and progress: how much is new at a time and per day, the voice;
  * the progress copied out to the clipboard and back in; the updates.
  */
 class Settings {
@@ -34,9 +34,6 @@ class Settings {
                 v -> { p.batch = Integer.parseInt(v); p.saveOpts(); }));
         rows.addView(choice("New per day", new String[]{"10", "15", "20", "30", "50"}, String.valueOf(p.perDay),
                 v -> { p.perDay = Integer.parseInt(v); p.saveOpts(); }));
-        rows.addView(choice("Reviews ask you to", new String[]{"read", "read and write", "write"},
-                p.mode.equals("mix") ? "read and write" : p.mode,
-                v -> { p.mode = v.equals("read and write") ? "mix" : v; p.saveOpts(); }));
         rows.addView(choice("Say it aloud", new String[]{"on", "off"}, p.say ? "on" : "off",
                 v -> { p.say = v.equals("on"); p.saveOpts(); }));
         col.addView(rows);

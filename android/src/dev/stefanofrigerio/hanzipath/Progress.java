@@ -62,7 +62,6 @@ final class Progress extends SQLiteOpenHelper {
     final Map<String, Card> cards = new HashMap<>();
     final Map<String, String> stories = new HashMap<>();
     int batch = 5, perDay = 15;
-    String mode = "mix";          // read | write | mix
     boolean say = true;
     String todayDate = "";
     int todayNew = 0;
@@ -229,7 +228,7 @@ final class Progress extends SQLiteOpenHelper {
     // ── settings and stories ──
     void saveOpts() {
         try {
-            putMeta("opts", new JSONObject().put("batch", batch).put("perDay", perDay).put("mode", mode).put("say", say).toString());
+            putMeta("opts", new JSONObject().put("batch", batch).put("perDay", perDay).put("say", say).toString());
         } catch (Exception e) { /* unchanged */ }
     }
 
@@ -270,7 +269,6 @@ final class Progress extends SQLiteOpenHelper {
                         JSONObject o = new JSONObject(c.getString(1));
                         batch = o.optInt("batch", batch);
                         perDay = o.optInt("perDay", perDay);
-                        mode = o.optString("mode", mode);
                         say = o.optBoolean("say", say);
                     } else if (k.equals("today")) {
                         JSONObject o = new JSONObject(c.getString(1));
@@ -307,7 +305,7 @@ final class Progress extends SQLiteOpenHelper {
                     .put("first", c.first).put("last", c.last).put("due", c.due).put("grade", c.grade));
         }
         for (Map.Entry<String, String> e : stories.entrySet()) st.put(e.getKey(), e.getValue());
-        meta.put("opts", new JSONObject().put("batch", batch).put("perDay", perDay).put("mode", mode).put("say", say));
+        meta.put("opts", new JSONObject().put("batch", batch).put("perDay", perDay).put("say", say));
         meta.put("today", obj("d", todayDate, "n", todayNew));
         meta.put("days", days);
         JSONArray rv = new JSONArray();
