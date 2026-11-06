@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hanzi Path</title>
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0e0f1a" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@400;600&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main id="app">
+
+  <!-- home: what's due, what's next, and the whole path as a garden -->
+  <section id="home">
+    <header class="masthead">
+      <h1><span class="logo" lang="zh">汉字之路</span><span class="name">hanzi path</span></h1>
+      <p class="stat" id="stat">Loading the path…</p>
+    </header>
+
+    <div class="actions">
+      <button class="pill solid" id="go-review" type="button">Review</button>
+      <button class="pill" id="go-learn" type="button">Learn next</button>
+    </div>
+    <p class="next-up" id="next-up"></p>
+
+    <div class="garden-head">
+      <h2>The path</h2>
+      <div class="legend" aria-hidden="true">
+        <span><i class="sw unmet"></i>ahead</span>
+        <span><i class="sw young"></i>learning</span>
+        <span><i class="sw known"></i>known</span>
+      </div>
+    </div>
+    <div class="garden" id="garden" role="list"></div>
+
+    <details class="sheet" id="settings">
+      <summary>Settings and progress</summary>
+      <div class="rows">
+        <label class="row" for="opt-batch">New at a time
+          <select id="opt-batch"><option>3</option><option>5</option><option>8</option><option>10</option></select>
+        </label>
+        <label class="row" for="opt-day">New per day
+          <select id="opt-day"><option>10</option><option>15</option><option>20</option><option>30</option><option>50</option></select>
+        </label>
+        <label class="row" for="opt-mode">Reviews ask you to
+          <select id="opt-mode"><option value="read">read</option><option value="mix">read and write</option><option value="write">write</option></select>
+        </label>
+      </div>
+      <p class="small">Progress lives in this browser. Copy it out to keep a backup or move it to another device.</p>
+      <textarea id="io" spellcheck="false" placeholder="Your progress as text appears here; paste a copy here to load it."></textarea>
+      <div class="actions tight">
+        <button class="pill" id="io-copy" type="button">Copy progress</button>
+        <button class="pill" id="io-load" type="button">Load pasted</button>
+      </div>
+      <p class="small" id="io-msg" role="status"></p>
+      <p class="small credits">Characters, strokes and etymology: <a href="https://github.com/skishore/makemeahanzi" target="_blank" rel="noopener">Make Me a Hanzi</a>. Stroke animation: <a href="https://hanziwriter.org" target="_blank" rel="noopener">Hanzi Writer</a>. Order: Jun Da's character frequencies. Words: HSK 2.0. Scheduling: FSRS-4.5.</p>
+    </details>
+  </section>
+
+  <!-- one item, being learnt or looked up -->
+  <section id="learn" hidden>
+    <div class="bar">
+      <span class="count" id="learn-count"></span>
+      <button class="x" id="learn-close" type="button" aria-label="Back to the path">×</button>
+    </div>
+    <article class="card" id="learn-card"></article>
+    <div class="actions">
+      <button class="pill" id="learn-write" type="button">Write it</button>
+      <button class="pill solid" id="learn-next" type="button">Next</button>
+    </div>
+  </section>
+
+  <!-- a question: read (character → meaning) or write (meaning → character) -->
+  <section id="quiz" hidden>
+    <div class="bar">
+      <span class="count" id="quiz-count"></span>
+      <button class="x" id="quiz-close" type="button" aria-label="Back to the path">×</button>
+    </div>
+    <article class="card" id="quiz-card"></article>
+    <div class="actions" id="quiz-show-row">
+      <button class="pill solid wide" id="quiz-show" type="button">Show</button>
+    </div>
+    <div class="grades" id="quiz-grades" hidden>
+      <button class="pill g1" data-g="1" type="button">Again<kbd>1</kbd></button>
+      <button class="pill g2" data-g="2" type="button">Unsure<kbd>2</kbd></button>
+      <button class="pill g3" data-g="3" type="button">Knew it<kbd>3</kbd></button>
+    </div>
+  </section>
+
+  <!-- the end of a round -->
+  <section id="done" hidden>
+    <div class="card done">
+      <p class="seal" lang="zh" id="done-seal">好</p>
+      <p id="done-text"></p>
+      <div class="actions">
+        <button class="pill solid" id="done-home" type="button">Back to the path</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script src="vendor/hanzi-writer.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
