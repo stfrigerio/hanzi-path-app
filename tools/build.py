@@ -31,6 +31,9 @@ CACHE = os.path.expanduser("~/.cache/hanzi-path")
 MMH = "https://raw.githubusercontent.com/skishore/makemeahanzi/master/"
 JUNDA = "https://lingua.mtsu.edu/chinese-computing/statistics/char/list.php?Which=MO"
 IDC = set(chr(c) for c in range(0x2FF0, 0x2FFC))
+# the path opens with these: pictures you can see in them, a stroke or a few,
+# before the common characters' parts (的 alone would open it with 冂 and 勹)
+STARTERS = "一二三十人口日月山水火木大小中女子"
 CHUNK = 60          # path items per strokes file: the app fetches one as it gets near
 WORDS_PER_CHAR = 3
 # meanings a learner knows a part by, where neither the garden nor Make Me a
@@ -102,15 +105,18 @@ def main():
 
     order, seen = [], set()
 
-    def visit(c, depth=0):
+    def visit(c, depth=0, whole=False):
         if c in seen or depth > 6:
             return
         seen.add(c)
-        for p in components(dic[c]):
+        for p in ([] if whole else components(dic[c])):
             if p != c and teachable(p):
                 visit(p, depth + 1)
         order.append(c)
 
+    for c in STARTERS:
+        common.add(c)
+        visit(c, whole=True)   # a picture: taught whole, its strokes aren't parts yet
     for c in top:
         visit(c)
 
