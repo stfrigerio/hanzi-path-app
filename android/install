@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Build the app and put it on the phone on the cable (USB debugging allowed).
+set -euo pipefail
+APK=$("$(dirname "$0")/assemble" | tail -1)
+adb install -r "$APK"
+adb shell monkey -p dev.stefanofrigerio.hanzipath -c android.intent.category.LAUNCHER 1 >/dev/null

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android's backup keeps the progress (the database), not the downloaded web copy -->
+<full-backup-content>
+    <include domain="database" path="hanzi.db" />
+</full-backup-content>

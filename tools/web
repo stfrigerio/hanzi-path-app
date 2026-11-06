@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Copy the web app (what the browser, the APK and an update need) into DIR, with
+# version.txt: the commits on this branch, so a later one is a larger number.
+#
+# Usage: tools/web DIR [VERSION]
+set -euo pipefail
+DIR=$(realpath -m "${1:?usage: tools/web DIR [VERSION]}")
+cd "$(dirname "$0")/.."
+VERSION=${2:-$(git rev-list --count HEAD)}
+rm -rf "$DIR" && mkdir -p "$DIR"
+cp -r index.html style.css app.js store.js sw.js manifest.webmanifest icon.svg vendor data "$DIR"/
+echo "$VERSION" >"$DIR/version.txt"
+sed -i "s/const VERSION = \"hanzi-path-[^\"]*\"/const VERSION = \"hanzi-path-$VERSION\"/" "$DIR/sw.js"
+echo "$DIR"
