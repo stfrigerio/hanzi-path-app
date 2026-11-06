@@ -1,8 +1,8 @@
 /* Offline: the app, its library and the whole path are kept on first visit,
    so it works on a plane. Bump VERSION when any of them changes. */
-const VERSION = "hanzi-path-1";
+const VERSION = "hanzi-path-2";
 const SHELL = ["./", "index.html", "style.css", "app.js", "vendor/hanzi-writer.min.js",
-  "manifest.webmanifest", "icon.svg", "data/path.json"];
+  "store.js", "manifest.webmanifest", "icon.svg", "data/path.json"];
 
 self.addEventListener("install", e => {
   e.waitUntil((async () => {

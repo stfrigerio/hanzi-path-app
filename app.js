@@ -8,11 +8,12 @@
    a grade: the round that follows a batch is, so a new item starts on what
    you showed you know.
 
-   Progress is kept in localStorage under KEY; Settings copies it out as text. */
+   Progress is in Store (store.js): SQLite in the app, IndexedDB in a browser.
+   S holds it in memory; every change is written through as it happens. */
 "use strict";
 
-const KEY = "hanzi-path";
 const DAY = 86400e3;
+const APP = window.HanziApp || null;
 
 // ── the scheduler (FSRS-4.5, in milliseconds) ────────────────────────────
 const W = [0.4872, 1.4003, 3.7145, 13.8206, 5.1618, 1.2298, 0.8975, 0.031, 1.6474, 0.1367,
@@ -35,12 +36,14 @@ const recallS = (s, d, r, g) =>
 const lapseS = (s, d, r) =>
   Math.min(s, W[11] * Math.pow(d, -W[12]) * (Math.pow(s + 1, W[13]) - 1) * Math.exp(W[14] * (1 - r)));
 
-function grade(h, g, now = Date.now()) {
-  let c = S.cards[h];
+/** A grade, written through; returns what undo needs to put things back. */
+function grade(h, g, mode, ms, now = Date.now()) {
+  const before = S.cards[h] ? { ...S.cards[h] } : null;
+  let c = S.cards[h], r = 0;
   if (!c) {
     c = S.cards[h] = { s: W[g - 1], d: d0(g), reps: 0, lapses: 0, first: now };
   } else {
-    const r = recall(c, now);
+    r = recall(c, now);
     if (g === 1) {
       c.s = Math.max(0.05, lapseS(c.s, c.d, r));
       c.lapses = (c.lapses || 0) + 1;
@@ -54,7 +57,16 @@ function grade(h, g, now = Date.now()) {
   c.last = now;
   c.grade = g;
   c.due = now + (g === 1 ? RELEARN : c.s * DAY);
-  save();
+  Store.putCard(h, c);
+  Store.addReview({ at: now, h, g, mode, ms, r: +r.toFixed(4), s: +c.s.toFixed(4), d: +c.d.toFixed(4) });
+  bumpDay("reviews", 1);
+  return { h, before };
+}
+
+function ungrade({ h, before }) {
+  if (before) { S.cards[h] = before; Store.putCard(h, before); } else { delete S.cards[h]; Store.delCard(h); }
+  Store.popReview();
+  bumpDay("reviews", -1);
 }
 
 function strength(h, now = Date.now()) {
@@ -65,23 +77,35 @@ function strength(h, now = Date.now()) {
 }
 
 // ── state ──────────────────────────────────────────────────────────────────
-const DEFAULTS = { v: 1, cards: {}, stories: {}, opts: { batch: 5, perDay: 15, mode: "mix" }, today: { d: "", n: 0 } };
-let S = load();
+const OPTS = { batch: 5, perDay: 15, mode: "mix", say: true };
+let S = { cards: {}, stories: {}, opts: { ...OPTS }, today: { d: "", n: 0 }, days: {} };
 
-function load() {
-  try {
-    const got = JSON.parse(localStorage.getItem(KEY) || "null");
-    if (got && got.v === 1) return { ...DEFAULTS, ...got, opts: { ...DEFAULTS.opts, ...got.opts } };
-  } catch (e) { /* private window, blocked storage: start fresh */ }
-  return structuredClone(DEFAULTS);
+function take(all) {
+  const m = all.meta || {};
+  S = {
+    cards: all.cards || {}, stories: all.stories || {},
+    opts: { ...OPTS, ...(m.opts || {}) }, today: m.today || { d: "", n: 0 }, days: m.days || {},
+  };
 }
-function save() {
-  try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* kept for this visit only */ }
-}
+const putOpts = () => Store.putMeta("opts", S.opts);
 const today = () => new Date().toLocaleDateString("en-CA");
 function newLeftToday() {
   if (S.today.d !== today()) S.today = { d: today(), n: 0 };
   return Math.max(0, S.opts.perDay - S.today.n);
+}
+function bumpDay(what, n) {
+  const d = S.days[today()] || (S.days[today()] = { reviews: 0, learnt: 0 });
+  d[what] = Math.max(0, (d[what] || 0) + n);
+  Store.putMeta("days", S.days);
+}
+/** Days in a row with something done, up to today (or yesterday, if today's still empty). */
+function streak() {
+  const day = new Date();
+  const active = d => { const x = S.days[d.toLocaleDateString("en-CA")]; return x && (x.reviews || x.learnt); };
+  if (!active(day)) day.setDate(day.getDate() - 1);
+  let n = 0;
+  while (active(day)) { n += 1; day.setDate(day.getDate() - 1); }
+  return n;
 }
 
 // ── the path ───────────────────────────────────────────────────────────────
@@ -109,6 +133,27 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;",
 const inked = py => py.split(/\s+/).map(s => `<span class="t${tone(s)}">${esc(s)}</span>`).join(" ");
 const zh = h => `<span lang="zh">${esc(h)}</span>`;
 
+// ── the voice: Android's in the app, the browser's elsewhere ───────────────
+let voice = null;
+function findVoice() {
+  if (!("speechSynthesis" in window)) return;
+  const vs = speechSynthesis.getVoices();
+  voice = vs.find(v => /^zh[-_]CN/i.test(v.lang)) || vs.find(v => /^(zh|cmn)/i.test(v.lang)) || null;
+}
+if ("speechSynthesis" in window) { findVoice(); speechSynthesis.onvoiceschanged = findVoice; }
+const canSay = () => !!APP || !!voice;
+function say(text) {
+  if (APP) { APP.speak(text); return; }
+  if (!voice) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.voice = voice; u.lang = voice.lang; u.rate = 0.85;
+  speechSynthesis.speak(u);
+}
+const SPEAKER = `<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16 8.5c1.2 1 1.8 2.2 1.8 3.5s-.6 2.5-1.8 3.5M18.5 6c2 1.6 3 3.6 3 6s-1 4.4-3 6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`;
+const sayBtn = (text, label) => canSay()
+  ? `<button class="say" type="button" data-say="${esc(text)}" aria-label="Say ${esc(label || text)}">${SPEAKER}</button>` : "";
+
 // ── drawing a character ────────────────────────────────────────────────────
 function ink(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
 
@@ -131,7 +176,7 @@ const item = h => PATH[AT[h]];
 function readingHTML(it) {
   const [main, alt] = it.py;
   return `<div class="reading">
-    <div class="py">${main ? inked(main) : "—"}${alt ? `<span class="alt">also ${esc(alt)}</span>` : ""}</div>
+    <div class="py">${main ? inked(main) : "—"}${main ? sayBtn(it.h, main) : ""}${alt ? `<span class="alt">also ${esc(alt)}</span>` : ""}</div>
     <div class="en">${esc(it.en)}</div></div>`;
 }
 
@@ -174,7 +219,7 @@ function storyHTML(it) {
 function wordsHTML(it) {
   if (!it.w) return "";
   return `<div class="block"><h3>Words you can read now</h3><ul class="words">${it.w.map(([w, py, en, l]) =>
-    `<li><span class="w" lang="zh">${esc(w)}</span><span class="wp">${inked(py)}<span class="lvl">HSK ${l}</span></span><span class="we">${esc(en)}</span></li>`).join("")}</ul></div>`;
+    `<li${canSay() ? ` data-say="${esc(w)}"` : ""}><span class="w" lang="zh">${esc(w)}</span><span class="wp">${inked(py)}<span class="lvl">HSK ${l}</span></span><span class="we">${esc(en)}</span></li>`).join("")}</ul></div>`;
 }
 
 function partsHTML(it) {
@@ -192,7 +237,9 @@ function tagHTML(it) {
 // ── views ──────────────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
 const VIEWS = ["home", "learn", "quiz", "done"];
+let view = "home";
 function show(v) {
+  view = v;
   VIEWS.forEach(x => { $(x).hidden = x !== v; });
   window.scrollTo(0, 0);
   if (v === "home") renderHome();
@@ -213,8 +260,17 @@ function renderHome() {
   const left = newLeftToday();
   const batch = Math.min(S.opts.batch, left);
   const next = nextNew(batch || S.opts.batch);
+  const end = new Date(); end.setHours(24, 0, 0, 0);
+  const tomorrow = Object.values(S.cards).filter(c => c.due > now && c.due <= end.getTime() + DAY).length;
+  const t = S.days[today()] || {};
+  const st = streak();
 
-  $("stat").innerHTML = `<b>${due.length}</b> due · <b>${known}</b> known · <b>${met}</b> of ${PATH.length} met · ${left} new left today`;
+  $("stat").innerHTML = `<b>${known}</b> known · <b>${met}</b> of ${PATH.length} met`;
+  $("stat2").innerHTML = [
+    st ? `<b>${st}</b> day${st === 1 ? "" : "s"} in a row` : "no streak yet",
+    `<b>${t.reviews || 0}</b> reviews today`,
+    `<b>${tomorrow}</b> due by tomorrow`,
+  ].join(" · ");
   const rv = $("go-review");
   rv.disabled = !due.length;
   rv.textContent = due.length ? `Review ${due.length}` : "Nothing due";
@@ -230,9 +286,9 @@ function renderHome() {
     if (it.k === "part") cls += " part";
     const c = S.cards[it.h];
     if (c) {
-      const st = strength(it.h, now);
+      const s = strength(it.h, now);
       cls += " met";
-      if (st >= KNOWN) cls += " known";
+      if (s >= KNOWN) cls += " known";
       else if (c.due <= now && c.reps > 1) cls += " wilt";
     } else if (i >= firstNew && i < firstNew + (batch || S.opts.batch)) cls += " next";
     else if (i < firstNew + 40) cls += " ahead-near";
@@ -243,6 +299,10 @@ function renderHome() {
   $("opt-batch").value = S.opts.batch;
   $("opt-day").value = S.opts.perDay;
   $("opt-mode").value = S.opts.mode;
+  $("opt-say").value = S.opts.say ? "on" : "off";
+  $("row-say").hidden = !canSay();
+  $("where").textContent = { sqlite: "in the app's database", indexeddb: "in this browser's database", memory: "for this visit only (this browser keeps nothing)" }[Store.kind];
+  renderUpdates();
 }
 
 // ── learning a batch ───────────────────────────────────────────────────────
@@ -258,7 +318,7 @@ function startLearn() {
 }
 
 function openItem(h) {
-  L = { items: [h], i: 0, lookup: true };
+  L = { items: [h], i: 0, lookup: true, from: view };
   show("learn");
   renderLearn();
 }
@@ -276,6 +336,7 @@ function renderLearn() {
   const box = $("learn-box");
   W1 = writer(box, h);
   W1.animateCharacter();
+  if (!L.lookup && S.opts.say && it.py[0]) say(h);
   box.onclick = () => { W1.cancelQuiz(); W1.showOutline(); W1.animateCharacter(); $("learn-write").textContent = "Write it"; };
 }
 
@@ -288,18 +349,19 @@ function learnWrite() {
 }
 
 function learnNext() {
-  if (L.lookup) { show("home"); return; }
+  if (L.lookup) { back(); return; }
   if (L.i + 1 < L.items.length) { L.i += 1; renderLearn(); return; }
   S.today.n += L.items.length;
-  save();
+  Store.putMeta("today", S.today);
+  bumpDay("learnt", L.items.length);
   startQuiz(L.items.slice(), "check");
 }
 
 // ── a round of questions: the check after a batch, or a review ─────────────
-let Q = null;   // { queue, kind, done, tries, mode, graded, suggest }
+let Q = null;   // { queue, kind, done, total, tries, misses, mode, suggest, shown, last }
 
 function startQuiz(items, kind) {
-  Q = { queue: items, kind, done: 0, total: items.length, tries: {}, misses: 0 };
+  Q = { queue: items, kind, done: 0, total: items.length, tries: {}, misses: 0, last: null };
   show("quiz");
   renderQuiz();
 }
@@ -316,12 +378,14 @@ function modeFor(h) {
 }
 
 let W2 = null;
-function renderQuiz() {
+function renderQuiz(mode) {
   const h = Q.queue[0];
   const it = item(h);
-  Q.mode = modeFor(h);
+  Q.mode = mode || modeFor(h);
   Q.suggest = 0;
+  Q.shown = Date.now();
   $("quiz-count").textContent = `${Q.kind === "check" ? "check" : "review"} ${Math.min(Q.done + 1, Q.total)} / ${Q.total}`;
+  $("quiz-undo").hidden = !Q.last;
   $("quiz-grades").hidden = true;
   $("quiz-show-row").hidden = false;
   [...document.querySelectorAll("#quiz-grades .pill")].forEach(b => b.classList.remove("suggest"));
@@ -351,9 +415,10 @@ function reveal() {
   if (!$("quiz-grades").hidden) return;
   const h = Q.queue[0];
   const it = item(h);
+  Q.ms = Date.now() - Q.shown;
   if (Q.mode === "write") {
     if (!Q.suggest) { Q.suggest = 1; W2.cancelQuiz(); W2.showCharacter(); }
-  }
+  } else if (S.opts.say && it.py[0]) say(h);
   const a = $("quiz-answer");
   a.innerHTML = (Q.mode === "read" ? readingHTML(it) : "") + partsHTML(it) +
     (S.stories[h] ? `<div class="block"><h3>Your story</h3><p class="why">${esc(S.stories[h])}</p></div>` : whyHTML(it));
@@ -364,14 +429,26 @@ function reveal() {
 }
 
 function answer(g) {
+  if ($("quiz-grades").hidden) return;
   const h = Q.queue.shift();
-  grade(h, g);
+  const undo = grade(h, g, Q.mode, Q.ms);
+  Q.last = { undo, mode: Q.mode, queue: [h, ...Q.queue], done: Q.done, misses: Q.misses, tries: { ...Q.tries } };
   Q.tries[h] = (Q.tries[h] || 0) + 1;
   if (g === 1) Q.misses += 1;
   if (g === 1 && Q.tries[h] < 3) Q.queue.push(h);   // once more at the end of the round
   else Q.done += 1;
   if (!Q.queue.length) return finish();
   renderQuiz();
+}
+
+/** The last grade taken back: the card as it was, and the question again. */
+function undoLast() {
+  if (!Q || !Q.last) return;
+  const l = Q.last;
+  ungrade(l.undo);
+  Object.assign(Q, { queue: l.queue, done: l.done, misses: l.misses, tries: l.tries, last: null });
+  show("quiz");
+  renderQuiz(l.mode);
 }
 
 function finish() {
@@ -381,41 +458,88 @@ function finish() {
   $("done-text").textContent = learnt
     ? `${n} new on the path. They come back tomorrow, or sooner if you missed them.`
     : `${n} reviewed${Q.misses ? `, ${Q.misses} to go over again` : ", all of them held"}.`;
+  $("done-undo").hidden = !Q.last;
   show("done");
 }
 
+/** Back, as Android's back button has it: a looked-up item to where it was opened, anything else to the path. */
+function back() {
+  if (view === "home") return false;
+  if (view === "learn" && L && L.lookup && L.from === "quiz") { show("quiz"); return true; }
+  show("home");
+  return true;
+}
+
 // ── progress in and out ────────────────────────────────────────────────────
-function copyOut() {
-  const text = JSON.stringify(S);
+async function copyOut() {
+  const all = { v: 2, cards: S.cards, stories: S.stories, meta: { opts: S.opts, today: S.today, days: S.days }, reviews: await Store.reviews() };
+  const text = JSON.stringify(all);
   const io = $("io");
   io.value = text;
-  const ok = () => { $("io-msg").textContent = "Copied. Paste it somewhere safe."; };
+  const ok = () => { $("io-msg").textContent = `Copied: ${Object.keys(S.cards).length} cards, ${all.reviews.length} reviews. Paste it somewhere safe.`; };
   const sel = () => { io.focus(); io.select(); $("io-msg").textContent = "Selected: copy it from the box."; };
   try { navigator.clipboard.writeText(text).then(ok, sel); } catch (e) { sel(); }
 }
 
+/** A copy back in: this one's (v 2), or the first version's localStorage blob (v 1). */
+function parseCopy(text) {
+  const got = JSON.parse(text);
+  if (got && got.v === 2 && typeof got.cards === "object") return got;
+  if (got && got.v === 1 && typeof got.cards === "object") {
+    return { cards: got.cards, stories: got.stories || {}, meta: { opts: got.opts, today: got.today }, reviews: [] };
+  }
+  throw new Error("not a copy");
+}
+
 let armed = false;
-function loadIn() {
+async function loadIn() {
   const msg = $("io-msg");
   let got;
-  try { got = JSON.parse($("io").value); } catch (e) { msg.textContent = "That isn't a progress copy: paste the whole text Copy progress gave you."; return; }
-  if (!got || got.v !== 1 || typeof got.cards !== "object") { msg.textContent = "That isn't a progress copy from Hanzi Path."; return; }
+  try { got = parseCopy($("io").value); } catch (e) { msg.textContent = "That isn't a progress copy: paste the whole text Copy progress gave you."; return; }
   if (!armed) {
     armed = true;
     $("io-load").textContent = `Replace with ${Object.keys(got.cards).length} cards`;
-    msg.textContent = "This replaces the progress in this browser. Press again to load it.";
+    msg.textContent = "This replaces the progress here. Press again to load it.";
     return;
   }
   armed = false;
   $("io-load").textContent = "Load pasted";
-  S = { ...DEFAULTS, ...got, opts: { ...DEFAULTS.opts, ...got.opts } };
-  save();
-  msg.textContent = `Loaded ${Object.keys(S.cards).length} cards.`;
+  try {
+    await Store.replace(got);
+    take(got);
+    msg.textContent = `Loaded ${Object.keys(S.cards).length} cards.`;
+  } catch (e) {
+    msg.textContent = "Couldn't save it here. Nothing was changed.";
+  }
   renderHome();
+}
+
+// ── updates (the app only) ─────────────────────────────────────────────────
+function renderUpdates() {
+  $("updates").hidden = !APP;
+  if (!APP) return;
+  let v = {};
+  try { v = JSON.parse(APP.version()); } catch (e) { /* older app */ }
+  const when = v.checked ? new Date(v.checked).toLocaleString([], { dateStyle: "short", timeStyle: "short" }) : "never";
+  $("up-version").textContent = `App ${v.app ?? "?"} · content ${v.web ?? "?"} · checked ${when}`;
+  $("up-status").textContent = v.status || "";
+  $("up-token").placeholder = v.token ? "Token saved. Paste a new one to replace it." : "GitHub token (read-only, this repo)";
+}
+
+// the native side's calls
+window.hanziBack = back;
+window.hanziResume = () => { if (view === "home" && PATH.length) renderHome(); };
+window.hanziUpdateStatus = () => renderUpdates();
+window.hanziUpdated = () => { $("update-ready").hidden = false; renderUpdates(); };
+
+function paintBars() {
+  if (APP && APP.setBars) APP.setBars(ink("--paper"), ink("--paper").toLowerCase() !== "#ffffff");
 }
 
 // ── wiring ─────────────────────────────────────────────────────────────────
 document.addEventListener("click", e => {
+  const s = e.target.closest("[data-say]");
+  if (s) { say(s.dataset.say); return; }
   const o = e.target.closest("[data-open]");
   if (o) openItem(o.dataset.open);
   const g = e.target.closest("[data-g]");
@@ -423,37 +547,58 @@ document.addEventListener("click", e => {
 });
 document.addEventListener("input", e => {
   if (e.target.id === "story") {
-    const t = e.target.value.trim();
-    if (t) S.stories[e.target.dataset.h] = t; else delete S.stories[e.target.dataset.h];
-    save();
+    const h = e.target.dataset.h, t = e.target.value.trim();
+    if (t) S.stories[h] = t; else delete S.stories[h];
+    clearTimeout(e.target._t);
+    e.target._t = setTimeout(() => Store.putStory(h, t), 400);
   }
 });
 document.addEventListener("keydown", e => {
   if ($("quiz").hidden || /TEXTAREA|SELECT|INPUT/.test(e.target.tagName)) return;
   if (e.key === " " || e.key === "Enter") { e.preventDefault(); reveal(); }
-  if (!$("quiz-grades").hidden && ["1", "2", "3"].includes(e.key)) answer(+e.key);
+  if (["1", "2", "3"].includes(e.key)) answer(+e.key);
+  if (e.key === "z" || e.key === "Backspace") undoLast();
 });
 $("go-review").onclick = startReview;
 $("go-learn").onclick = startLearn;
 $("learn-next").onclick = learnNext;
 $("learn-write").onclick = learnWrite;
-$("learn-close").onclick = () => show("home");
+$("learn-close").onclick = back;
 $("quiz-close").onclick = () => show("home");
 $("quiz-show").onclick = reveal;
+$("quiz-undo").onclick = undoLast;
+$("done-undo").onclick = undoLast;
 $("done-home").onclick = () => show("home");
 $("io-copy").onclick = copyOut;
 $("io-load").onclick = loadIn;
-$("opt-batch").onchange = e => { S.opts.batch = +e.target.value; save(); renderHome(); };
-$("opt-day").onchange = e => { S.opts.perDay = +e.target.value; save(); renderHome(); };
-$("opt-mode").onchange = e => { S.opts.mode = e.target.value; save(); };
+$("opt-batch").onchange = e => { S.opts.batch = +e.target.value; putOpts(); renderHome(); };
+$("opt-day").onchange = e => { S.opts.perDay = +e.target.value; putOpts(); renderHome(); };
+$("opt-mode").onchange = e => { S.opts.mode = e.target.value; putOpts(); };
+$("opt-say").onchange = e => { S.opts.say = e.target.value === "on"; putOpts(); };
+$("up-save").onclick = () => {
+  const t = $("up-token").value.trim();
+  if (!t) { $("up-status").textContent = "Paste the token first."; return; }
+  APP.setToken(t);
+  $("up-token").value = "";
+  APP.checkUpdates();
+  renderUpdates();
+};
+$("up-check").onclick = () => { APP.checkUpdates(); $("up-status").textContent = "Checking…"; };
+$("update-reload").onclick = () => (APP ? APP.reload() : location.reload());
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", paintBars);
 
-fetch("data/path.json").then(r => r.json()).then(p => {
+Promise.all([
+  fetch("data/path.json").then(r => r.json()),
+  Store.load().catch(() => ({})),
+]).then(([p, all]) => {
   PATH = p.items;
   CHUNK = p.chunk;
   PATH.forEach((it, i) => { AT[it.h] = i; });
+  take(all);
+  paintBars();
   show("home");
 }).catch(() => { $("stat").textContent = "The path didn't load. Reload the page to try again."; });
 
-if ("serviceWorker" in navigator && location.protocol !== "file:") {
+if (!APP && "serviceWorker" in navigator && location.protocol !== "file:") {
   navigator.serviceWorker.register("sw.js").catch(() => { /* not offline, that's all */ });
 }
