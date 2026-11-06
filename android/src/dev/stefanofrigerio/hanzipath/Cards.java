@@ -1,0 +1,215 @@
+package dev.stefanofrigerio.hanzipath;
+
+import android.text.Editable;
+import android.text.InputType;
+import android.text.SpannableStringBuilder;
+import android.text.Spanned;
+import android.text.TextWatcher;
+import android.text.style.ForegroundColorSpan;
+import android.text.style.TypefaceSpan;
+import android.view.Gravity;
+import android.view.View;
+import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+
+/** The pieces of an item's card, shared by Learn (all of them) and Quiz (the answer). */
+final class Cards {
+    private Cards() {}
+
+    static View tag(Main m, Item it) {
+        LinearLayout r = Ui.row(m, 8);
+        TextView kind = Ui.text(m, it.isPart() ? "PART" : "CHARACTER", 11, Ink.mono, Ink.ink2);
+        kind.setLetterSpacing(0.1f);
+        kind.setPadding(Ink.dp(10), Ink.dp(2), Ink.dp(10), Ink.dp(2));
+        kind.setBackground(Ui.shape(0, Ink.ink2, 999, it.isPart()));
+        r.addView(kind);
+        View gap = new View(m);
+        r.addView(gap, Ui.weight(1));
+        TextView pos = Ui.text(m, (it.strokes + (it.strokes == 1 ? " stroke" : " strokes") + " · no. " + (it.at + 1) + " of " + PathData.items.size()).toUpperCase(),
+                11, Ink.mono, Ink.ink2);
+        pos.setLetterSpacing(0.08f);
+        r.addView(pos);
+        return r;
+    }
+
+    static HanziView box(Main m, Item it) {
+        HanziView hv = new HanziView(m);
+        int w = m.getResources().getDisplayMetrics().widthPixels;
+        int s = Math.min(Ink.dp(240), (int) (w * 0.64f));
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(s, s);
+        lp.gravity = Gravity.CENTER_HORIZONTAL;
+        hv.setLayoutParams(lp);
+        hv.setGlyph(PathData.glyph(m, it.h));
+        hv.setContentDescription("Stroke order of " + it.h);
+        return hv;
+    }
+
+    static View reading(Main m, Item it) {
+        LinearLayout c = Ui.column(m, 2);
+        c.setGravity(Gravity.CENTER_HORIZONTAL);
+        LinearLayout r = Ui.row(m, 10);
+        r.setGravity(Gravity.CENTER);
+        TextView py = Ui.text(m, it.py.length > 0 ? Ui.pinyin(it.py[0]) : "—", 26, Ink.monoMedium, Ink.ink);
+        r.addView(py);
+        if (it.py.length > 0) r.addView(Ui.speaker(m, v -> m.say(it.h)));
+        if (it.py.length > 1) r.addView(Ui.text(m, "also " + it.py[1], 15, Ink.mono, Ink.ink2));
+        c.addView(r);
+        TextView en = Ui.text(m, it.en, 19, Ink.sans, Ink.ink);
+        en.setGravity(Gravity.CENTER);
+        c.addView(en);
+        return c;
+    }
+
+    static View chip(Main m, String h) {
+        Item p = PathData.get(h);
+        LinearLayout r = Ui.row(m, 8);
+        r.setPadding(Ink.dp(6), Ink.dp(4), Ink.dp(12), Ink.dp(4));
+        r.setBackground(Ui.shape(Ink.paper, m.prog.cards.containsKey(h) ? Ink.ink : Ink.ink2, 999, !m.prog.cards.containsKey(h)));
+        TextView han = Ui.text(m, h, 21, Ink.han, Ink.ink);
+        han.setMinWidth(Ink.dp(28));
+        han.setGravity(Gravity.CENTER);
+        r.addView(han);
+        SpannableStringBuilder b = new SpannableStringBuilder();
+        if (p.py.length > 0) b.append(Ui.pinyin(p.py[0])).append(' ');
+        int at = b.length();
+        b.append(p.en);
+        b.setSpan(new ForegroundColorSpan(Ink.ink2), at, b.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        r.addView(Ui.text(m, b, 14, Ink.sans, Ink.ink));
+        r.setOnClickListener(v -> m.lookup(h));
+        r.setContentDescription(h + " " + p.reading() + " " + p.en);
+        return r;
+    }
+
+    static View chips(Main m, String title, String[] hs) {
+        LinearLayout c = Ui.column(m, 8);
+        c.addView(Ui.label(m, title));
+        Flow f = new Flow(m, 8);
+        for (String h : hs) if (PathData.get(h) != null) f.addView(chip(m, h));
+        c.addView(f);
+        return c;
+    }
+
+    static void parts(Main m, LinearLayout into, Item it) {
+        if (it.parts.length > 0) into.addView(chips(m, "Made of", it.parts));
+        if (it.used.length > 0) into.addView(chips(m, "Leads to", it.used));
+    }
+
+    /** Make Me a Hanzi's etymology: which part gives the meaning, which the sound. */
+    static View why(Main m, Item it) {
+        SpannableStringBuilder b = new SpannableStringBuilder();
+        if ("pictophonetic".equals(it.etType) && (it.etSemantic != null || it.etPhonetic != null)) {
+            if (it.etSemantic != null) {
+                han(b, it.etSemantic);
+                Item s = PathData.get(it.etSemantic);
+                if (s != null) b.append(" ").append(s.en);
+                b.append(" gives the meaning");
+            }
+            if (it.etPhonetic != null) {
+                if (b.length() > 0) b.append(", ");
+                han(b, it.etPhonetic);
+                Item p = PathData.get(it.etPhonetic);
+                if (p != null && p.py.length > 0) b.append(" (").append(Ui.pinyin(p.py[0])).append(")");
+                b.append(" the sound");
+            }
+            b.append(".");
+            if (it.etHint != null && !it.etHint.isEmpty()) b.append(" ").append(it.etHint).append(".");
+        } else if (it.etHint != null && !it.etHint.isEmpty()) {
+            b.append(it.etHint).append(".");
+        }
+        if (b.length() == 0) return null;
+        LinearLayout c = Ui.column(m, 8);
+        c.addView(Ui.label(m, "Why it looks like this"));
+        c.addView(Ui.text(m, b, 15, Ink.sans, Ink.ink));
+        return c;
+    }
+
+    static void han(SpannableStringBuilder b, String h) {
+        int at = b.length();
+        b.append(h);
+        b.setSpan(new TypefaceSpan(Ink.han), at, b.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+    }
+
+    static View story(Main m, Item it) {
+        LinearLayout c = Ui.column(m, 8);
+        c.addView(Ui.label(m, "Your story"));
+        EditText e = new EditText(m);
+        e.setText(m.prog.stories.containsKey(it.h) ? m.prog.stories.get(it.h) : "");
+        StringBuilder hint = new StringBuilder();
+        if (it.parts.length == 0) hint.append("Write a picture or a scene that makes this one stick.");
+        else {
+            for (int i = 0; i < it.parts.length; i++) {
+                Item p = PathData.get(it.parts[i]);
+                if (i > 0) hint.append(" + ");
+                hint.append(it.parts[i]).append(' ').append(p == null ? "" : p.en);
+            }
+            hint.append(" → ").append(it.en).append(". Make it a scene of your own.");
+        }
+        e.setHint(hint);
+        e.setHintTextColor(Ink.ink2);
+        e.setTextColor(Ink.ink);
+        e.setTypeface(Ink.sans);
+        e.setTextSize(15);
+        e.setMinLines(2);
+        e.setGravity(Gravity.TOP | Gravity.START);
+        e.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+        e.setBackground(Ui.shape(Ink.paper2, Ink.rule, 14, false));
+        e.setPadding(Ink.dp(12), Ink.dp(10), Ink.dp(12), Ink.dp(10));
+        final Runnable save = () -> m.prog.story(it.h, e.getText().toString());
+        e.addTextChangedListener(new TextWatcher() {
+            public void beforeTextChanged(CharSequence s, int a, int b, int c2) {}
+            public void onTextChanged(CharSequence s, int a, int b, int c2) {}
+            public void afterTextChanged(Editable s) {
+                e.removeCallbacks(save);
+                e.postDelayed(save, 400);
+            }
+        });
+        e.setOnFocusChangeListener((v, f) -> { if (!f) save.run(); });
+        c.addView(e, new LinearLayout.LayoutParams(-1, -2));
+        return c;
+    }
+
+    static View storyRead(Main m, Item it) {
+        String s = m.prog.stories.get(it.h);
+        if (s == null) return why(m, it);
+        LinearLayout c = Ui.column(m, 8);
+        c.addView(Ui.label(m, "Your story"));
+        c.addView(Ui.text(m, s, 15, Ink.sans, Ink.ink));
+        return c;
+    }
+
+    static View words(Main m, Item it) {
+        if (it.words.length == 0) return null;
+        LinearLayout c = Ui.column(m, 10);
+        c.addView(Ui.label(m, "Words you can read now"));
+        for (String[] w : it.words) {
+            LinearLayout r = Ui.row(m, 12);
+            r.setGravity(Gravity.TOP);
+            r.addView(Ui.text(m, w[0], 22, Ink.han, Ink.ink));
+            LinearLayout t = Ui.column(m, 0);
+            SpannableStringBuilder b = Ui.pinyin(w[1]);
+            int at = b.length();
+            b.append("  HSK ").append(w[3]);
+            b.setSpan(new ForegroundColorSpan(Ink.ink2), at, b.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            t.addView(Ui.text(m, b, 14, Ink.mono, Ink.ink));
+            t.addView(Ui.text(m, w[2], 13, Ink.sans, Ink.ink2));
+            r.addView(t, Ui.weight(1));
+            r.setOnClickListener(v -> m.say(w[0]));
+            r.setContentDescription(w[0] + ", " + w[2] + ". Tap to hear it.");
+            c.addView(r);
+        }
+        return c;
+    }
+
+    /** The bar over a card: a count on the left; Undo and × on the right. */
+    static LinearLayout bar(Main m, String count, View... right) {
+        LinearLayout r = Ui.row(m, 8);
+        TextView t = Ui.text(m, count, 13, Ink.mono, Ink.ink2);
+        t.setLetterSpacing(0.06f);
+        r.addView(t, Ui.weight(1));
+        for (View v : right) if (v != null) r.addView(v);
+        return r;
+    }
+
+    static void add(LinearLayout into, View v) { if (v != null) into.addView(v); }
+}

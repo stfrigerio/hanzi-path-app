@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Hanzi Path on the phone: the web app (index.html, app.js, data/) in a WebView, its
-     files from the APK's assets or from a newer copy the updater downloaded, progress in
-     SQLite (Db), the readings spoken by Android's own voice (Speech). The updater asks
-     GitHub's latest release at most every few hours: a new web copy is used at once, a new
-     APK installs over this one (silently once this app installed itself). versionCode is
-     set by assemble (the commits that touched android/). -->
+<!-- Hanzi Path: native screens built in code (Main and the screens it opens), the path and
+     its strokes in the assets (made by tools/build.py), progress in SQLite (Progress), the
+     readings spoken by Android's own voice (Speech). The updater asks GitHub's latest
+     release at most every few hours and installs a newer APK over this one (silently once
+     this app installed itself). versionCode is set by assemble: the commits on the branch. -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="dev.stefanofrigerio.hanzipath">
 
@@ -26,11 +25,13 @@
         android:allowBackup="true"
         android:fullBackupContent="@xml/backup"
         android:dataExtractionRules="@xml/extraction"
-        android:theme="@style/Paper">
+        android:theme="@style/Paper"
+        android:supportsRtl="false">
         <activity
             android:name=".Main"
             android:exported="true"
             android:launchMode="singleTask"
+            android:windowSoftInputMode="adjustResize"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode|density">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

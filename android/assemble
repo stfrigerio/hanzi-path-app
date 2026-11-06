@@ -1,11 +1,8 @@
 #!/usr/bin/env bash
 # Build the app (android/) without gradle:
-# javac, d8, aapt2, zipalign, apksigner. The web app goes in as its assets (tools/web).
-# Prints the APK's path: android/out/hanzi-path-<code>.apk.
-#
-# Its versionCode is the number of commits that touched android/, so an update to the web
-# app alone doesn't make a new APK (the app downloads the web copy instead). The web
-# version is the commits on the branch.
+# javac, d8, aapt2, zipalign, apksigner. Its assets: the path and its strokes (data/, made by
+# tools/build.py) and the faces (android/fonts). Prints the APK's path:
+# android/out/hanzi-path-<code>.apk, its versionCode the commits on the branch.
 #
 # Signed with KEYSTORE (default ~/.android/debug.keystore, made if missing, password
 # KEYSTORE_PASS, default "android"). Every build that's to update an installed app must be
@@ -19,8 +16,7 @@ BT=$(ls -d "$SDK"/build-tools/*/ | sort -V | tail -1)
 JAR=$(ls -d "$SDK"/platforms/android-*/ | sort -V | tail -1)android.jar
 KEYSTORE=${KEYSTORE:-$HOME/.android/debug.keystore}
 KEYSTORE_PASS=${KEYSTORE_PASS:-android}
-CODE=${APK_VERSION:-$(git rev-list --count HEAD -- .)}
-WEBV=${WEB_VERSION:-$(git rev-list --count HEAD)}
+CODE=${APK_VERSION:-$(git rev-list --count HEAD)}
 [ "$CODE" -ge 1 ] || CODE=1
 
 if [ ! -f "$KEYSTORE" ]; then
@@ -31,12 +27,13 @@ fi
 
 OUT=out
 rm -rf "$OUT" && mkdir -p "$OUT/classes" "$OUT/dex" "$OUT/assets"
-../tools/web "$PWD/$OUT/assets/web" "$WEBV" >/dev/null
+cp ../data/path.json ../data/strokes-*.json "$OUT/assets/"
+mkdir -p "$OUT/assets/fonts" && cp fonts/*.ttf "$OUT/assets/fonts/"
 javac -source 8 -target 8 -nowarn -Xlint:-options -bootclasspath "$JAR" -classpath "$BT/core-lambda-stubs.jar" -d "$OUT/classes" $(find src -name '*.java')
 "$BT/d8" --min-api 31 --lib "$JAR" --output "$OUT/dex" $(find "$OUT/classes" -name '*.class')
 "$BT/aapt2" compile --dir res -o "$OUT/res.zip"
-"$BT/aapt2" link -I "$JAR" --manifest AndroidManifest.xml -A "$OUT/assets" \
-    --version-code "$CODE" --version-name "$CODE.$WEBV" -o "$OUT/unsigned.apk" "$OUT/res.zip"
+"$BT/aapt2" link -I "$JAR" --manifest AndroidManifest.xml -A "$OUT/assets" -0 json -0 ttf \
+    --version-code "$CODE" --version-name "$CODE" -o "$OUT/unsigned.apk" "$OUT/res.zip"
 (cd "$OUT/dex" && zip -q ../unsigned.apk classes.dex)
 "$BT/zipalign" -f 4 "$OUT/unsigned.apk" "$OUT/aligned.apk"
 "$BT/apksigner" sign --ks "$KEYSTORE" --ks-pass "pass:$KEYSTORE_PASS" --out "$OUT/hanzi-path-$CODE.apk" "$OUT/aligned.apk"

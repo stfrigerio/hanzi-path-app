@@ -21,26 +21,22 @@ import java.net.URL;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 
 /**
  * Keeps the app up to date from the repo's GitHub release "latest" (the release workflow makes
- * it on every push to main): web-N.zip is the web app, N the commits on main; hanzi-path-C.apk
- * the app itself, C the commits that touched android/. The repo is private, so it asks with a
- * fine-grained token (read-only, Contents, this repo), pasted once in Settings.
+ * it on every push to main): hanzi-path-C.apk, C the commits on main. The repo is private, so
+ * it asks with a fine-grained token (read-only, Contents, this repo), pasted once in Settings.
  *
  * Asked as the app comes to the front, at most every EVERY ms (or at once from Settings). A
- * newer web copy is unpacked beside the old one and used from the next page load (the page
- * offers a reload). A newer APK is installed over this one through PackageInstaller: silently
- * once this app is the one that installed itself (Android 12's USER_ACTION_NOT_REQUIRED), with
- * Android's confirmation the first time (after an install by adb or a file manager).
+ * newer APK is installed over this one through PackageInstaller: silently once this app is the
+ * one that installed itself (Android 12's USER_ACTION_NOT_REQUIRED), with Android's
+ * confirmation the first time (after an install by adb or a file manager).
  */
 class Updater {
     static final String RELEASE = "https://api.github.com/repos/stfrigerio/hanzi-path-app/releases/tags/latest";
     static final long EVERY = 3 * 3600_000L;
     static final AtomicBoolean busy = new AtomicBoolean();
-    static final Pattern WEB = Pattern.compile("web-(\\d+)\\.zip"), APK = Pattern.compile("hanzi-path-(\\d+)\\.apk");
+    static final Pattern APK = Pattern.compile("hanzi-path-(\\d+)\\.apk");
 
     static void maybe(Main main, boolean now) {
         SharedPreferences p = main.getSharedPreferences("hanzi", Context.MODE_PRIVATE);
@@ -59,7 +55,7 @@ class Updater {
 
     static void status(Main main, SharedPreferences p, String s) {
         p.edit().putString("status", s).apply();
-        main.js("window.hanziUpdateStatus && hanziUpdateStatus()");
+        main.updateStatus();
     }
 
     static void run(Main main, SharedPreferences p, boolean now) throws Exception {
@@ -77,62 +73,20 @@ class Updater {
         JSONArray assets = new JSONObject(read(c.getInputStream())).getJSONArray("assets");
         p.edit().putLong("checked", System.currentTimeMillis()).apply();
 
-        int web = 0, apk = 0;
-        String webUrl = null, apkUrl = null;
+        int apk = 0;
+        String apkUrl = null;
         for (int i = 0; i < assets.length(); i++) {
             JSONObject a = assets.getJSONObject(i);
-            Matcher m = WEB.matcher(a.getString("name"));
-            if (m.matches() && Integer.parseInt(m.group(1)) > web) { web = Integer.parseInt(m.group(1)); webUrl = a.getString("url"); }
-            m = APK.matcher(a.getString("name"));
+            Matcher m = APK.matcher(a.getString("name"));
             if (m.matches() && Integer.parseInt(m.group(1)) > apk) { apk = Integer.parseInt(m.group(1)); apkUrl = a.getString("url"); }
         }
-
         long have = main.getPackageManager().getPackageInfo(main.getPackageName(), 0).getLongVersionCode();
-        if (apkUrl != null && apk > have && installApk(main, p, token, apkUrl, apk, now)) {
-            return;    // the new APK brings its own web copy
-        }
-        if (webUrl != null && web > Web.version(main)) {
-            status(main, p, "Downloading version " + web + "…");
-            unpack(main, download(webUrl, token, new File(main.getCacheDir(), "web.zip")), web);
-            status(main, p, "Version " + web + " is ready.");
-            main.js("window.hanziUpdated && hanziUpdated(" + web + ")");
-            return;
-        }
-        status(main, p, "Up to date.");
-    }
-
-    // ── the web copy ──
-    static void unpack(Context ctx, File zip, int version) throws IOException {
-        File base = Web.base(ctx);
-        File tmp = new File(base, "tmp-" + version), dest = new File(base, String.valueOf(version));
-        delete(tmp);
-        tmp.mkdirs();
-        String root = tmp.getCanonicalPath() + File.separator;
-        try (ZipInputStream z = new ZipInputStream(new FileInputStream(zip))) {
-            for (ZipEntry e; (e = z.getNextEntry()) != null; ) {
-                File f = new File(tmp, e.getName());
-                if (!f.getCanonicalPath().startsWith(root)) throw new IOException("bad path in the zip");
-                if (e.isDirectory()) { f.mkdirs(); continue; }
-                f.getParentFile().mkdirs();
-                try (OutputStream out = new FileOutputStream(f)) { copy(z, out); }
-            }
-        }
-        zip.delete();
-        if (!new File(tmp, "index.html").isFile()) { delete(tmp); throw new IOException("the copy has no index.html"); }
-        delete(dest);
-        if (!tmp.renameTo(dest)) throw new IOException("couldn't move the copy in place");
-        File cur = new File(base, "current.tmp");
-        try (OutputStream out = new FileOutputStream(cur)) { out.write(String.valueOf(version).getBytes()); }
-        if (!cur.renameTo(new File(base, "current"))) throw new IOException("couldn't switch to the copy");
-        File[] old = base.listFiles();
-        if (old != null) for (File f : old) {
-            String n = f.getName();
-            if (f.isDirectory() && !n.equals(String.valueOf(version))) delete(f);
-        }
+        if (apkUrl != null && apk > have) installApk(main, p, token, apkUrl, apk, now);
+        else status(main, p, "Up to date.");
     }
 
     // ── the app itself ──
-    /** True once the install is under way; false when it waits (then the web copy can still come). */
+    /** True once the install is under way; false when it waits for the person. */
     static boolean installApk(Main main, SharedPreferences p, String token, String url, int code, boolean now) throws Exception {
         if (!now && p.getInt("apkTried", 0) == code
                 && System.currentTimeMillis() - p.getLong("apkTriedAt", 0) < 24 * 3600_000L) {
@@ -140,7 +94,7 @@ class Updater {
             return false;
         }
         if (!main.getPackageManager().canRequestPackageInstalls()) {
-            status(main, p, "App update " + code + " needs “Install unknown apps” allowed for 汉字之路.");
+            status(main, p, "Update " + code + " needs “Install unknown apps” allowed for 汉字之路: tap Check now.");
             if (now) main.startActivity(new Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
                     Uri.parse("package:" + main.getPackageName())).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
             return false;
