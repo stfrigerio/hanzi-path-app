@@ -159,6 +159,8 @@ final class Home {
         }
         col.addView(gs);
 
+        col.addView(Stats.entry(m));
+
         // settings
         LinearLayout s = Ui.row(m, 8);
         s.setPadding(0, Ink.dp(16), 0, Ink.dp(8));

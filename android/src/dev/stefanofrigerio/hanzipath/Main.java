@@ -17,7 +17,7 @@ import android.widget.ScrollView;
 import java.util.List;
 
 /**
- * The app: one activity, its screens built in code (Home, Search, Learn, Quiz, Done, Settings), each
+ * The app: one activity, its screens built in code (Home, Search, Learn, Quiz, Done, Settings, Stats), each
  * a column on the paper, at most 520 dp wide, 16 dp from the sides. Back goes to the path;
  * from the path, out. The system bars are the paper's colour.
  */
@@ -30,6 +30,7 @@ public class Main extends Activity {
     Quiz quiz;
     Settings settings;
     Search search;
+    Stats stats;
     boolean gardenOpen;       // the whole path shown on home, not just the rows around you
     Object shownKey;          // what the screen shows (page's key): a new one comes in
     android.animation.ValueAnimator motion;   // the screen's motion while it runs (Motion)
@@ -127,6 +128,7 @@ public class Main extends Activity {
         learn = null;
         quiz = null;
         settings = null;
+        stats = null;
         Home.build(this, page("home", this::home));
     }
 
@@ -166,6 +168,12 @@ public class Main extends Activity {
         settings.show();
     }
 
+    /** Stats: the review log and the path, read back. */
+    void openStats() {
+        stats = new Stats(this);
+        stats.show();
+    }
+
     void say(String h) { Speech.say(this, h); }
 
     /** Back: a looked-up item to the question it was opened from, anything else to the path. */
@@ -177,6 +185,10 @@ public class Main extends Activity {
         }
         if (screen.equals("learn") && learn != null && learn.lookup && "search".equals(learn.from) && search != null) {
             search.show();
+            return true;
+        }
+        if (screen.equals("learn") && learn != null && learn.lookup && "stats".equals(learn.from) && stats != null) {
+            stats.show();
             return true;
         }
         home();

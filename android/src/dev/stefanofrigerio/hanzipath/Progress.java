@@ -246,6 +246,35 @@ final class Progress extends SQLiteOpenHelper {
         db.insertWithOnConflict("stories", null, v, SQLiteDatabase.CONFLICT_REPLACE);
     }
 
+    // ── the review log, read back (Stats) ──
+    /** One grade as it was logged. */
+    static final class Logged {
+        long at, ms;
+        String h, mode;
+        int grade;
+    }
+
+    /** Every grade given since a time, oldest first. */
+    List<Logged> reviewsSince(long since) {
+        List<Logged> out = new ArrayList<>();
+        try (Cursor c = getReadableDatabase().rawQuery("SELECT at, h, grade, mode, ms FROM reviews WHERE at >= ? ORDER BY at, id",
+                new String[]{String.valueOf(since)})) {
+            while (c.moveToNext()) {
+                Logged l = new Logged();
+                l.at = c.getLong(0); l.h = c.getString(1); l.grade = c.getInt(2); l.mode = c.getString(3); l.ms = c.getLong(4);
+                out.add(l);
+            }
+        }
+        return out;
+    }
+
+    /** How many grades the log holds, and how many of them were right (2 or 3). */
+    long[] reviewTotals() {
+        try (Cursor c = getReadableDatabase().rawQuery("SELECT COUNT(*), SUM(grade >= 2) FROM reviews", null)) {
+            return c.moveToNext() ? new long[]{c.getLong(0), c.getLong(1)} : new long[2];
+        }
+    }
+
     // ── a look from outside the app (the reminder): the database opened read-only ──
     /** What the reminder needs: its time (-1 off) and what's due now on the path, most overdue first. */
     static final class Peek {
