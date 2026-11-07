@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The widget at 2×2 (Widget.java): what the character is and how many are due, the
+     character large in the serif CJK, its pinyin in the tones' inks, its meaning. The texts
+     here are the picker's preview. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@android:id/background"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/widget_card"
+    android:clipToOutline="true"
+    android:paddingStart="16dp"
+    android:paddingEnd="16dp"
+    android:paddingTop="14dp"
+    android:paddingBottom="14dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+        <TextView
+            android:id="@+id/what"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:text="REVIEW"
+            android:textSize="11sp"
+            android:letterSpacing="0.12"
+            android:fontFamily="@font/mono_medium"
+            android:textColor="@color/ink2" />
+        <TextView
+            android:id="@+id/count"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="4"
+            android:textSize="13sp"
+            android:fontFamily="@font/mono_medium"
+            android:textColor="@color/ink" />
+        <TextView
+            android:id="@+id/count_word"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=" due"
+            android:textSize="13sp"
+            android:fontFamily="@font/mono"
+            android:textColor="@color/ink2" />
+    </LinearLayout>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+        <TextView
+            android:id="@+id/han"
+            android:layout_width="76dp"
+            android:layout_height="76dp"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:maxLines="1"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp"
+            android:includeFontPadding="false"
+            android:text="人"
+            android:textSize="52sp"
+            android:fontFamily="serif"
+            android:textColor="@color/ink" />
+    </FrameLayout>
+
+    <include layout="@layout/widget_pinyin" />
+
+    <TextView
+        android:id="@+id/meaning"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:text="person; people"
+        android:textSize="13sp"
+        android:fontFamily="@font/sans"
+        android:textColor="@color/ink2" />
+</LinearLayout>

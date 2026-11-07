@@ -130,6 +130,7 @@ public class Main extends Activity {
         settings = null;
         stats = null;
         Home.build(this, page("home", this::home));
+        Widget.refresh(this);   // back from a round: the widget counts what's due now
     }
 
     void startLearn() {
@@ -206,6 +207,12 @@ public class Main extends Activity {
         super.onResume();
         Updater.maybe(this, false);
         if (screen.equals("home")) home();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        Widget.refresh(this);
     }
 
     @Override

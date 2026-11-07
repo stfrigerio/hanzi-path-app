@@ -277,10 +277,12 @@ final class Progress extends SQLiteOpenHelper {
     }
 
     // ── a look from outside the app (the reminder): the database opened read-only ──
-    /** What the reminder needs: its time (-1 off) and what's due now on the path, most overdue first. */
+    /** What the reminder and the widget need: the reminder's time (-1 off), what's due now on
+     *  the path (most overdue first), and every item met (what's not met is still to learn). */
     static final class Peek {
         int remind = -1;
         final List<String> due = new ArrayList<>();
+        final java.util.Set<String> met = new java.util.HashSet<>();
     }
 
     static Peek peek(Context ctx, long now) {
@@ -290,6 +292,9 @@ final class Progress extends SQLiteOpenHelper {
         try (SQLiteDatabase db = SQLiteDatabase.openDatabase(f.getPath(), null, SQLiteDatabase.OPEN_READONLY)) {
             try (Cursor c = db.rawQuery("SELECT v FROM meta WHERE k = 'opts'", null)) {
                 if (c.moveToNext()) p.remind = new JSONObject(c.getString(0)).optInt("remind", -1);
+            }
+            try (Cursor c = db.rawQuery("SELECT h FROM cards", null)) {
+                while (c.moveToNext()) p.met.add(c.getString(0));
             }
             final Map<String, Double> late = new HashMap<>();
             try (Cursor c = db.rawQuery("SELECT h, s, last FROM cards WHERE due <= ?", new String[]{String.valueOf(now)})) {
