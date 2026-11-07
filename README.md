@@ -49,8 +49,12 @@ Set up once:
   HSK words you can now read.
 - **Check**: right after the batch, a round of questions. That's the first
   grade, so a new item starts on what you showed you know.
-- **Review**: FSRS-4.5, a small scheduler with three grades (again, unsure, knew). A review shows
-  the character; *Show* gives its reading and meaning. *Undo* takes back the
+- **Review**: FSRS-4.5, a small scheduler with three grades (again, unsure, knew).
+- **Questions** (the check and reviews): the character and four answers, each
+  a reading and a meaning; the wrong three are close (characters sharing a
+  part with it, or near it on the path). The tap grades it: right in under 8
+  seconds is knew, right but slower unsure, wrong again (it comes back at the
+  end of the round). Then the answer in full, and Next. *Undo* takes back the
   last grade.
 - **Home**: what's known, days in a row, today's reviews, what's due by
   tomorrow, and the whole path as a garden: yellow next, pink learning, blue
