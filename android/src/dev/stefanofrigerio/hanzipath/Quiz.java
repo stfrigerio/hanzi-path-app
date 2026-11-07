@@ -422,7 +422,9 @@ class Quiz {
         show();
     }
 
-    /** The round's end: a seal (好 clean, 行 fine, 练 practise), what happened, the way back. */
+    /** The round's end: a seal (好 clean, 行 fine, 练 practise), what happened, the way back.
+     *  After a review, what's left: how many are still due, with Another round, or when the
+     *  next fall due. */
     void finish() {
         LinearLayout col = m.page("done", this::finish);
         LinearLayout card = Ui.card(m);
@@ -443,11 +445,54 @@ class Quiz {
         TextView t = Ui.text(m, said, 16, Ink.sans, Ink.ink);
         t.setGravity(Gravity.CENTER);
         card.addView(t);
+        long now = System.currentTimeMillis();
+        int more = kind.equals("review") ? m.prog.due(now).size() : 0;
+        if (kind.equals("review")) {
+            // what's left: still due (another round), or when the next fall due
+            long at = more > 0 ? 0 : m.prog.nextDue(now);
+            TextView rest = Ui.text(m, more > 0 ? more + " still due, for another round."
+                    : at == 0 ? "Nothing more is due." : "Nothing more is due. The next fall due " + when(now, at) + ".",
+                    14, Ink.sans, Ink.ink2);
+            rest.setGravity(Gravity.CENTER);
+            card.addView(rest, new LinearLayout.LayoutParams(-1, -2));
+        }
         LinearLayout acts = Ui.row(m, 10);
         acts.setGravity(Gravity.CENTER);
-        if (last != null) acts.addView(Ui.pill(m, "Undo the last", Ui.OUTLINE, v -> undo()));
-        acts.addView(Ui.pill(m, "Back to the path", Ui.SOLID, v -> m.home()));
-        card.addView(acts);
+        if (more > 0) {
+            // a round with more behind it: the next round beside the way back, undo under them
+            acts.addView(Ui.pill(m, "Back to the path", Ui.OUTLINE, v -> m.home()), Ui.weight(1));
+            acts.addView(Ui.pill(m, "Another round", Ui.SOLID, v -> m.startReview()), Ui.weight(1));
+            card.addView(acts);
+            if (last != null) {
+                LinearLayout.LayoutParams up = new LinearLayout.LayoutParams(-2, -2);
+                up.gravity = Gravity.CENTER_HORIZONTAL;
+                card.addView(smallPill("Undo the last", v -> undo()), up);
+            }
+        } else {
+            if (last != null) acts.addView(Ui.pill(m, "Undo the last", Ui.OUTLINE, v -> undo()));
+            acts.addView(Ui.pill(m, "Back to the path", Ui.SOLID, v -> m.home()));
+            card.addView(acts);
+        }
         col.addView(card);
+    }
+
+    /** When a time falls, said plainly from now: "in 10 minutes", "in 3 hours", "tomorrow",
+     *  "in 4 days". Within half a day it's hours; past that, the calendar day it falls on. */
+    static String when(long now, long at) {
+        long min = Math.max(1, (at - now + 59_999) / 60_000);
+        if (min < 60) return min == 1 ? "in a minute" : "in " + min + " minutes";
+        long hours = Math.round(min / 60.0);
+        java.util.Calendar a = java.util.Calendar.getInstance(), b = java.util.Calendar.getInstance();
+        a.setTimeInMillis(now);
+        b.setTimeInMillis(at);
+        int days = 0;
+        while (a.get(java.util.Calendar.YEAR) != b.get(java.util.Calendar.YEAR)
+                || a.get(java.util.Calendar.DAY_OF_YEAR) != b.get(java.util.Calendar.DAY_OF_YEAR)) {
+            a.add(java.util.Calendar.DATE, 1);
+            days++;
+            if (days > 400) break;
+        }
+        if (days == 0 || min < 12 * 60) return hours == 1 ? "in an hour" : "in " + hours + " hours";
+        return days == 1 ? "tomorrow" : "in " + days + " days";
     }
 }

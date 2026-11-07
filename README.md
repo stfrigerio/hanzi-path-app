@@ -49,7 +49,12 @@ Set up once:
   words you can now read (HSK's, or CC-CEDICT's where HSK has none).
 - **Check**: right after the batch, a round of questions. That's the first
   grade, so a new item starts on what you showed you know.
-- **Review**: FSRS-4.5, a small scheduler with three grades (again, unsure, knew).
+- **Review**: FSRS-4.5, a small scheduler with three grades (again, unsure, knew). A round takes
+  the most overdue first, 40 at most (Settings → *Reviews per round*: 20, 40,
+  60, all); its end says how many are still due, with *Another round*, or when
+  the next fall due.
+- **First run**: home's Today card says in three lines how the path goes, until
+  *Got it* or the first batch learnt.
 - **Questions** (the check and reviews): the character and four answers, each
   a reading and a meaning. Once an item has been seen twice, a review may ask
   it the other way round (its reading and meaning, four characters to pick

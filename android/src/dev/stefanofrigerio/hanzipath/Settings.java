@@ -14,13 +14,15 @@ import java.text.DateFormat;
 import java.util.Date;
 
 /**
- * Settings and progress: how much is new at a time and per day, the voice, the daily reminder;
+ * Settings and progress: how much is new at a time and per day, how many reviews a round, the voice, the daily reminder;
  * the progress copied out to the clipboard and back in; the updates.
  */
 class Settings {
     final Main m;
     TextView status, version, io, note;
     boolean armed;
+
+    static final String[] ROUNDS = {"20", "40", "60", "all"};
 
     Settings(Main m) { this.m = m; }
 
@@ -34,6 +36,8 @@ class Settings {
                 v -> { p.batch = Integer.parseInt(v); p.saveOpts(); }));
         rows.addView(choice("New per day", new String[]{"10", "15", "20", "30", "50"}, String.valueOf(p.perDay),
                 v -> { p.perDay = Integer.parseInt(v); p.saveOpts(); }));
+        rows.addView(choice("Reviews per round", ROUNDS, p.round <= 0 ? "all" : String.valueOf(p.round),
+                v -> { p.round = v.equals("all") ? 0 : Integer.parseInt(v); p.saveOpts(); }));
         rows.addView(choice("Say it aloud", new String[]{"on", "off"}, p.say ? "on" : "off",
                 v -> { p.say = v.equals("on"); p.saveOpts(); }));
         rows.addView(choice("Reminder", Reminder.TIMES, Reminder.label(p.remind), v -> {

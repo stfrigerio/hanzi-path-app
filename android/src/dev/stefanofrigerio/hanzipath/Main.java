@@ -152,10 +152,11 @@ public class Main extends Activity {
         search.show();
     }
 
+    /** A round of reviews: the most overdue first, as many as Settings' "Reviews per round". */
     void startReview() {
         List<String> due = prog.due(System.currentTimeMillis());
         if (due.isEmpty()) return;
-        quiz = new Quiz(this, due.subList(0, Math.min(60, due.size())), "review");
+        quiz = new Quiz(this, due.subList(0, prog.roundOf(due.size())), "review");
         quiz.show();
     }
 

@@ -64,6 +64,8 @@ final class Progress extends SQLiteOpenHelper {
     int batch = 5, perDay = 15;
     boolean say = true;
     int remind = -1;                      // the daily reminder: minutes after midnight, -1 off
+    int round = 40;                       // reviews per round (Settings), 0 all that are due
+    boolean introDone;                    // home's first-run lines put away ("Got it", or a batch learnt)
     String todayDate = "";
     int todayNew = 0;
     JSONObject days = new JSONObject();   // {"2026-11-06": {"reviews": 12, "learnt": 5}}
@@ -230,8 +232,27 @@ final class Progress extends SQLiteOpenHelper {
     // ── settings and stories ──
     void saveOpts() {
         try {
-            putMeta("opts", new JSONObject().put("batch", batch).put("perDay", perDay).put("say", say).put("remind", remind).toString());
+            putMeta("opts", opts().toString());
         } catch (Exception e) { /* unchanged */ }
+    }
+
+    /** The settings as they're kept (meta "opts"); a key missing from an older copy loads as its default. */
+    JSONObject opts() throws org.json.JSONException {
+        return new JSONObject().put("batch", batch).put("perDay", perDay).put("say", say).put("remind", remind)
+                .put("round", round).put("intro", introDone);
+    }
+
+    /** How many reviews a round takes, of what's due. */
+    int roundOf(int due) { return round <= 0 ? due : Math.min(round, due); }
+
+    /** When the next review falls due after now (0: nothing is waiting). */
+    long nextDue(long now) {
+        long at = 0;
+        for (Map.Entry<String, Card> e : cards.entrySet()) {
+            long d = e.getValue().due;
+            if (d > now && Words.onPath(e.getKey()) && (at == 0 || d < at)) at = d;
+        }
+        return at;
     }
 
     void story(String h, String text) {
@@ -312,6 +333,8 @@ final class Progress extends SQLiteOpenHelper {
     void load() {
         cards.clear();
         stories.clear();
+        round = 40;          // what a copy from before these settings doesn't say: their defaults
+        introDone = false;
         SQLiteDatabase db = getReadableDatabase();
         try (Cursor c = db.rawQuery("SELECT h, s, d, reps, lapses, first, last, due, grade FROM cards", null)) {
             while (c.moveToNext()) {
@@ -334,6 +357,8 @@ final class Progress extends SQLiteOpenHelper {
                         perDay = o.optInt("perDay", perDay);
                         say = o.optBoolean("say", say);
                         remind = o.optInt("remind", remind);
+                        round = o.optInt("round", round);
+                        introDone = o.optBoolean("intro", introDone);
                     } else if (k.equals("today")) {
                         JSONObject o = new JSONObject(c.getString(1));
                         todayDate = o.optString("d");
@@ -371,7 +396,7 @@ final class Progress extends SQLiteOpenHelper {
                     .put("first", c.first).put("last", c.last).put("due", c.due).put("grade", c.grade));
         }
         for (Map.Entry<String, String> e : stories.entrySet()) st.put(e.getKey(), e.getValue());
-        meta.put("opts", new JSONObject().put("batch", batch).put("perDay", perDay).put("say", say).put("remind", remind));
+        meta.put("opts", opts());
         meta.put("today", obj("d", todayDate, "n", todayNew));
         meta.put("days", days);
         meta.put("words", obj("since", sinceWords));

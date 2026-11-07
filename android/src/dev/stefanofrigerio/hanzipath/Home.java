@@ -59,8 +59,11 @@ final class Home {
         th.addView(Ui.label(m, "Today"), Ui.weight(1));
         th.addView(Ui.label(m, new SimpleDateFormat("EEE d MMM", Locale.ENGLISH).format(new Date(now))));
         card.addView(th);
+        if (!p.introDone && !p.cards.isEmpty()) { p.introDone = true; p.saveOpts(); }   // the first batch learnt: put away
+        boolean intro = !p.introDone;
+        if (intro) card.addView(intro(m));
         LinearLayout ledger = Ui.column(m, 0);
-        ledger.addView(line(m, "Due now", due.size() + (reviewed > 0 ? " · " + reviewed + " done today" : ""), false));
+        ledger.addView(line(m, "Due now", due.size() + (reviewed > 0 ? " · " + reviewed + " done today" : ""), intro));
         ledger.addView(line(m, "New today", left + " of " + p.perDay + " left", true));
         ledger.addView(line(m, "Days in a row", streak > 0 ? String.valueOf(streak) : "none yet", true));
         ledger.addView(line(m, "Known", known + " of " + met + " met", true));
@@ -207,6 +210,40 @@ final class Home {
         s.setMinimumHeight(Ink.dp(48));
         s.setOnClickListener(v -> m.openSettings());
         col.addView(s);
+    }
+
+    /** The first run's few lines, in the Today card: how the path goes, and a small Got it
+     *  that puts them away for good (Progress.introDone; learning the first batch does too). */
+    static View intro(Main m) {
+        LinearLayout c = Ui.column(m, 6);
+        String[] lines = {
+                "Parts first: 木 and 目, then 相, which is made of them.",
+                "Each character is said aloud, and comes back just before you'd forget it.",
+                "Words follow once you know their characters.",
+        };
+        for (String s : lines) {
+            SpannableStringBuilder b = new SpannableStringBuilder(s);
+            for (int i = 0; i < s.length(); i++)
+                if (Character.UnicodeScript.of(s.codePointAt(i)) == Character.UnicodeScript.HAN) {
+                    b.setSpan(new TypefaceSpan(Ink.han), i, i + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    b.setSpan(new ForegroundColorSpan(Ink.ink), i, i + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                }
+            TextView t = Ui.text(m, b, 14, Ink.sans, Ink.ink2);
+            t.setLineSpacing(0, 1.15f);
+            c.addView(t);
+        }
+        TextView ok = Ui.pill(m, "Got it", Ui.OUTLINE, v -> {
+            m.prog.introDone = true;
+            m.prog.saveOpts();
+            m.home();
+        });
+        ok.setMinHeight(Ink.dp(36));
+        ok.setTextSize(14);
+        ok.setPadding(Ink.dp(14), 0, Ink.dp(14), 0);
+        LinearLayout.LayoutParams op = new LinearLayout.LayoutParams(-2, -2);
+        op.gravity = Gravity.END;
+        c.addView(ok, op);
+        return c;
     }
 
     /** Reviews due on each of the next seven days; today's counts what's overdue too. */
