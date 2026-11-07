@@ -29,6 +29,11 @@ import java.util.Set;
  * tap grades it: right and quick is knew it (3), right after SLOW ms unsure (2), wrong
  * again (1), which puts it at the end of the round (up to three times). Then the answer in
  * full, and Next. Undo takes the last grade back.
+ *
+ * A word (Words) gets the same three, with the word where the character was: word-choose
+ * (the word, four readings and meanings), word-pick (its reading and meaning, four words)
+ * and word-listen (said aloud, four words). Its wrong answers are other words, ones sharing
+ * a character with it first, ones you've met or could (their characters known) before the rest.
  */
 class Quiz {
     static final long SLOW = 8000;
@@ -41,7 +46,7 @@ class Quiz {
     Last last;
     String optionsFor;     // the question the options were drawn for (a redraw keeps them)
     List<String> options;
-    String mode;           // choose | pick | listen: the kind of the open question
+    String mode;           // choose | pick | listen, or word-choose | word-pick | word-listen
     String picked;         // the answer tapped; null while it's open
     int grade;
     HanziView hv;
@@ -67,13 +72,14 @@ class Quiz {
 
     void show() {
         String h = queue.get(0);
+        String[] word = Words.get(h);
         Item it = PathData.get(h);
         if (!h.equals(optionsFor)) {
             mode = kindFor(h);
             options = options(h, mode);
             optionsFor = h;
             shown = System.currentTimeMillis();
-            if (mode.equals("listen")) m.say(h);
+            if (mode.endsWith("listen")) m.say(h);
         }
         LinearLayout col = m.page("quiz", Arrays.asList(this, done, h, tries(h)), this::show);
         ringed.clear();
@@ -83,22 +89,27 @@ class Quiz {
                 undo, Ui.close(m, v -> m.home())));
 
         LinearLayout card = Ui.card(m);
-        TextView ask = Ui.label(m, picked == null ? (mode.equals("listen") ? "Which one did you hear?" : "Which one is it?")
+        TextView ask = Ui.label(m, picked == null ? (mode.endsWith("listen") ? "Which one did you hear?" : "Which one is it?")
                 : picked.equals(h) ? "Right" : "Not that one");
         ask.setGravity(Gravity.CENTER);
         if (picked != null) ask.setTextColor(picked.equals(h) ? Ink.tone[2] : Ink.tone[4]);
         card.addView(ask, new LinearLayout.LayoutParams(-1, -2));
-        if (mode.equals("choose")) {
-            hv = Cards.box(m, it);
-            card.addView(hv);
-            hv.show();
-            hv.setOnClickListener(v -> hv.animateStrokes());
+        if (mode.endsWith("choose")) {
+            if (word != null) {
+                hv = null;
+                card.addView(Cards.word(m, h));
+            } else {
+                hv = Cards.box(m, it);
+                card.addView(hv);
+                hv.show();
+                hv.setOnClickListener(v -> hv.animateStrokes());
+            }
             LinearLayout opts = Ui.column(m, 10);
             for (String o : options) opts.addView(option(o, h), new LinearLayout.LayoutParams(-1, -2));
             card.addView(opts);
         } else {
             hv = null;
-            card.addView(mode.equals("pick") ? said(it) : listen(h));
+            card.addView(mode.endsWith("pick") ? said(h) : listen(h));
             card.addView(grid(h));
         }
 
@@ -109,9 +120,14 @@ class Quiz {
             LinearLayout answer = Ui.column(m, 16);
             answer.setPadding(0, Ink.dp(16), 0, 0);
             answer.setBackground(Home.topRule());
-            answer.addView(Cards.reading(m, it));
-            Cards.parts(m, answer, it);
-            Cards.add(answer, Cards.why(m, it));
+            if (word != null) {
+                answer.addView(Cards.wordReading(m, word));
+                answer.addView(Cards.chips(m, "Its characters", Words.chars(h)));
+            } else {
+                answer.addView(Cards.reading(m, it));
+                Cards.parts(m, answer, it);
+                Cards.add(answer, Cards.why(m, it));
+            }
             card.addView(answer);
             if (fresh) reveal(answer);
         }
@@ -138,24 +154,37 @@ class Quiz {
      *  twice), then any of the three; listen only with a voice to say it. */
     String kindFor(String h) {
         Progress.Card c = m.prog.cards.get(h);
-        Item it = PathData.get(h);
-        if (kind.equals("check") || c == null || c.reps < 2) return "choose";
+        String w = Words.is(h) ? "word-" : "";
+        if (kind.equals("check") || c == null || c.reps < 2) return w + "choose";
         List<String> k = new ArrayList<>(Arrays.asList("choose", "pick"));
-        if (m.prog.say && it.py.length > 0) k.add("listen");
-        return k.get(rnd.nextInt(k.size()));
+        if (m.prog.say && !py(h).isEmpty()) k.add("listen");
+        return w + k.get(rnd.nextInt(k.size()));
+    }
+
+    /** A card's reading ("" for a part without one) and meaning: a character's, or a word's. */
+    static String py(String h) {
+        String[] w = Words.get(h);
+        if (w != null) return w[1];
+        Item it = PathData.get(h);
+        return it.py.length > 0 ? it.py[0] : "";
+    }
+
+    static String en(String h) {
+        String[] w = Words.get(h);
+        return w != null ? w[2] : PathData.get(h).en;
     }
 
     /** Pick's question: the reading in the tones' inks, the meaning under it. */
-    View said(Item it) {
+    View said(String h) {
         LinearLayout c = Ui.column(m, 4);
         c.setGravity(Gravity.CENTER_HORIZONTAL);
         c.setPadding(0, Ink.dp(12), 0, Ink.dp(12));
-        if (it.py.length > 0) {
-            TextView py = Ui.text(m, Ui.pinyin(it.py[0]), 30, Ink.monoMedium, Ink.ink);
+        if (!py(h).isEmpty()) {
+            TextView py = Ui.text(m, Ui.pinyin(py(h)), 30, Ink.monoMedium, Ink.ink);
             py.setGravity(Gravity.CENTER);
             c.addView(py);
         }
-        TextView en = Ui.text(m, it.en, 19, Ink.sans, Ink.ink);
+        TextView en = Ui.text(m, en(h), 19, Ink.sans, Ink.ink);
         en.setGravity(Gravity.CENTER);
         c.addView(en);
         return c;
@@ -188,38 +217,52 @@ class Quiz {
     /** A character to pick, drawn from its strokes. After a tap, as option(): the right one
      *  ringed green, a wrong pick pink, the rest fade. */
     View cell(String o, String h) {
-        HanziView v = new HanziView(m);
-        v.bare = true;
-        v.pad = 0.2f;
-        v.setGlyph(PathData.glyph(m, o));
-        v.show();
+        View v;
+        if (Words.is(o)) {
+            // a word, written: four characters still fit half the card
+            TextView t = Ui.text(m, o, Words.chars(o).length > 3 ? 30 : 34, Ink.han, Ink.ink);
+            t.setGravity(Gravity.CENTER);
+            t.setMaxLines(1);
+            t.setMinHeight(Ink.dp(96));
+            v = t;
+        } else {
+            HanziView c = new HanziView(m);
+            c.bare = true;
+            c.pad = 0.2f;
+            c.setGlyph(PathData.glyph(m, o));
+            c.show();
+            v = c;
+        }
         v.setContentDescription(o);
         if (picked == null) {
             Ui.touch(v, Ink.paper, Ink.ink, 16);
             v.setOnClickListener(x -> pick(o));
-        } else {
-            boolean right = o.equals(h), mine = o.equals(picked);
-            android.graphics.drawable.GradientDrawable g = Ui.shape(Ink.paper, 0, 16, false);
-            if (right || mine) g.setStroke(Ink.dp(2), right ? Ink.tone[2] : Ink.tone[4]);
-            else g.setStroke(Math.max(1, Ink.dp(1)), Ink.rule);
-            v.setBackground(g);
-            if (right || mine) ringed.add(v);
-            else { v.setAlpha(0.45f); faded.add(v); }
-        }
+        } else mark(v, o, h, 16);
         return v;
+    }
+
+    /** After a tap: the right answer ringed green, a wrong pick pink, the rest fade. */
+    void mark(View v, String o, String h, float radius) {
+        boolean right = o.equals(h), mine = o.equals(picked);
+        android.graphics.drawable.GradientDrawable g = Ui.shape(Ink.paper, 0, radius, false);
+        if (right || mine) g.setStroke(Ink.dp(2), right ? Ink.tone[2] : Ink.tone[4]);
+        else g.setStroke(Math.max(1, Ink.dp(1)), Ink.rule);
+        v.setBackground(g);
+        if (right || mine) ringed.add(v);
+        else { v.setAlpha(0.45f); faded.add(v); }
     }
 
     /** An answer: its reading in the tones' inks, then its meaning. After a tap, the right one
      *  is ringed green, a wrong pick pink, the rest fade. */
     View option(String o, String h) {
-        Item it = PathData.get(o);
+        String py = py(o), en = en(o);
         SpannableStringBuilder b = new SpannableStringBuilder();
-        if (it.py.length > 0) {
-            b.append(Ui.pinyin(it.py[0]));
+        if (!py.isEmpty()) {
+            b.append(Ui.pinyin(py));
             b.setSpan(new TypefaceSpan(Ink.monoMedium), 0, b.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             b.append("   ");
         }
-        b.append(it.en);
+        b.append(en);
         TextView t = Ui.text(m, b, 16, Ink.sans, Ink.ink);
         t.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
         t.setMinHeight(Ink.dp(52));
@@ -227,22 +270,15 @@ class Quiz {
         if (picked == null) {
             Ui.style(t, Ui.OUTLINE);
             t.setOnClickListener(v -> pick(o));
-        } else {
-            boolean right = o.equals(h), mine = o.equals(picked);
-            android.graphics.drawable.GradientDrawable g = Ui.shape(Ink.paper, 0, 999, false);
-            if (right || mine) g.setStroke(Ink.dp(2), right ? Ink.tone[2] : Ink.tone[4]);
-            else g.setStroke(Math.max(1, Ink.dp(1)), Ink.rule);
-            t.setBackground(g);
-            if (right || mine) ringed.add(t);
-            else { t.setAlpha(0.45f); faded.add(t); }
-        }
-        t.setContentDescription((it.py.length > 0 ? it.py[0] + ", " : "") + it.en);
+        } else mark(t, o, h, 999);
+        t.setContentDescription((!py.isEmpty() ? py + ", " : "") + en);
         return t;
     }
 
     /** Three close wrong answers: siblings (sharing a part), then neighbours on the path; ones
      *  met first; each meaning once; to listen, each reading once too. */
     List<String> options(String h, String mode) {
+        if (Words.is(h)) return pickFrom(h, mode, wordPool(h));
         Item it = PathData.get(h);
         List<String> sib = new ArrayList<>(), near = new ArrayList<>();
         for (String p : it.parts) {
@@ -262,21 +298,45 @@ class Quiz {
             for (String s : l) if (m.prog.cards.containsKey(s)) pool.add(s);      // met first
             for (String s : l) if (!m.prog.cards.containsKey(s)) pool.add(s);
         }
+        return pickFrom(h, mode, pool);
+    }
+
+    /** A word's wrong answers, in order of closeness: words sharing a character with it, then
+     *  its neighbours among the path's words; in each, ones met or ready first. */
+    List<String> wordPool(String h) {
+        long now = System.currentTimeMillis();
+        List<String> sib = new ArrayList<>(), near = new ArrayList<>();
+        for (String c : Words.chars(h)) for (String w : Words.with(c)) if (!w.equals(h) && !sib.contains(w)) sib.add(w);
+        int at = Words.pos.get(h);
+        for (int d = -40; d <= 40; d++) {
+            int i = at + d;
+            if (d != 0 && i >= 0 && i < Words.all.size()) near.add(Words.all.get(i)[0]);
+        }
+        Collections.shuffle(sib, rnd);
+        Collections.shuffle(near, rnd);
+        List<String> pool = new ArrayList<>(), rest = new ArrayList<>();
+        for (List<String> l : Arrays.asList(sib, near))
+            for (String s : l) (m.prog.cards.containsKey(s) || Words.ready(m.prog, s, now) ? pool : rest).add(s);
+        pool.addAll(rest);
+        return pool;
+    }
+
+    /** The four from a pool in order of preference: each meaning once; to listen, each
+     *  reading once too. */
+    List<String> pickFrom(String h, String mode, List<String> pool) {
         List<String> out = new ArrayList<>();
         Set<String> meanings = new HashSet<>(), readings = new HashSet<>();
         out.add(h);
-        meanings.add(it.en);
-        if (it.py.length > 0) readings.add(it.py[0]);
-        boolean heard = mode.equals("listen");
+        meanings.add(en(h));
+        if (!py(h).isEmpty()) readings.add(py(h));
+        boolean heard = mode.endsWith("listen");
         for (String s : pool) {
             if (out.size() >= 4) break;
-            Item si = PathData.get(s);
-            if (si == null || out.contains(s) || meanings.contains(si.en)
-                    || (si.py.length > 0 && it.py.length > 0 && si.py[0].equals(it.py[0]) && si.en.equals(it.en))
-                    || heard && (si.py.length == 0 || readings.contains(si.py[0]))) continue;
+            if (!Words.onPath(s) || out.contains(s) || meanings.contains(en(s))
+                    || heard && (py(s).isEmpty() || readings.contains(py(s)))) continue;
             out.add(s);
-            meanings.add(si.en);
-            if (si.py.length > 0) readings.add(si.py[0]);
+            meanings.add(en(s));
+            if (!py(s).isEmpty()) readings.add(py(s));
         }
         Collections.shuffle(out, rnd);
         return out;
@@ -310,8 +370,7 @@ class Quiz {
         picked = o;
         fresh = true;
         Motion.felt(m.root, o.equals(h));
-        Item it = PathData.get(h);
-        if (m.prog.say && it.py.length > 0) m.say(h);
+        if (m.prog.say && !py(h).isEmpty()) m.say(h);
         show();
     }
 
@@ -344,7 +403,7 @@ class Quiz {
         mode = l.mode;
         shown = System.currentTimeMillis();
         picked = null;
-        if (mode.equals("listen")) m.say(optionsFor);
+        if (mode.endsWith("listen")) m.say(optionsFor);
         m.quiz = this;
         show();
     }

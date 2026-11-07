@@ -27,11 +27,15 @@ final class Home {
         Progress p = m.prog;
         long now = System.currentTimeMillis();
         List<String> due = p.due(now);
-        int known = 0;
-        for (Item it : PathData.items) if (p.strength(it.h, now) >= Progress.KNOWN) known++;
+        int known = 0, met = 0;
+        for (Item it : PathData.items) {
+            if (p.strength(it.h, now) >= Progress.KNOWN) known++;
+            if (p.cards.containsKey(it.h)) met++;
+        }
         int left = p.newLeftToday();
         int batch = Math.min(p.batch, left);
-        List<String> next = p.nextNew(batch > 0 ? batch : p.batch);
+        List<String> next = Words.next(p, batch > 0 ? batch : p.batch, now);
+        boolean words = !next.isEmpty() && Words.is(next.get(0));   // this batch is words (Words)
         int streak = p.streak();
         int reviewed = p.todayCount("reviews");
 
@@ -55,21 +59,31 @@ final class Home {
         ledger.addView(line(m, "Due now", due.size() + (reviewed > 0 ? " · " + reviewed + " done today" : ""), false));
         ledger.addView(line(m, "New today", left + " of " + p.perDay + " left", true));
         ledger.addView(line(m, "Days in a row", streak > 0 ? String.valueOf(streak) : "none yet", true));
-        ledger.addView(line(m, "Known", known + " of " + p.cards.size() + " met", true));
+        ledger.addView(line(m, "Known", known + " of " + met + " met", true));
+        int wordsMet = 0, wordsKnown = 0, wordsReady = Words.fresh(p, -1, now).size();
+        for (String h : p.cards.keySet())
+            if (Words.is(h)) { wordsMet++; if (p.strength(h, now) >= Progress.KNOWN) wordsKnown++; }
+        if (wordsMet > 0 || wordsReady > 0) {
+            ledger.addView(line(m, "Words known", (wordsMet > 0 ? wordsKnown + " of " + wordsMet + " met" : "")
+                    + (wordsMet > 0 && wordsReady > 0 ? " · " : "") + (wordsReady > 0 ? wordsReady + " ready" : ""), true));
+        }
         card.addView(ledger);
         LinearLayout acts = Ui.row(m, 10);
         TextView rv = Ui.pill(m, due.isEmpty() ? "Nothing due" : "Review " + due.size(), Ui.SOLID, v -> m.startReview());
         Ui.enable(rv, !due.isEmpty(), Ui.SOLID);
         acts.addView(rv, Ui.weight(1));
-        String ln = next.isEmpty() ? "Path walked" : batch > 0 ? "Learn next " + Math.min(batch, next.size()) : "Enough new for today";
+        int nb = Math.min(batch, next.size());
+        String ln = next.isEmpty() ? "Path walked" : batch > 0 ? (words ? "Learn " + nb + (nb == 1 ? " word" : " words") : "Learn next " + nb) : "Enough new for today";
         TextView lb = Ui.pill(m, ln, Ui.OUTLINE, v -> m.startLearn());
         Ui.enable(lb, batch > 0 && !next.isEmpty(), Ui.OUTLINE);
         acts.addView(lb, Ui.weight(1));
         card.addView(acts);
         if (!next.isEmpty()) {
-            SpannableStringBuilder b = new SpannableStringBuilder("Next on the path   ");
+            SpannableStringBuilder b = new SpannableStringBuilder(words ? "Next, words   " : "Next on the path   ");
             int at = b.length();
-            b.append(android.text.TextUtils.join("  ", next));
+            List<String> shown = new java.util.ArrayList<>();   // a word never broken across lines (U+2060 joins)
+            for (String h : next) shown.add(android.text.TextUtils.join("\u2060", Words.chars(h)));
+            b.append(android.text.TextUtils.join(words ? "   " : "  ", shown));
             b.setSpan(new TypefaceSpan(Ink.han), at, b.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             b.setSpan(new ForegroundColorSpan(Ink.ink), at, b.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             b.setSpan(new android.text.style.RelativeSizeSpan(1.3f), at, b.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
@@ -130,7 +144,7 @@ final class Home {
         gs.setPadding(0, Ink.dp(8), 0, 0);
         LinearLayout gh = Ui.row(m, 12);
         gh.addView(Ui.label(m, "The path"), Ui.weight(1));
-        gh.addView(small(m, p.cards.size() + " of " + st.length + " met"));
+        gh.addView(small(m, met + " of " + st.length + " met"));
         gs.addView(gh);
         gs.addView(Search.entry(m));
         LinearLayout lg = Ui.row(m, 12);
@@ -181,7 +195,7 @@ final class Home {
         for (int i = 0; i < 7; i++) { c.add(Calendar.DATE, 1); ends[i] = c.getTimeInMillis(); }
         int[] out = new int[7];
         for (java.util.Map.Entry<String, Progress.Card> e : p.cards.entrySet()) {
-            if (PathData.get(e.getKey()) == null) continue;
+            if (!Words.onPath(e.getKey())) continue;
             long due = e.getValue().due;
             for (int i = 0; i < 7; i++) if (due < ends[i]) { out[i]++; break; }
         }

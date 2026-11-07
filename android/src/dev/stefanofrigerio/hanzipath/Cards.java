@@ -150,6 +150,48 @@ final class Cards {
         return c;
     }
 
+    /** A word's tag: WORD, and its level on the right ("HSK 3", or nothing for CC-CEDICT's). */
+    static View wordTag(Main m, String[] w) {
+        LinearLayout r = Ui.row(m, 8);
+        TextView kind = Ui.text(m, "WORD", 11, Ink.mono, Ink.ink2);
+        kind.setLetterSpacing(0.1f);
+        kind.setPadding(Ink.dp(10), Ink.dp(2), Ink.dp(10), Ink.dp(2));
+        kind.setBackground(Ui.shape(0, Ink.ink2, 999, false));
+        r.addView(kind);
+        r.addView(Ui.spacer(m));
+        String lv = Words.level(w);
+        TextView pos = Ui.text(m, (Words.chars(w[0]).length + " characters" + (lv.isEmpty() ? "" : " · " + lv)).toUpperCase(), 11, Ink.mono, Ink.ink2);
+        pos.setLetterSpacing(0.08f);
+        r.addView(pos);
+        return r;
+    }
+
+    /** A word, large, where a character has its square: four characters still on one line. */
+    static TextView word(Main m, String h) {
+        TextView t = Ui.text(m, h, Words.chars(h).length > 3 ? 56 : 64, Ink.han, Ink.ink);
+        t.setGravity(Gravity.CENTER);
+        t.setMaxLines(1);
+        t.setPadding(0, Ink.dp(12), 0, Ink.dp(4));
+        t.setLayoutParams(new LinearLayout.LayoutParams(-1, -2));
+        t.setContentDescription(h);
+        return t;
+    }
+
+    /** A word's reading in the tones' inks with the speaker (says the word), its meaning under. */
+    static View wordReading(Main m, String[] w) {
+        LinearLayout c = Ui.column(m, 2);
+        c.setGravity(Gravity.CENTER_HORIZONTAL);
+        LinearLayout r = Ui.row(m, 10);
+        r.setGravity(Gravity.CENTER);
+        r.addView(Ui.text(m, Ui.pinyin(w[1]), 26, Ink.monoMedium, Ink.ink));
+        r.addView(Ui.speaker(m, v -> m.say(w[0])));
+        c.addView(r);
+        TextView en = Ui.text(m, w[2], 19, Ink.sans, Ink.ink);
+        en.setGravity(Gravity.CENTER);
+        c.addView(en);
+        return c;
+    }
+
     /** The bar over a card: a count on the left; Undo and × on the right. */
     static LinearLayout bar(Main m, String count, View... right) {
         LinearLayout r = Ui.row(m, 8);

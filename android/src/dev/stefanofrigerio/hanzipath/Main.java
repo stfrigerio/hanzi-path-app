@@ -134,7 +134,7 @@ public class Main extends Activity {
 
     void startLearn() {
         int n = Math.min(prog.batch, prog.newLeftToday());
-        List<String> items = prog.nextNew(n);
+        List<String> items = Words.next(prog, n, System.currentTimeMillis());
         if (items.isEmpty()) return;
         learn = new Learn(this, items, false, null);
         learn.show();
