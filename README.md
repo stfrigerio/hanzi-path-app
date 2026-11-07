@@ -46,7 +46,7 @@ Set up once:
   reading in the tones' inks (1 blue, 2 green, 3 peach, 4 pink: the garden's),
   what it's made of and what it leads to, why it looks like this (Make Me a
   Hanzi's etymology: which part gives the meaning, which the sound), and the
-  HSK words you can now read.
+  words you can now read (HSK's, or CC-CEDICT's where HSK has none).
 - **Check**: right after the batch, a round of questions. That's the first
   grade, so a new item starts on what you showed you know.
 - **Review**: FSRS-4.5, a small scheduler with three grades (again, unsure, knew).
@@ -86,20 +86,27 @@ puts all of it on the clipboard as text; *Load from clipboard* takes it back.
 `tools/build.py` makes `data/path.json` and `data/strokes-*.json`:
 
 1. A few pictures first, taught whole (一 二 三 十 人 口 日 月 山 水 火 木 大
-   小 中 女 子), then the 500 most common characters (Jun Da's frequency list).
+   小 中 女 子), then the 1000 most common characters (Jun Da's frequency list).
 2. Each one's decomposition (Make Me a Hanzi). Before a character, every part
    of it not yet taught, recursively. A part that is a common character comes
    as a character; one that isn't (氵 亻 扌 讠) comes as a *part*, with what it
    means in a character. Single strokes aren't taught.
-3. Meanings of parts: the hand-written `sources/parts.json` first, then
-   `OWN` in build.py, then Make Me a Hanzi's definition.
+3. Meanings of characters: a short, plain one from CC-CEDICT, for the
+   character's main reading, without surnames, variants, cross-references and
+   grammar notes, cut under 28 letters; `MEANS` in build.py where the rules
+   can't make one that reads well (particles: 的 "of; 's (possessive)").
+   Meanings of parts: `OWN` in build.py, then the hand-written `sources/parts.json`, then Make Me a Hanzi's definition.
 4. Words: HSK words made only of what's been taught by then, the lowest
-   level first, three per character.
+   level first, three per character. A character no HSK word reaches gets up
+   to three of CC-CEDICT's words instead, made of what's been taught by then:
+   two characters first, the ones longer entries are most built on (a common
+   word's sign), shown without a level.
 
-Result: 700 items, 572 characters and 128 parts.
+Result: 1251 items, 1041 characters and 210 parts; 1908 HSK words and 226
+from CC-CEDICT.
 
 ```
-python3 tools/build.py [--chars 500]     # sources fetched once into ~/.cache/hanzi-path
+python3 tools/build.py [--chars 1000] [--sample 60]   # sources fetched once into ~/.cache/hanzi-path
 ```
 
 ## Next
@@ -118,5 +125,6 @@ python3 tools/build.py [--chars 500]     # sources fetched once into ~/.cache/ha
 | stroke shapes and order (`data/strokes-*.json`) | Make Me a Hanzi `graphics.txt` | Arphic Public License |
 | faces (`android/fonts/`) | IBM Plex Mono and Sans; Ma Shan Zheng (cut to 汉字之路好行练) | OFL |
 | frequency order | Jun Da, Modern Chinese character frequency list | research use |
+| meanings of characters, words beyond HSK | [CC-CEDICT](https://cc-cedict.org/) via [MDBG](https://www.mdbg.net/chinese/dictionary?page=cc-cedict) | CC BY-SA 4.0 |
 | HSK words (`sources/hsk.json`) | [hskhsk.com](https://github.com/glxxyz/hskhsk.com) | MIT (`sources/hsk-LICENSE.txt`) |
 | part meanings (`sources/parts.json`) | by hand | ours |
