@@ -32,6 +32,7 @@ public class Main extends Activity {
     Search search;
     Stats stats;
     Read read;
+    Tree tree;                // the family tree open, or the one a looked-up part came from
     boolean gardenOpen;       // the whole path shown on home, not just the rows around you
     Object shownKey;          // what the screen shows (page's key): a new one comes in
     android.animation.ValueAnimator motion;   // the screen's motion while it runs (Motion)
@@ -131,6 +132,7 @@ public class Main extends Activity {
         settings = null;
         stats = null;
         read = null;
+        tree = null;
         Home.build(this, page("home", this::home));
         Widget.refresh(this);   // back from a round: the widget counts what's due now
     }
@@ -199,6 +201,8 @@ public class Main extends Activity {
     /** Back: a looked-up item to the question it was opened from, anything else to the path. */
     boolean back() {
         if (screen.equals("home")) return false;
+        if (screen.equals("tree") && tree != null) { tree.leave(); return true; }
+        if (screen.equals("learn") && learn != null && learn.lookup && "tree".equals(learn.from) && tree != null) { tree.show(); return true; }
         if (screen.equals("learn") && learn != null && learn.lookup && "quiz".equals(learn.from) && quiz != null) {
             quiz.show();
             return true;
