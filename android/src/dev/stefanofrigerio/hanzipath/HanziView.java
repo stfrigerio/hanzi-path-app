@@ -24,6 +24,8 @@ class HanziView extends View {
     float[] lengths = new float[0], fill = new float[0];
     final Matrix toScreen = new Matrix();
     float scale = 1, size;
+    boolean bare;           // just the character: no 米字格, no frame (an answer's cell)
+    float pad = 0.06f;      // of the side, round the character
     ValueAnimator anim;
 
     final Paint inkP = new Paint(Paint.ANTI_ALIAS_FLAG), brushP = new Paint(Paint.ANTI_ALIAS_FLAG),
@@ -64,7 +66,7 @@ class HanziView extends View {
     void layoutGlyph() {
         size = Math.min(getWidth(), getHeight());
         if (glyph == null || size == 0) return;
-        float pad = size * 0.06f;
+        float pad = size * this.pad;
         scale = (size - 2 * pad) / 1024f;
         toScreen.reset();
         toScreen.setScale(1, -1);
@@ -129,12 +131,7 @@ class HanziView extends View {
     protected void onDraw(Canvas c) {
         float x0 = (getWidth() - size) / 2f, y0 = (getHeight() - size) / 2f, x1 = x0 + size, y1 = y0 + size;
         float mx = (x0 + x1) / 2, my = (y0 + y1) / 2;
-        c.drawLine(mx, y0, mx, y1, gridP);
-        c.drawLine(x0, my, x1, my, gridP);
-        c.drawLine(x0, y0, x1, y1, gridP);
-        c.drawLine(x1, y0, x0, y1, gridP);
-        float h = frameP.getStrokeWidth() / 2;
-        c.drawRect(x0 + h, y0 + h, x1 - h, y1 - h, frameP);
+        if (!bare) drawGrid(c, x0, y0, x1, y1, mx, my);
         if (glyph == null) return;
         Path seg = new Path();
         for (int i = 0; i < outlines.length; i++) {
@@ -148,6 +145,15 @@ class HanziView extends View {
                 c.restore();
             }
         }
+    }
+
+    void drawGrid(Canvas c, float x0, float y0, float x1, float y1, float mx, float my) {
+        c.drawLine(mx, y0, mx, y1, gridP);
+        c.drawLine(x0, my, x1, my, gridP);
+        c.drawLine(x0, y0, x1, y1, gridP);
+        c.drawLine(x1, y0, x0, y1, gridP);
+        float h = frameP.getStrokeWidth() / 2;
+        c.drawRect(x0 + h, y0 + h, x1 - h, y1 - h, frameP);
     }
 
     @Override

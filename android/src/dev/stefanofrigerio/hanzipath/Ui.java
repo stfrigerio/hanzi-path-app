@@ -93,9 +93,14 @@ final class Ui {
     static void style(TextView t, int kind) {
         int fill = kind == SOLID ? Ink.ink : kind == HIGHLIGHT ? Ink.hl : Ink.paper;
         int stroke = kind == HIGHLIGHT ? Ink.hlInk : Ink.ink;
-        t.setBackground(new RippleDrawable(ColorStateList.valueOf(Ink.night ? 0x33ffffff : 0x22000000),
-                shape(fill, stroke, 999, false), null));
+        touch(t, fill, stroke, 999);
         t.setTextColor(kind == SOLID ? Ink.paper : kind == HIGHLIGHT ? Ink.hlInk : Ink.ink);
+    }
+
+    /** Something you can touch: a hairline shape that ripples under the finger. */
+    static void touch(View v, int fill, int stroke, float radiusDp) {
+        v.setBackground(new RippleDrawable(ColorStateList.valueOf(Ink.night ? 0x33ffffff : 0x22000000),
+                shape(fill, stroke, radiusDp, false), null));
     }
 
     static void enable(TextView pill, boolean on, int kind) {
