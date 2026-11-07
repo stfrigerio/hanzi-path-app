@@ -19,7 +19,7 @@ import java.util.Date;
  */
 class Settings {
     final Main m;
-    TextView status, version, io, note;
+    TextView status, version, io, note, timing;
     boolean armed;
 
     static final String[] ROUNDS = {"20", "40", "60", "all"};
@@ -65,6 +65,7 @@ class Settings {
         io = small("");
         io.setVisibility(View.GONE);
         pr.addView(io);
+        pr.addView(timing());
         col.addView(pr);
 
         // updates
@@ -159,6 +160,55 @@ class Settings {
     void say(String s) {
         io.setText(s);
         io.setVisibility(View.VISIBLE);
+    }
+
+    /** Progress's line on the review timing: fitted to the learner's reviews (Fit), or the defaults and
+     *  why; a small pill to put the defaults back, or to fit again after that. */
+    View timing() {
+        LinearLayout r = Ui.row(m, 10);
+        timing = small("");
+        r.addView(timing, Ui.weight(1));
+        final TextView b = Ui.pill(m, "", Ui.OUTLINE, null);
+        b.setMinHeight(Ink.dp(36));
+        b.setTextSize(14);
+        b.setPadding(Ink.dp(14), 0, Ink.dp(14), 0);
+        r.addView(b);
+        final Runnable[] fill = new Runnable[1];
+        fill[0] = () -> {
+            Progress p = m.prog;
+            timing.setText(timingLine(p, p.logCounts()));
+            boolean fitted = p.w != Progress.W, reset = p.fsrs != null && p.fsrs.optBoolean("reset");
+            b.setVisibility(fitted || reset ? View.VISIBLE : View.GONE);
+            b.setText(fitted ? "Reset to defaults" : "Fit to me");
+            b.setContentDescription(fitted ? "Put the review timing back to the defaults" : "Fit the review timing to your reviews again");
+            b.setOnClickListener(v -> {
+                if (p.w != Progress.W) p.resetFit(System.currentTimeMillis());
+                else {
+                    p.clearFit();
+                    Fit.start(p, System.currentTimeMillis(), true, () -> { if (timing.isAttachedToWindow()) fill[0].run(); });
+                }
+                fill[0].run();
+            });
+        };
+        fill[0].run();
+        return r;
+    }
+
+    /** "Review timing: fitted to your 1240 reviews (Nov 7)", or the defaults and why. counts:
+     *  the log's grades, and the items they're of (Progress.logCounts). */
+    static String timingLine(Progress p, long[] counts) {
+        String on = p.fsrs == null ? "" : new java.text.SimpleDateFormat("MMM d", java.util.Locale.ENGLISH).format(new Date(p.fsrs.optLong("at")));
+        int n = p.fsrs == null ? 0 : p.fsrs.optInt("n");
+        String why;
+        if (p.fitting != null) why = "the defaults, fitting to your " + counts[0] + " reviews now…";
+        else if (p.w != Progress.W) return "Review timing: fitted to your " + n + " reviews (" + on + ")";
+        else if (p.fsrs != null && p.fsrs.optBoolean("reset")) why = "the defaults (put back on " + on + ")";
+        else if (p.fsrs != null) why = "the defaults (a fit to your " + n + " reviews predicted no better, " + on + ")";
+        else if (counts[0] < Fit.MIN_REVIEWS) why = "the defaults (fitted once you have " + Fit.MIN_REVIEWS + " reviews; you have " + counts[0] + ")";
+        else if (counts[0] - counts[1] < Fit.MIN_SCORED)
+            why = "the defaults (fitted once " + Fit.MIN_SCORED + " reviews are of things seen before; you have " + (counts[0] - counts[1]) + ")";
+        else why = "the defaults (fitted to your " + counts[0] + " reviews after your next round)";
+        return "Review timing: " + why;
     }
 
     void copyOut() {

@@ -484,6 +484,7 @@ class Quiz {
         card.addView(t);
         long now = System.currentTimeMillis();
         int more = kind.equals("review") ? m.prog.due(now).size() : 0;
+        if (!practice()) Fit.start(m.prog, now, false, null);   // a graded round: FSRS refitted to the learner, at most weekly
         if (kind.equals("review")) {
             // what's left: still due (another round), or when the next fall due
             long at = more > 0 ? 0 : m.prog.nextDue(now);

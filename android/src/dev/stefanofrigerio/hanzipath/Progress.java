@@ -23,7 +23,7 @@ import java.util.Map;
  * How well each item is known, and the scheduler that decides when it comes back.
  *
  * A card is a small FSRS (FSRS-4.5, its default
- * weights): a stability S in days, the time after which the item would be recalled nine
+ * weights until the learner's own log is big enough to fit them: Fit): a stability S in days, the time after which the item would be recalled nine
  * times out of ten, and a difficulty D, 1-10. Grades are the garden's three: 1 again,
  * 2 unsure, 3 knew. Learning an item isn't a grade: the round after a batch is.
  *
@@ -31,7 +31,8 @@ import java.util.Map;
  * through on every change:
  *   cards    one row an item met, or a word (keyed by the word: Words)
  *   stories  what you wrote for an item
- *   meta     opts, today, days: settings and small state, each a JSON value
+ *   meta     opts, today, days: settings and small state, each a JSON value; fsrs: the
+ *            weights fitted to the learner's log (Fit), which new grades use
  *   reviews  every grade given, as given (for fitting FSRS's weights to you later); beside
  *            them, sentences read (mode "read") and practice answers (mode "practice-<kind>"),
  *            neither of them a grade: GRADED leaves them out. Each answer keeps what was
@@ -108,24 +109,72 @@ final class Progress extends SQLiteOpenHelper {
     }
 
     // ── the scheduler ──
-    static double recall(Card c, long now) {
-        return Math.pow(1 + F * Math.max(0, now - c.last) / (double) DAY / Math.max(c.s, 0.01), C);
-    }
+    // The formulas are FSRS-4.5's; the weights they take are W, or the ones fitted to the learner (Fit).
+    static double recall(Card c, long now) { return recall(c.s, Math.max(0, now - c.last) / (double) DAY); }
 
-    static double d0(int g) { return Math.min(10, Math.max(1, W[4] - (g - 3) * W[5])); }
+    /** The chance of recall after so many days at a stability. */
+    static double recall(double s, double days) { return Math.pow(1 + F * days / Math.max(s, 0.01), C); }
 
-    static double nextD(double d, int g) {
-        d = d - W[6] * (g - 3);
-        d = W[7] * d0(3) + (1 - W[7]) * d;
+    static double d0(double[] w, int g) { return Math.min(10, Math.max(1, w[4] - (g - 3) * w[5])); }
+
+    static double nextD(double[] w, double d, int g) {
+        d = d - w[6] * (g - 3);
+        d = w[7] * d0(w, 3) + (1 - w[7]) * d;
         return Math.min(10, Math.max(1, d));
     }
 
-    static double recallS(double s, double d, double r, int g) {
-        return s * (1 + Math.exp(W[8]) * (11 - d) * Math.pow(s, -W[9]) * (Math.exp(W[10] * (1 - r)) - 1) * (g == 2 ? W[15] : 1));
+    static double recallS(double[] w, double s, double d, double r, int g) {
+        return s * (1 + Math.exp(w[8]) * (11 - d) * Math.pow(s, -w[9]) * (Math.exp(w[10] * (1 - r)) - 1) * (g == 2 ? w[15] : 1));
     }
 
-    static double lapseS(double s, double d, double r) {
-        return Math.min(s, W[11] * Math.pow(d, -W[12]) * (Math.pow(s + 1, W[13]) - 1) * Math.exp(W[14] * (1 - r)));
+    static double lapseS(double[] w, double s, double d, double r) {
+        return Math.min(s, w[11] * Math.pow(d, -w[12]) * (Math.pow(s + 1, w[13]) - 1) * Math.exp(w[14] * (1 - r)));
+    }
+
+    // ── the weights fitted to the learner (Fit): meta "fsrs" ──
+    /** The weights new grades use: W, or the fitted ones while they're in use. */
+    double[] w = W;
+    /** What the last fit said (meta "fsrs"; null: none yet): {w (only while in use), n, at,
+     *  before, after (held-out log loss, defaults and fitted), why (when the defaults stayed),
+     *  reset (true: put back by hand, not refitted until asked)}. */
+    JSONObject fsrs;
+    /** A fit running in the background (Fit.start), or null. */
+    volatile Thread fitting;
+    /** Times the progress was (re)loaded: a fit started before a copy came in isn't kept. */
+    int loads;
+
+    /** The weights a fit result names, or null when it doesn't name 17 usable ones. */
+    static double[] weights(JSONObject f) {
+        JSONArray a = f == null || f.optBoolean("reset") ? null : f.optJSONArray("w");
+        if (a == null || a.length() != W.length) return null;
+        double[] out = new double[W.length];
+        for (int i = 0; i < out.length; i++) {
+            out[i] = a.optDouble(i, Double.NaN);
+            if (Double.isNaN(out[i]) || Double.isInfinite(out[i])) return null;
+        }
+        return out;
+    }
+
+    /** A fit's result kept, and its weights in use if it has them. */
+    void putFit(JSONObject f) {
+        fsrs = f;
+        double[] fw = weights(f);
+        w = fw == null ? W : fw;
+        putMeta("fsrs", f.toString());
+    }
+
+    /** No fit kept: the defaults, and the next round's end may fit again. */
+    void clearFit() {
+        fsrs = null;
+        w = W;
+        getWritableDatabase().delete("meta", "k = ?", new String[]{"fsrs"});
+    }
+
+    /** Back to the default weights by hand: kept so until "Fit to me" (Settings). */
+    void resetFit(long now) {
+        JSONObject f = fsrs == null ? new JSONObject() : fsrs;
+        try { f.remove("w"); f.put("reset", true).put("at", now).put("why", "reset"); } catch (Exception e) { /* */ }
+        putFit(f);
     }
 
     Undo grade(String h, int g, String how, long ms) { return grade(h, g, how, ms, null); }
@@ -140,19 +189,19 @@ final class Progress extends SQLiteOpenHelper {
         double r = 0;
         if (c == null) {
             c = new Card();
-            c.s = W[g - 1];
-            c.d = d0(g);
+            c.s = w[g - 1];
+            c.d = d0(w, g);
             c.first = now;
             cards.put(h, c);
         } else {
             r = recall(c, now);
             if (g == 1) {
-                c.s = Math.max(0.05, lapseS(c.s, c.d, r));
+                c.s = Math.max(0.05, lapseS(w, c.s, c.d, r));
                 c.lapses += 1;
             } else {
-                c.s = Math.max(recallS(c.s, c.d, r, g), c.reps > 0 ? 0 : W[g - 1]);
+                c.s = Math.max(recallS(w, c.s, c.d, r, g), c.reps > 0 ? 0 : w[g - 1]);
             }
-            c.d = nextD(c.d, g);
+            c.d = nextD(w, c.d, g);
         }
         c.s = Math.min(c.s, MAX_S);
         c.reps += 1;
@@ -444,6 +493,14 @@ final class Progress extends SQLiteOpenHelper {
         }
     }
 
+    /** The grades in the log, and the items they're of: the difference is the grades after
+     *  an item's first, the ones a fit learns from. */
+    long[] logCounts() {
+        try (Cursor c = getReadableDatabase().rawQuery("SELECT COUNT(*), COUNT(DISTINCT h) FROM reviews WHERE " + GRADED, null)) {
+            return c.moveToNext() ? new long[]{c.getLong(0), c.getLong(1)} : new long[2];
+        }
+    }
+
     // ── a look from outside the app (the reminder): the database opened read-only ──
     /** What the reminder and the widget need: the reminder's time (-1 off), what's due now on
      *  the path (most overdue first), and every item met (what's not met is still to learn). */
@@ -484,6 +541,9 @@ final class Progress extends SQLiteOpenHelper {
         speed = "normal";
         apartShown = new JSONObject();
         introDone = false;
+        fsrs = null;
+        w = W;
+        loads++;
         SQLiteDatabase db = getReadableDatabase();
         try (Cursor c = db.rawQuery("SELECT h, s, d, reps, lapses, first, last, due, grade FROM cards", null)) {
             while (c.moveToNext()) {
@@ -517,6 +577,10 @@ final class Progress extends SQLiteOpenHelper {
                         days = new JSONObject(c.getString(1));
                     } else if (k.equals("apart")) {
                         apartShown = new JSONObject(c.getString(1));
+                    } else if (k.equals("fsrs")) {
+                        fsrs = new JSONObject(c.getString(1));
+                        double[] fw = weights(fsrs);
+                        w = fw == null ? W : fw;
                     } else if (k.equals("words")) {
                         sinceWords = new JSONObject(c.getString(1)).optInt("since", sinceWords);
                     }
@@ -554,6 +618,7 @@ final class Progress extends SQLiteOpenHelper {
         meta.put("days", days);
         meta.put("words", obj("since", sinceWords));
         meta.put("apart", apartShown);
+        if (fsrs != null) meta.put("fsrs", fsrs);
         JSONArray rv = new JSONArray();
         try (Cursor c = getReadableDatabase().rawQuery("SELECT at, h, grade, mode, ms, r, s, d, picked FROM reviews ORDER BY id", null)) {
             while (c.moveToNext()) rv.put(new JSONObject().put("at", c.getLong(0)).put("h", c.getString(1)).put("g", c.getLong(2))
