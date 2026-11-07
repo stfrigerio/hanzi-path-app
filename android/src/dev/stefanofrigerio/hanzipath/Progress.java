@@ -183,16 +183,57 @@ final class Progress extends SQLiteOpenHelper {
         return (1 - Math.exp(-c.s / MATURE_D)) * fresh;
     }
 
-    /** What's due, the most overdue for what it holds first. */
+    /** What's due, the most overdue for what it holds first; in a backlog, ordered for
+     *  coming back (order). */
     List<String> due(long now) {
         List<String> out = new ArrayList<>();
         for (Map.Entry<String, Card> e : cards.entrySet())
             if (e.getValue().due <= now && Words.onPath(e.getKey())) out.add(e.getKey());
-        Collections.sort(out, (a, b) -> {
-            Card x = cards.get(a), y = cards.get(b);
-            return Double.compare((now - y.last) / y.s, (now - x.last) / x.s);
-        });
+        order(out, cards, now, round);
         return out;
+    }
+
+    // ── a gentle return: after days away, hundreds can be due at once ──
+    static final int BACKLOG = 3;          // more rounds than this due: a backlog (home's line, the order)
+    static final int PAUSE = 2;            // more rounds than this due: new items wait for a round
+    static final double SLIPPING = 3;      // learned: a stability of at least this many days
+    static final double FRESH = 1;         // new-ish: a stability under this many days
+
+    /** The due items in the order a round takes them: the most overdue for what it holds
+     *  first. In a backlog (more than BACKLOG rounds of round), first the learned items
+     *  slipping (stability SLIPPING days or more, the lowest recall first: still worth
+     *  saving, closest to gone), then the rest, the new-ish (under FRESH) last. Shared by
+     *  due() and peek(), so the reminder and the widget read the same list. */
+    static void order(List<String> out, Map<String, Card> cs, long now, int round) {
+        Collections.sort(out, (a, b) -> {
+            Card x = cs.get(a), y = cs.get(b);
+            return Double.compare((now - y.last) / Math.max(y.s, 0.01), (now - x.last) / Math.max(x.s, 0.01));
+        });
+        if (!backlog(out.size(), round)) return;
+        List<String> slipping = new ArrayList<>(), rest = new ArrayList<>(), fresh = new ArrayList<>();
+        for (String h : out) {   // recall falls as (now - last) / s grows: the order above is lowest recall first
+            double s = cs.get(h).s;
+            (s >= SLIPPING ? slipping : s < FRESH ? fresh : rest).add(h);
+        }
+        out.clear();
+        out.addAll(slipping);
+        out.addAll(rest);
+        out.addAll(fresh);
+    }
+
+    /** More than BACKLOG rounds due ("all" in a round is never a backlog). */
+    static boolean backlog(int due, int round) { return round > 0 && due > BACKLOG * round; }
+
+    boolean backlog(int due) { return backlog(due, round); }
+
+    /** New items wait: more than PAUSE rounds due, and no round of reviews done today yet. */
+    boolean pauseNew(int due) { return round > 0 && due > PAUSE * round && todayCount("reviews") < round; }
+
+    /** Days since the last day with something done (0: today; -1: never). */
+    int daysAway() {
+        Calendar c = Calendar.getInstance();
+        for (int n = 0; n <= 3660; n++, c.add(Calendar.DATE, -1)) if (active(c)) return n;
+        return -1;
     }
 
     List<String> nextNew(int n) {
@@ -458,20 +499,29 @@ final class Progress extends SQLiteOpenHelper {
         java.io.File f = ctx.getDatabasePath("hanzi.db");
         if (!f.exists()) return p;
         try (SQLiteDatabase db = SQLiteDatabase.openDatabase(f.getPath(), null, SQLiteDatabase.OPEN_READONLY)) {
+            int round = 40;   // reviews per round: what makes a backlog (order)
             try (Cursor c = db.rawQuery("SELECT v FROM meta WHERE k = 'opts'", null)) {
-                if (c.moveToNext()) p.remind = new JSONObject(c.getString(0)).optInt("remind", -1);
+                if (c.moveToNext()) {
+                    JSONObject o = new JSONObject(c.getString(0));
+                    p.remind = o.optInt("remind", -1);
+                    round = o.optInt("round", round);
+                }
             }
             try (Cursor c = db.rawQuery("SELECT h FROM cards", null)) {
                 while (c.moveToNext()) p.met.add(c.getString(0));
             }
-            final Map<String, Double> late = new HashMap<>();
+            final Map<String, Card> late = new HashMap<>();
             try (Cursor c = db.rawQuery("SELECT h, s, last FROM cards WHERE due <= ?", new String[]{String.valueOf(now)})) {
                 while (c.moveToNext())
-                    if (Words.onPath(c.getString(0)))
-                        late.put(c.getString(0), (now - c.getLong(2)) / Math.max(c.getDouble(1), 0.01));
+                    if (Words.onPath(c.getString(0))) {
+                        Card k = new Card();
+                        k.s = c.getDouble(1);
+                        k.last = c.getLong(2);
+                        late.put(c.getString(0), k);
+                    }
             }
             p.due.addAll(late.keySet());
-            Collections.sort(p.due, (a, b) -> Double.compare(late.get(b), late.get(a)));
+            order(p.due, late, now, round);   // the order a round takes them, backlog or not
         } catch (Exception e) { /* unreadable: nothing to say */ }
         return p;
     }

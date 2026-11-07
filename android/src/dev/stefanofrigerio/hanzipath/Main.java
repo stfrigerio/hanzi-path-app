@@ -163,7 +163,8 @@ public class Main extends Activity {
         search.show();
     }
 
-    /** A round of reviews: the most overdue first, as many as Settings' "Reviews per round". */
+    /** A round of reviews: the most overdue first, as many as Settings' "Reviews per round";
+     *  after days away, the learned items slipping first (Progress.order). */
     void startReview() {
         List<String> due = prog.due(System.currentTimeMillis());
         if (due.isEmpty()) return;
