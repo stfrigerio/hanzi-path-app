@@ -832,7 +832,8 @@ def components(entry):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--chars", type=int, default=1000)
+    ap.add_argument("--chars", type=int, default=1000, help="the characters the path was first made of")
+    ap.add_argument("--more", type=int, default=2000, help="the characters it goes on to, by frequency")
     ap.add_argument("--src", default=CACHE)
     ap.add_argument("--sample", type=int, default=0, help="print N meanings, before and after")
     ap.add_argument("--sentences", type=int, default=0, help="print N sentences with their pinyin")
@@ -848,7 +849,8 @@ def main():
 
     rank = {c: i for i, c in enumerate(freq)}
     used, alone = usage(ced, hsk, rank)
-    top = [c for c in freq if c in dic and c in gfx][:a.chars]
+    every = [c for c in freq if c in dic and c in gfx]
+    top, more = every[:a.chars], every[a.chars:a.more]
     common = set(top)
 
     def teachable(c):
@@ -876,106 +878,125 @@ def main():
     for c in top:
         visit(c)
 
-    pos = {c: i for i, c in enumerate(order)}
+    def make(order, common):
+        """The items for a path in this order, common the characters taught as characters."""
+        pos = {c: i for i, c in enumerate(order)}
 
-    def kind(c):
-        return "char" if (c in common or c in rank and rank[c] < 1500) else "part"
+        def kind(c):
+            return "char" if (c in common or c in rank and rank[c] < 1500) else "part"
 
-    # words: HSK words made only of what's been taught by then, lowest level first
-    words, hskwords = {}, set()
-    for lvl in sorted(hsk, key=int):
-        for w, py, en in hsk[lvl]:
-            hskwords.add(w)
-            if len(w) < 2 or not all(ch in pos for ch in w):
+        # words: HSK words made only of what's been taught by then, lowest level first
+        words, hskwords = {}, set()
+        for lvl in sorted(hsk, key=int):
+            for w, py, en in hsk[lvl]:
+                hskwords.add(w)
+                if len(w) < 2 or not all(ch in pos for ch in w):
+                    continue
+                at = max(pos[ch] for ch in w)        # readable from this point on the path
+                lst = words.setdefault(order[at], [])
+                if len(lst) < WORDS_PER_CHAR:
+                    lst.append([w, py, en, int(lvl)])
+
+        # beyond HSK: a character with no HSK word gets CC-CEDICT's words made of what's been
+        # taught by then. CC-CEDICT has no frequencies; a word that many longer entries are
+        # built on (中国 in 中国人, 中国话...) is a common one
+        inside = {}
+        for w in ced:
+            for n in (2, 3):
+                for i in range(len(w) - n + 1):
+                    if len(w) > n:
+                        inside[w[i:i + n]] = inside.get(w[i:i + n], 0) + 1
+        extra = {}
+        for w, es in ced.items():
+            if not 2 <= len(w) <= 3 or w in hskwords or not all(ch in pos for ch in w) or len(set(w)) < len(w):
                 continue
-            at = max(pos[ch] for ch in w)        # readable from this point on the path
-            lst = words.setdefault(order[at], [])
-            if len(lst) < WORDS_PER_CHAR:
-                lst.append([w, py, en, int(lvl)])
+            es = [e for e in es if not e[0][:1].isupper()]      # names of people and places
+            if not es or inside.get(w, 0) < 3:
+                continue
+            # a word a learner meets: not one whose first sense is literary or archaic (玉门),
+            # and none a first reader of it would blush at (小三, 烟花)
+            if any(NOISE.search(e[1][0]) for e in es) or any(UNSEEMLY.search(" ".join(e[1])) for e in es):
+                continue
+            en = plain(es, limit=32)
+            if not en:
+                continue
+            last = order[max(pos[ch] for ch in w)]
+            if last in words or kind(last) != "char":
+                continue
+            e = sorted(es, key=lambda e: -len(senses([e])))[0]
+            others = max(pos[ch] for ch in w if ch != last)
+            extra.setdefault(last, []).append(((len(w) != 2, -inside[w], others), [w, e[0], en, 0]))
+        for c, lst in extra.items():
+            words[c] = [w for _, w in sorted(lst)[:WORDS_PER_CHAR]]
+        # as they're said: 不对 bú duì, 一样 yí yàng, 东西 dōng xi
+        for lst in words.values():
+            for wd in lst:
+                syl = wd[1].split()
+                if len(syl) == len(wd[0]):
+                    wd[1] = " ".join(spoken(wd[0], light(wd[0], syl), {len(wd[0]) - 1}))
 
-    # beyond HSK: a character with no HSK word gets CC-CEDICT's words made of what's been
-    # taught by then. CC-CEDICT has no frequencies; a word that many longer entries are
-    # built on (中国 in 中国人, 中国话...) is a common one
-    inside = {}
-    for w in ced:
-        for n in (2, 3):
-            for i in range(len(w) - n + 1):
-                if len(w) > n:
-                    inside[w[i:i + n]] = inside.get(w[i:i + n], 0) + 1
-    extra = {}
-    for w, es in ced.items():
-        if not 2 <= len(w) <= 3 or w in hskwords or not all(ch in pos for ch in w) or len(set(w)) < len(w):
-            continue
-        es = [e for e in es if not e[0][:1].isupper()]      # names of people and places
-        if not es or inside.get(w, 0) < 3:
-            continue
-        # a word a learner meets: not one whose first sense is literary or archaic (玉门),
-        # and none a first reader of it would blush at (小三, 烟花)
-        if any(NOISE.search(e[1][0]) for e in es) or any(UNSEEMLY.search(" ".join(e[1])) for e in es):
-            continue
-        en = plain(es, limit=32)
-        if not en:
-            continue
-        last = order[max(pos[ch] for ch in w)]
-        if last in words or kind(last) != "char":
-            continue
-        e = sorted(es, key=lambda e: -len(senses([e])))[0]
-        others = max(pos[ch] for ch in w if ch != last)
-        extra.setdefault(last, []).append(((len(w) != 2, -inside[w], others), [w, e[0], en, 0]))
-    for c, lst in extra.items():
-        words[c] = [w for _, w in sorted(lst)[:WORDS_PER_CHAR]]
-    # as they're said: 不对 bú duì, 一样 yí yàng, 东西 dōng xi
-    for lst in words.values():
-        for wd in lst:
-            syl = wd[1].split()
-            if len(syl) == len(wd[0]):
-                wd[1] = " ".join(spoken(wd[0], light(wd[0], syl), {len(wd[0]) - 1}))
+        users = {}
+        for c in order:
+            for p in set(components(dic[c])):
+                if p in pos and p != c:
+                    users.setdefault(p, []).append(c)
 
-    users = {}
-    for c in order:
-        for p in set(components(dic[c])):
-            if p in pos and p != c:
-                users.setdefault(p, []).append(c)
+        items, before = [], {}
+        for c in order:
+            d = dic[c]
+            g = garden.get(c)
+            k = kind(c)
+            py = d.get("pinyin") or ([g[0]] if g else [])
+            if k == "char":
+                py = readings(c, py, ced.get(c, []), used, alone) or py
+            old = short(d.get("definition")) or (g[1] if g else "")
+            if len(old) > 32:
+                old = short(d.get("definition"), 1)
+            if c in OWN:
+                meaning = OWN[c]
+            elif k == "part" and g:
+                meaning = g[1]
+            elif c in MEANS:
+                meaning = MEANS[c]
+            else:
+                meaning = (plain(ced.get(c, []), py[0], hint=d.get("definition")) if py else "") or old
+            before[c] = old
+            it = {"h": c, "k": k, "py": py[:2], "en": meaning,
+                  "parts": [p for p in dict.fromkeys(components(d)) if p in pos and p != c],
+                  "n": len(gfx[c]["strokes"])}
+            e = d.get("etymology")
+            if e:
+                it["et"] = {k: v for k, v in e.items() if k in ("type", "semantic", "phonetic")}
+            if c in words:
+                it["w"] = words[c]
+            if c in users:
+                it["used"] = users[c][:6]
+            items.append(it)
 
-    items, before = [], {}
-    for c in order:
-        d = dic[c]
-        g = garden.get(c)
-        k = kind(c)
-        py = d.get("pinyin") or ([g[0]] if g else [])
-        if k == "char":
-            py = readings(c, py, ced.get(c, []), used, alone) or py
-        old = short(d.get("definition")) or (g[1] if g else "")
-        if len(old) > 32:
-            old = short(d.get("definition"), 1)
-        if c in OWN:
-            meaning = OWN[c]
-        elif k == "part" and g:
-            meaning = g[1]
-        elif c in MEANS:
-            meaning = MEANS[c]
-        else:
-            meaning = (plain(ced.get(c, []), py[0], hint=d.get("definition")) if py else "") or old
-        before[c] = old
-        it = {"h": c, "k": k, "py": py[:2], "en": meaning,
-              "parts": [p for p in dict.fromkeys(components(d)) if p in pos and p != c],
-              "n": len(gfx[c]["strokes"])}
-        e = d.get("etymology")
-        if e:
-            it["et"] = {k: v for k, v in e.items() if k in ("type", "semantic", "phonetic")}
-        if c in words:
-            it["w"] = words[c]
-        if c in users:
-            it["used"] = users[c][:6]
-        items.append(it)
+        # why it looks like this: a plain line from the etymology, once every reading is known
+        at = {it["h"]: it for it in items}
+        for it in items:
+            e = dic[it["h"]].get("etymology") or {}
+            w = why(it["h"], e, at, dic)
+            if w:
+                it.setdefault("et", {})["why"] = w
+        return items, before
 
-    # why it looks like this: a plain line from the etymology, once every reading is known
+    # the path as it was first walked (the first --chars characters): its order and every
+    # item's fields stay as they are, people's progress is keyed by them. Then the path goes
+    # on (--more): the next characters by frequency, each after the parts it needs that
+    # aren't on the path yet, built the same way with the whole path known; only the new
+    # items are taken from it, so an early item gains no words, uses or parts
+    items, before = make(order, set(common))
+    walked = len(order)
+    common.update(more)
+    for c in more:
+        visit(c)
+    rest, later = make(order, set(common))
+    items += rest[walked:]
+    before.update({c: later[c] for c in order[walked:]})
     at = {it["h"]: it for it in items}
-    for it in items:
-        e = dic[it["h"]].get("etymology") or {}
-        w = why(it["h"], e, at, dic)
-        if w:
-            it.setdefault("et", {})["why"] = w
+
     if a.why:
         for i, it in enumerate(items[:a.why]):
             e = dic[it["h"]].get("etymology") or {}
