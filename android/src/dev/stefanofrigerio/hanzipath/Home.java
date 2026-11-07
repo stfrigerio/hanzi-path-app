@@ -65,6 +65,8 @@ final class Home {
         if (intro) card.addView(intro(m));
         LinearLayout ledger = Ui.column(m, 0);
         ledger.addView(line(m, "Due now", due.size() + (reviewed > 0 ? " · " + reviewed + " done today" : ""), intro));
+        boolean backlog = p.backlog(due.size());
+        if (backlog) ledger.addView(back(m, due.size(), p.daysAway(), p.roundOf(due.size())));
         ledger.addView(line(m, "New today", left + " of " + p.perDay + " left", true));
         ledger.addView(line(m, "Days in a row", streak > 0 ? String.valueOf(streak) : "none yet", true));
         ledger.addView(line(m, "Known", known + " of " + met + " met", true));
@@ -83,13 +85,17 @@ final class Home {
         if (practise > 0) {
             rv = Ui.pill(m, "Practice " + practise, Ui.OUTLINE, v -> m.startPractice());
         } else {
-            rv = Ui.pill(m, due.isEmpty() ? "Nothing due" : "Review " + due.size(), Ui.SOLID, v -> m.startReview());
+            rv = Ui.pill(m, due.isEmpty() ? "Nothing due" : backlog ? "Review " + p.roundOf(due.size()) + " of " + due.size()
+                    : "Review " + due.size(), Ui.SOLID, v -> m.startReview());
             Ui.enable(rv, !due.isEmpty(), Ui.SOLID);
         }
         int nb = Math.min(batch, next.size());
-        String ln = next.isEmpty() ? "Path walked" : batch > 0 ? (words ? "Learn " + nb + (nb == 1 ? " word" : " words") : "Learn next " + nb) : "Enough new for today";
+        boolean canLearn = batch > 0 && !next.isEmpty();
+        boolean wait = canLearn && p.pauseNew(due.size());   // a backlog: a round of reviews before anything new
+        String ln = next.isEmpty() ? "Path walked" : wait ? "Learn later: reviews first"
+                : batch > 0 ? (words ? "Learn " + nb + (nb == 1 ? " word" : " words") : "Learn next " + nb) : "Enough new for today";
         TextView lb = Ui.pill(m, ln, Ui.OUTLINE, v -> m.startLearn());
-        Ui.enable(lb, batch > 0 && !next.isEmpty(), Ui.OUTLINE);
+        Ui.enable(lb, canLearn && !wait, Ui.OUTLINE);
         card.addView(Ui.even(m, 10, rv, lb));
         if (!next.isEmpty()) {
             SpannableStringBuilder b = new SpannableStringBuilder(words ? "Next, words   " : "Next on the path   ");
@@ -245,6 +251,18 @@ final class Home {
         op.gravity = Gravity.END;
         c.addView(ok, op);
         return c;
+    }
+
+    /** A backlog's one calm line, under Due now: how many, after how long away, and how they
+     *  come back ("312 due after 6 days away. Rounds of 40 bring them back, what's slipping
+     *  first."). The days only when it's been two or more. */
+    static View back(Main m, int due, int away, int round) {
+        String s = due + " due" + (away >= 2 ? " after " + away + " days away" : "")
+                + ". Rounds of " + round + " bring them back, what's slipping first.";
+        TextView t = Ui.text(m, s, 14, Ink.sans, Ink.ink2);
+        t.setLineSpacing(0, 1.15f);
+        t.setPadding(0, 0, 0, Ink.dp(8));
+        return t;
     }
 
     /** Reviews due on each of the next seven days; today's counts what's overdue too. */
