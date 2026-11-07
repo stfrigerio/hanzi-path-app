@@ -34,7 +34,7 @@ translation (CC BY 2.0 FR, fetched into the cache too), only those in simplified
 characters that are all on the path; a few for each place on the path, from where
 they become readable. Their pinyin from the words in them (HSK's, CC-CEDICT's).
 
-Usage: tools/build.py [--chars 1000] [--src DIR] [--sample N] [--why N] [--sentences N]
+Usage: tools/build.py [--chars 1000] [--more 2000] [--src DIR] [--sample N] [--why N] [--sentences N]
 """
 import argparse
 import bz2
@@ -68,7 +68,10 @@ OWN = {"丷": "horns", "乂": "cut", "冂": "borders", "尢": "lame", "凵": "bo
        "丩": "tangle", "㐬": "flow", "⺳": "net", "敕": "decree", "禸": "track", "丙": "third",
        "迶": "walk", "廴": "stride", "㠯": "use", "娄": "drag", "幺": "tiny", "兀": "stool",
        "攴": "tap", "罙": "deep", "冏": "window", "肰": "dog meat", "亥": "pig",
-       "㐌": "snake", "龺": "sunrise", "禹": "Yu, who tamed the flood"}
+       "㐌": "snake", "龺": "sunrise", "禹": "Yu, who tamed the flood",
+       # the second thousand's
+       "龹": "roll", "矣": "(done, literary)", "毌": "pierce", "玨": "two jades", "囷": "granary",
+       "亨": "prosperous", "尧": "Yao (a sage king)"}
 # what a character means, where CC-CEDICT's senses read badly however they're cut:
 # particles, and characters whose first senses aren't the ones a learner meets first
 MEANS = {
@@ -167,6 +170,109 @@ MEANS = {
     "忽": "suddenly; to neglect", "录": "to record; record", "庭": "courtyard; hall; law court",
     "含": "to contain; to hold in mouth", "灭": "to put out; to destroy", "博": "broad; rich; learned",
     "中": "middle; center; in", "干": "to do; to work; dry", "切": "close to; eager; earnest",
+    # the path's second thousand (2026-11-07): the dictionary's rarer first senses (店 inn,
+    # 筑 lute, 峰 "mountain-like"), its housekeeping left in ("Taiwan pr", "classifier for"),
+    # surnames and states said as what they are, and what HSK's words use them for
+    "镇": "town; to calm; to press down", "篇": "piece of writing; sheet", "馆": "hall; building (library, hotel)",
+    "遍": "all over; a time (once through)", "洞": "cave; hole", "番": "a time; a turn; foreign",
+    "森": "forest; dense", "戏": "play; drama; game", "访": "to visit; to inquire", "店": "shop; store; inn",
+    "鬼": "ghost; spirit; devil", "曲": "bent; crooked; song", "典": "classic; ceremony; canon",
+    "萨": "sa (sound); Bodhisattva", "曹": "Cao (a surname)", "雄": "male; heroic; grand",
+    "乙": "second (of ten); B", "拥": "to hug; to crowd; to have", "杨": "poplar; Yang (a surname)",
+    "虚": "empty; false; weak", "析": "to analyze; to separate", "秀": "elegant; outstanding; show",
+    "透": "to pass through; thorough", "替": "to replace; for; instead of", "套": "set (of things); cover",
+    "毕": "to finish; to complete", "促": "to urge; to promote; hurried", "甲": "first (of ten); shell; armor",
+    "麻": "hemp; sesame; numb", "潜": "to dive; hidden; latent", "闪": "to flash; to dodge",
+    "折": "to break; to fold; discount", "哲": "wise; sage; philosophy", "络": "net; web; to wind",
+    "抵": "to resist; to reach; to offset", "筑": "to build; to construct", "郑": "Zheng (a surname); solemn",
+    "尊": "to respect; honorable; senior", "昆": "elder brother; numerous", "雅": "elegant; refined",
+    "染": "to dye; to catch (illness)", "残": "remaining; damaged; cruel", "培": "to cultivate; to foster",
+    "迷": "lost; to confuse; fan", "宇": "universe; space; house", "孟": "Meng (Mencius); eldest",
+    "盟": "alliance; oath; league", "赵": "Zhao (a state, a surname)", "蒋": "Jiang (a surname)",
+    "操": "to grasp; to operate; exercise", "耶": "ye (sound); 耶稣 Jesus", "订": "to book; to order; to agree",
+    "彩": "color; colorful; prize", "抽": "to draw out; to smoke", "赞": "to praise; to support",
+    "魔": "devil; demon; magic", "汇": "to gather; to remit; collection", "啦": "(了 and 啊 together)",
+    "莱": "lai (sound); a wild herb", "夺": "to seize; to take away", "裁": "to cut (cloth); to judge",
+    "课": "class; lesson; subject", "夹": "to clip; to pinch; folder", "拜": "to bow to; to pay a visit",
+    "巧": "skillful; clever; by chance", "韩": "Korea; Han (a state)", "冒": "to give off; to risk",
+    "惯": "used to; habit; to spoil", "戴": "to wear (on the head)", "犹": "still; as if; like",
+    "乘": "to ride; to take (a bus); times", "绍": "to carry on; 介绍 to introduce",
+    "厚": "thick; deep; generous", "纵": "vertical; to let go; even if", "讯": "news; message; to ask",
+    "涉": "to wade; to involve", "刊": "to print; periodical", "役": "service; labor; battle",
+    "玛": "agate; ma (in names)", "患": "trouble; illness; to suffer", "签": "to sign; label; tag",
+    "倾": "to lean; to tip over; to pour", "牌": "card; sign; brand", "陷": "trap; to sink; to frame",
+    "咱": "we (you and I)", "菜": "vegetable; dish (of food)", "疾": "disease; fast; to hate",
+    "缘": "fate; cause; edge", "杜": "to stop; to prevent; Du", "奶": "milk; breast; grandma",
+    "仪": "instrument; ceremony; bearing", "驻": "to stay; to be stationed", "孔": "hole; Kong (Confucius)",
+    "宜": "suitable; proper; should", "淡": "pale; light; bland", "愈": "the more (愈...愈); to heal",
+    "宿": "to lodge; dormitory; old", "缩": "to shrink; to draw back", "挑": "to choose; to carry (on a pole)",
+    "幕": "curtain; screen; act (of a play)", "映": "to reflect; to show (a film)", "泰": "safe; peaceful; Thailand",
+    "暂": "temporary; for now", "胞": "womb; born of one mother", "婆": "old woman; grandmother",
+    "腿": "leg; thigh", "津": "ford; saliva", "晓": "dawn; to know; to tell", "偶": "by chance; idol; even (number)",
+    "辑": "to collect; to edit", "恢": "to restore (恢复); vast", "赖": "to rely on; to blame",
+    "辆": "(measure word: vehicles)", "废": "to abolish; useless; waste", "矿": "mine; ore",
+    "伏": "to lie prone; to hide; to give in", "鸡": "chicken", "倍": "times (twice); -fold",
+    "秦": "Qin (dynasty)", "盾": "shield", "租": "to rent; rent", "骑": "to ride (a horse, a bike)",
+    "摄": "to absorb; to photograph", "凭": "to rely on; based on; proof", "抢": "to snatch; to rob; to rush",
+    "绪": "thread; mood; beginning", "粗": "thick; coarse; rough", "幻": "illusion; fantasy",
+    "菲": "luxuriant; the Philippines", "汤": "soup; hot water", "荡": "to sway; to swing; to wash",
+    "悉": "to know; all", "蒂": "stem (of a fruit)", "薄": "thin; slight; meager",
+    "幅": "width; (measure word: pictures)", "岂": "how? (rhetorical)", "凯": "triumphant; victory song",
+    "颗": "(measure word: small round things)", "赏": "to reward; to admire", "漫": "to overflow; free; long",
+    "郎": "young man; (old) official", "腰": "waist; lower back", "舒": "to stretch; comfortable",
+    "眉": "eyebrow", "恋": "love; to long for", "挺": "very; quite; straight", "辞": "to resign; to take leave; words",
+    "艘": "(measure word: boats)", "伍": "ranks; company; five", "峰": "peak; summit",
+    "券": "ticket; coupon; bond", "趋": "to hurry; to tend to; trend", "阅": "to read; to review",
+    "汗": "sweat", "墨": "ink", "彭": "Peng (a surname)", "慧": "wise; intelligent",
+    "佩": "to admire; to wear (at the belt)", "扑": "to pounce; to throw oneself at",
+    "惜": "to cherish; to regret; pity", "兼": "both; at once; double", "帕": "kerchief; handkerchief",
+    "驶": "to drive; to sail", "届": "session (of a meeting); to fall due", "惠": "kindness; favor; benefit",
+    "闲": "idle; free time; leisure", "邪": "evil; wicked", "滚": "to roll; to boil",
+    "奏": "to play (music); to report", "颜": "face; color", "绩": "achievement; merit; to spin",
+    "锁": "lock; to lock", "戒": "to guard against; to give up; ring", "驾": "to drive; to harness",
+    "漂": "pretty (漂亮); to float; to drift", "朵": "(measure word: flowers, clouds)", "仔": "careful (仔细); young",
+    "俩": "two (people); both", "践": "to carry out; to tread", "籍": "record; book; nationality",
+    "浓": "thick; strong (tea); dense", "逻": "to patrol; logic (逻辑)", "脉": "pulse; vein",
+    "帐": "tent; curtain; account", "贷": "loan; to lend", "躺": "to lie down", "寄": "to send (by post); to entrust",
+    "扶": "to support; to help up", "邓": "Deng (a surname)", "奈": "how; but (无奈)",
+    "澳": "bay; Australia; Macao", "嘛": "(obviously!; ...then)", "凝": "to congeal; to concentrate",
+    "辖": "to govern; linchpin", "魏": "Wei (a state, a surname)", "慌": "flustered; panicky",
+    "祝": "to wish; to pray for", "械": "tool; machine; weapon", "挤": "to squeeze; to crowd",
+    "揭": "to uncover; to expose", "悟": "to realize; to awaken", "锋": "sharp edge; point; front",
+    "猫": "cat", "阔": "wide; broad; rich", "筹": "to raise (funds); to plan; chip",
+    "沈": "to sink; Shen (a surname)", "猎": "to hunt; hunting", "瑟": "a large zither",
+    "逊": "modest; inferior to", "欺": "to deceive; to bully", "吨": "ton", "琴": "zither; piano (钢琴)",
+    "恼": "angry; annoyed", "燕": "swallow (the bird)", "仲": "second (of brothers); middle",
+    "疼": "to ache; sore; to dote on", "卢": "Lu (a surname)", "仗": "battle; to rely on; weapons",
+    "冯": "Feng (a surname)", "敦": "kindhearted; sincere", "纠": "to correct; to entangle",
+    "凌": "to rise high; to insult; ice", "敲": "to knock; to strike", "赔": "to compensate; to lose (money)",
+    "熊": "bear", "赋": "to bestow; tax; poetic essay", "秩": "order", "烂": "rotten; soft; worn out",
+    "袁": "Yuan (a surname)", "肝": "liver", "猪": "pig", "丑": "ugly; clown",
+    "纽": "knob; button; tie", "玻": "glass (玻璃)", "夸": "to praise; to boast",
+    "押": "to pawn; to detain; to escort", "疲": "tired; weary", "醉": "drunk",
+    "弥": "to fill; full; all over", "档": "file; records; grade", "捷": "quick; victory",
+    "岗": "post; sentry; hillock", "癌": "cancer", "肚": "belly; stomach", "涨": "to rise (prices, water)",
+    "坛": "altar; platform; forum", "郭": "outer city wall; Guo", "牺": "sacrifice (牺牲)",
+    "廉": "honest; cheap", "契": "contract; deed; to carve", "拼": "to piece together; to spell",
+    "捉": "to catch; to grab", "覆": "to cover; to overturn", "刷": "brush; to brush",
+    "唤": "to call; to call out", "赢": "to win; to beat", "搭": "to build; to take (a ride)",
+    "俊": "handsome; talented", "庞": "huge; Pang (a surname)", "锐": "sharp; keen",
+    "玲": "tinkling of jade; clever", "惟": "only; but", "呵": "to breathe out; ha!",
+    "酷": "cruel; extreme; cool", "掠": "to rob; to sweep past", "妖": "demon; bewitching",
+    "挣": "to earn; to struggle free", "汪": "vast (water); Wang", "枚": "(measure word: coins, small things)",
+    "傅": "teacher; tutor (师傅)", "帅": "handsome; commander", "璃": "glass (玻璃)",
+    "愚": "foolish; stupid", "滴": "drop; to drip", "疏": "sparse; distant; to dredge",
+    "姿": "posture; appearance", "盯": "to stare at", "哦": "oh!", "腔": "cavity; tune; accent",
+    "郁": "lush; gloomy", "溃": "to burst; to collapse", "糟": "bad; messy (糟糕); dregs",
+    "葛": "kudzu; Ge (a surname)", "忌": "to avoid; to envy; taboo", "鸿": "wild goose; great",
+    "鹏": "roc (a mythical bird)", "纲": "outline; guiding principle", "茨": "thatch; caltrop",
+    "膀": "shoulder (肩膀); wing", "贤": "worthy; virtuous", "毅": "resolute; firm",
+    "函": "letter; envelope", "茫": "vast; boundless; vague", "薛": "Xue (a surname)",
+    "豫": "to hesitate (犹豫); happy", "拾": "to pick up; ten (in writing)", "睁": "to open (the eyes)",
+    "晴": "clear (weather); sunny", "填": "to fill; to fill in", "扮": "to dress up as; to play (a role)",
+    "罩": "cover; to cover", "柴": "firewood", "愉": "happy; pleased", "喂": "hey; hello; to feed",
+    "傻": "foolish; silly", "奸": "treacherous; traitor; evil", "悦": "happy; pleased",
+    "拦": "to block; to stop", "饱": "full (from eating)", "乾": "heaven (☰); male principle",
 }
 
 
@@ -196,6 +302,15 @@ WHY = {
     "屋": "To stop 至 under a roof 尸 (here a form of 厂).",
     "军": "Soldiers 冖 (a bent 力) in a cart 车.",
     "率": "A string 幺 vibrating in an instrument 亠 十.",
+    # the second thousand's
+    "私": "Grain 禾 kept for oneself 厶; 厶 (sī) gives the meaning and the sound.",
+    "扩": "扌 (hand) gives the meaning and 广 (guǎng) the sound: simplified from 擴.",
+    "赛": "贝 (money) gives the meaning; the top, cut from 塞 (sài), the sound.",
+    "俩": "Two 两 people 亻; 两 (liǎng) also gives the sound.",
+    "帕": "巾 (cloth) gives the meaning and 白 (bái) the sound.",
+    "麦": "Simplified form of 麥; grains 來 ready to be harvested 夂.",
+    "卑": "A hand 又 (altered) holding an empty shell 甲 (altered).",
+    "宾": "A soldier 兵 quartered under one's roof 宀.",
 }
 # a sound part's reading where Make Me a Hanzi's has no tone (卜 "bo": bǔ, as in 补 bǔ)
 SOUND = {"卜": "bǔ"}
@@ -486,6 +601,7 @@ READ = {"了": "le",      # le after every finished action; liǎo only in 了解
         "应": "yīng",    # 应该 should; yìng in 反应, 答应, 适应
         "更": "gèng",    # more; gēng in 更新, 更改
         "佛": "fó",      # Buddha: CC-CEDICT has fó only as a name (Fó), and fú is 仿佛's
+        "挑": "tiāo",    # to choose (挑选, 挑 alone in speech); tiǎo in 挑战 is the "also"
         }
 
 
@@ -832,7 +948,8 @@ def components(entry):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--chars", type=int, default=1000)
+    ap.add_argument("--chars", type=int, default=1000, help="the characters the path was first made of")
+    ap.add_argument("--more", type=int, default=2000, help="the characters it goes on to, by frequency")
     ap.add_argument("--src", default=CACHE)
     ap.add_argument("--sample", type=int, default=0, help="print N meanings, before and after")
     ap.add_argument("--sentences", type=int, default=0, help="print N sentences with their pinyin")
@@ -848,7 +965,8 @@ def main():
 
     rank = {c: i for i, c in enumerate(freq)}
     used, alone = usage(ced, hsk, rank)
-    top = [c for c in freq if c in dic and c in gfx][:a.chars]
+    every = [c for c in freq if c in dic and c in gfx]
+    top, more = every[:a.chars], every[a.chars:a.more]
     common = set(top)
 
     def teachable(c):
@@ -876,106 +994,125 @@ def main():
     for c in top:
         visit(c)
 
-    pos = {c: i for i, c in enumerate(order)}
+    def make(order, common):
+        """The items for a path in this order, common the characters taught as characters."""
+        pos = {c: i for i, c in enumerate(order)}
 
-    def kind(c):
-        return "char" if (c in common or c in rank and rank[c] < 1500) else "part"
+        def kind(c):
+            return "char" if (c in common or c in rank and rank[c] < 1500) else "part"
 
-    # words: HSK words made only of what's been taught by then, lowest level first
-    words, hskwords = {}, set()
-    for lvl in sorted(hsk, key=int):
-        for w, py, en in hsk[lvl]:
-            hskwords.add(w)
-            if len(w) < 2 or not all(ch in pos for ch in w):
+        # words: HSK words made only of what's been taught by then, lowest level first
+        words, hskwords = {}, set()
+        for lvl in sorted(hsk, key=int):
+            for w, py, en in hsk[lvl]:
+                hskwords.add(w)
+                if len(w) < 2 or not all(ch in pos for ch in w):
+                    continue
+                at = max(pos[ch] for ch in w)        # readable from this point on the path
+                lst = words.setdefault(order[at], [])
+                if len(lst) < WORDS_PER_CHAR:
+                    lst.append([w, py, en, int(lvl)])
+
+        # beyond HSK: a character with no HSK word gets CC-CEDICT's words made of what's been
+        # taught by then. CC-CEDICT has no frequencies; a word that many longer entries are
+        # built on (中国 in 中国人, 中国话...) is a common one
+        inside = {}
+        for w in ced:
+            for n in (2, 3):
+                for i in range(len(w) - n + 1):
+                    if len(w) > n:
+                        inside[w[i:i + n]] = inside.get(w[i:i + n], 0) + 1
+        extra = {}
+        for w, es in ced.items():
+            if not 2 <= len(w) <= 3 or w in hskwords or not all(ch in pos for ch in w) or len(set(w)) < len(w):
                 continue
-            at = max(pos[ch] for ch in w)        # readable from this point on the path
-            lst = words.setdefault(order[at], [])
-            if len(lst) < WORDS_PER_CHAR:
-                lst.append([w, py, en, int(lvl)])
+            es = [e for e in es if not e[0][:1].isupper()]      # names of people and places
+            if not es or inside.get(w, 0) < 3:
+                continue
+            # a word a learner meets: not one whose first sense is literary or archaic (玉门),
+            # and none a first reader of it would blush at (小三, 烟花)
+            if any(NOISE.search(e[1][0]) for e in es) or any(UNSEEMLY.search(" ".join(e[1])) for e in es):
+                continue
+            en = plain(es, limit=32)
+            if not en:
+                continue
+            last = order[max(pos[ch] for ch in w)]
+            if last in words or kind(last) != "char":
+                continue
+            e = sorted(es, key=lambda e: -len(senses([e])))[0]
+            others = max(pos[ch] for ch in w if ch != last)
+            extra.setdefault(last, []).append(((len(w) != 2, -inside[w], others), [w, e[0], en, 0]))
+        for c, lst in extra.items():
+            words[c] = [w for _, w in sorted(lst)[:WORDS_PER_CHAR]]
+        # as they're said: 不对 bú duì, 一样 yí yàng, 东西 dōng xi
+        for lst in words.values():
+            for wd in lst:
+                syl = wd[1].split()
+                if len(syl) == len(wd[0]):
+                    wd[1] = " ".join(spoken(wd[0], light(wd[0], syl), {len(wd[0]) - 1}))
 
-    # beyond HSK: a character with no HSK word gets CC-CEDICT's words made of what's been
-    # taught by then. CC-CEDICT has no frequencies; a word that many longer entries are
-    # built on (中国 in 中国人, 中国话...) is a common one
-    inside = {}
-    for w in ced:
-        for n in (2, 3):
-            for i in range(len(w) - n + 1):
-                if len(w) > n:
-                    inside[w[i:i + n]] = inside.get(w[i:i + n], 0) + 1
-    extra = {}
-    for w, es in ced.items():
-        if not 2 <= len(w) <= 3 or w in hskwords or not all(ch in pos for ch in w) or len(set(w)) < len(w):
-            continue
-        es = [e for e in es if not e[0][:1].isupper()]      # names of people and places
-        if not es or inside.get(w, 0) < 3:
-            continue
-        # a word a learner meets: not one whose first sense is literary or archaic (玉门),
-        # and none a first reader of it would blush at (小三, 烟花)
-        if any(NOISE.search(e[1][0]) for e in es) or any(UNSEEMLY.search(" ".join(e[1])) for e in es):
-            continue
-        en = plain(es, limit=32)
-        if not en:
-            continue
-        last = order[max(pos[ch] for ch in w)]
-        if last in words or kind(last) != "char":
-            continue
-        e = sorted(es, key=lambda e: -len(senses([e])))[0]
-        others = max(pos[ch] for ch in w if ch != last)
-        extra.setdefault(last, []).append(((len(w) != 2, -inside[w], others), [w, e[0], en, 0]))
-    for c, lst in extra.items():
-        words[c] = [w for _, w in sorted(lst)[:WORDS_PER_CHAR]]
-    # as they're said: 不对 bú duì, 一样 yí yàng, 东西 dōng xi
-    for lst in words.values():
-        for wd in lst:
-            syl = wd[1].split()
-            if len(syl) == len(wd[0]):
-                wd[1] = " ".join(spoken(wd[0], light(wd[0], syl), {len(wd[0]) - 1}))
+        users = {}
+        for c in order:
+            for p in set(components(dic[c])):
+                if p in pos and p != c:
+                    users.setdefault(p, []).append(c)
 
-    users = {}
-    for c in order:
-        for p in set(components(dic[c])):
-            if p in pos and p != c:
-                users.setdefault(p, []).append(c)
+        items, before = [], {}
+        for c in order:
+            d = dic[c]
+            g = garden.get(c)
+            k = kind(c)
+            py = d.get("pinyin") or ([g[0]] if g else [])
+            if k == "char":
+                py = readings(c, py, ced.get(c, []), used, alone) or py
+            old = short(d.get("definition")) or (g[1] if g else "")
+            if len(old) > 32:
+                old = short(d.get("definition"), 1)
+            if c in OWN:
+                meaning = OWN[c]
+            elif k == "part" and g:
+                meaning = g[1]
+            elif c in MEANS:
+                meaning = MEANS[c]
+            else:
+                meaning = (plain(ced.get(c, []), py[0], hint=d.get("definition")) if py else "") or old
+            before[c] = old
+            it = {"h": c, "k": k, "py": py[:2], "en": meaning,
+                  "parts": [p for p in dict.fromkeys(components(d)) if p in pos and p != c],
+                  "n": len(gfx[c]["strokes"])}
+            e = d.get("etymology")
+            if e:
+                it["et"] = {k: v for k, v in e.items() if k in ("type", "semantic", "phonetic")}
+            if c in words:
+                it["w"] = words[c]
+            if c in users:
+                it["used"] = users[c][:6]
+            items.append(it)
 
-    items, before = [], {}
-    for c in order:
-        d = dic[c]
-        g = garden.get(c)
-        k = kind(c)
-        py = d.get("pinyin") or ([g[0]] if g else [])
-        if k == "char":
-            py = readings(c, py, ced.get(c, []), used, alone) or py
-        old = short(d.get("definition")) or (g[1] if g else "")
-        if len(old) > 32:
-            old = short(d.get("definition"), 1)
-        if c in OWN:
-            meaning = OWN[c]
-        elif k == "part" and g:
-            meaning = g[1]
-        elif c in MEANS:
-            meaning = MEANS[c]
-        else:
-            meaning = (plain(ced.get(c, []), py[0], hint=d.get("definition")) if py else "") or old
-        before[c] = old
-        it = {"h": c, "k": k, "py": py[:2], "en": meaning,
-              "parts": [p for p in dict.fromkeys(components(d)) if p in pos and p != c],
-              "n": len(gfx[c]["strokes"])}
-        e = d.get("etymology")
-        if e:
-            it["et"] = {k: v for k, v in e.items() if k in ("type", "semantic", "phonetic")}
-        if c in words:
-            it["w"] = words[c]
-        if c in users:
-            it["used"] = users[c][:6]
-        items.append(it)
+        # why it looks like this: a plain line from the etymology, once every reading is known
+        at = {it["h"]: it for it in items}
+        for it in items:
+            e = dic[it["h"]].get("etymology") or {}
+            w = why(it["h"], e, at, dic)
+            if w:
+                it.setdefault("et", {})["why"] = w
+        return items, before
 
-    # why it looks like this: a plain line from the etymology, once every reading is known
+    # the path as it was first walked (the first --chars characters): its order and every
+    # item's fields stay as they are, people's progress is keyed by them. Then the path goes
+    # on (--more): the next characters by frequency, each after the parts it needs that
+    # aren't on the path yet, built the same way with the whole path known; only the new
+    # items are taken from it, so an early item gains no words, uses or parts
+    items, before = make(order, set(common))
+    walked = len(order)
+    common.update(more)
+    for c in more:
+        visit(c)
+    rest, later = make(order, set(common))
+    items += rest[walked:]
+    before.update({c: later[c] for c in order[walked:]})
     at = {it["h"]: it for it in items}
-    for it in items:
-        e = dic[it["h"]].get("etymology") or {}
-        w = why(it["h"], e, at, dic)
-        if w:
-            it.setdefault("et", {})["why"] = w
+
     if a.why:
         for i, it in enumerate(items[:a.why]):
             e = dic[it["h"]].get("etymology") or {}
