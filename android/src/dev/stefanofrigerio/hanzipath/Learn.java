@@ -28,6 +28,7 @@ class Learn {
 
     void show(boolean speak) {
         String h = items.get(i);
+        if (Words.is(h)) { word(h, speak); return; }
         Item it = PathData.get(h);
         LinearLayout col = m.page("learn", java.util.Arrays.asList(this, i), () -> show(false));
         String count = lookup ? (m.prog.cards.containsKey(h) ? "known " + Math.round(m.prog.strength(h, System.currentTimeMillis()) * 100) + "%" : "not met yet")
@@ -52,10 +53,29 @@ class Learn {
         if (speak && !lookup && m.prog.say && it.py.length > 0) m.say(h);
     }
 
+    /** A word being learnt: the word large, its reading (tap the speaker to hear it), what it
+     *  means, its level, and each character in it with its own meaning. */
+    void word(String h, boolean speak) {
+        String[] w = Words.get(h);
+        LinearLayout col = m.page("learn", java.util.Arrays.asList(this, i), () -> show(false));
+        hv = null;
+        col.addView(Cards.bar(m, "new word " + (i + 1) + " / " + items.size(), Ui.close(m, v -> m.back())));
+        LinearLayout card = Ui.card(m);
+        card.addView(Cards.wordTag(m, w));
+        card.addView(Cards.word(m, h));
+        card.addView(Cards.wordReading(m, w));
+        card.addView(Cards.chips(m, "Its characters", Words.chars(h)));
+        col.addView(card);
+        col.addView(Ui.pill(m, i + 1 < items.size() ? "Next" : "Check yourself", Ui.SOLID, v -> next()),
+                new LinearLayout.LayoutParams(-1, -2));
+        if (speak && m.prog.say) m.say(h);
+    }
+
     void next() {
         if (lookup) { m.back(); return; }
         if (i + 1 < items.size()) { i++; show(); return; }
         m.prog.learnt(items.size());
+        Words.learnt(m.prog, Words.is(items.get(0)));
         m.startCheck(new java.util.ArrayList<>(items));
     }
 }

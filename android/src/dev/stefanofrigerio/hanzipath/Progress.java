@@ -29,7 +29,7 @@ import java.util.Map;
  *
  * Kept in SQLite (databases/hanzi.db, in Android's backup), held in memory and written
  * through on every change:
- *   cards    one row an item met
+ *   cards    one row an item met, or a word (keyed by the word: Words)
  *   stories  what you wrote for an item
  *   meta     opts, today, days: settings and small state, each a JSON value
  *   reviews  every grade given, as given (for fitting FSRS's weights to you later)
@@ -67,6 +67,7 @@ final class Progress extends SQLiteOpenHelper {
     String todayDate = "";
     int todayNew = 0;
     JSONObject days = new JSONObject();   // {"2026-11-06": {"reviews": 12, "learnt": 5}}
+    int sinceWords = Words.EVERY;         // character batches since the last word batch (Words): the first can be words
 
     Progress(Context ctx) {
         super(ctx, "hanzi.db", null, 1);
@@ -164,7 +165,7 @@ final class Progress extends SQLiteOpenHelper {
     List<String> due(long now) {
         List<String> out = new ArrayList<>();
         for (Map.Entry<String, Card> e : cards.entrySet())
-            if (e.getValue().due <= now && PathData.get(e.getKey()) != null) out.add(e.getKey());
+            if (e.getValue().due <= now && Words.onPath(e.getKey())) out.add(e.getKey());
         Collections.sort(out, (a, b) -> {
             Card x = cards.get(a), y = cards.get(b);
             return Double.compare((now - y.last) / y.s, (now - x.last) / x.s);
@@ -264,7 +265,7 @@ final class Progress extends SQLiteOpenHelper {
             final Map<String, Double> late = new HashMap<>();
             try (Cursor c = db.rawQuery("SELECT h, s, last FROM cards WHERE due <= ?", new String[]{String.valueOf(now)})) {
                 while (c.moveToNext())
-                    if (PathData.get(c.getString(0)) != null)
+                    if (Words.onPath(c.getString(0)))
                         late.put(c.getString(0), (now - c.getLong(2)) / Math.max(c.getDouble(1), 0.01));
             }
             p.due.addAll(late.keySet());
@@ -305,6 +306,8 @@ final class Progress extends SQLiteOpenHelper {
                         todayNew = o.optInt("n");
                     } else if (k.equals("days")) {
                         days = new JSONObject(c.getString(1));
+                    } else if (k.equals("words")) {
+                        sinceWords = new JSONObject(c.getString(1)).optInt("since", sinceWords);
                     }
                 } catch (Exception e) { /* a bad value: its default */ }
             }
@@ -337,6 +340,7 @@ final class Progress extends SQLiteOpenHelper {
         meta.put("opts", new JSONObject().put("batch", batch).put("perDay", perDay).put("say", say).put("remind", remind));
         meta.put("today", obj("d", todayDate, "n", todayNew));
         meta.put("days", days);
+        meta.put("words", obj("since", sinceWords));
         JSONArray rv = new JSONArray();
         try (Cursor c = getReadableDatabase().rawQuery("SELECT at, h, grade, mode, ms, r, s, d FROM reviews ORDER BY id", null)) {
             while (c.moveToNext()) rv.put(new JSONObject().put("at", c.getLong(0)).put("h", c.getString(1)).put("g", c.getLong(2))
