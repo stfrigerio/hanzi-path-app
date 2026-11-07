@@ -49,9 +49,9 @@ final class PathData {
             JSONObject et = o.optJSONObject("et");
             if (et != null) {
                 it.etType = et.optString("type", null);
-                it.etHint = et.optString("hint", null);
                 it.etSemantic = et.optString("semantic", null);
                 it.etPhonetic = et.optString("phonetic", null);
+                it.why = et.optString("why", null);
             }
             it.at = i;
             items.add(it);
