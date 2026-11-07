@@ -133,15 +133,11 @@ class Read {
                 : "That's all of them for now: more come within reach as you learn.", 14, Ink.sans, Ink.ink2);
         more.setGravity(Gravity.CENTER);
         card.addView(more, new LinearLayout.LayoutParams(-1, -2));
-        LinearLayout acts = Ui.row(m, 10);
-        acts.setGravity(Gravity.CENTER);
-        if (can > n) {
-            acts.addView(Ui.pill(m, "Back to the path", Ui.OUTLINE, v -> m.home()), Ui.weight(1));
-            acts.addView(Ui.pill(m, "Another round", Ui.SOLID, v -> m.startRead()), Ui.weight(1));
-        } else {
-            acts.addView(Ui.pill(m, "Back to the path", Ui.SOLID, v -> m.home()));
-        }
-        card.addView(acts, new LinearLayout.LayoutParams(-1, -2));
+        // as the quiz's end: the two side by side (one under the other once the text is large),
+        // or the way back alone across the card
+        card.addView(can > n ? Ui.even(m, 10, Ui.pill(m, "Back to the path", Ui.OUTLINE, v -> m.home()),
+                        Ui.pill(m, "Another round", Ui.SOLID, v -> m.startRead()))
+                : Ui.pill(m, "Back to the path", Ui.SOLID, v -> m.home()), new LinearLayout.LayoutParams(-1, -2));
         col.addView(card);
     }
 }
