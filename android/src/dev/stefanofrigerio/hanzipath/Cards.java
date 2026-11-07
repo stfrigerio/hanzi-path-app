@@ -1,15 +1,11 @@
 package dev.stefanofrigerio.hanzipath;
 
-import android.text.Editable;
-import android.text.InputType;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
-import android.text.TextWatcher;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.TypefaceSpan;
 import android.view.Gravity;
 import android.view.View;
-import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -127,54 +123,6 @@ final class Cards {
         int at = b.length();
         b.append(h);
         b.setSpan(new TypefaceSpan(Ink.han), at, b.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-    }
-
-    static View story(Main m, Item it) {
-        LinearLayout c = Ui.column(m, 8);
-        c.addView(Ui.label(m, "Your story"));
-        EditText e = new EditText(m);
-        e.setText(m.prog.stories.containsKey(it.h) ? m.prog.stories.get(it.h) : "");
-        StringBuilder hint = new StringBuilder();
-        if (it.parts.length == 0) hint.append("Write a picture or a scene that makes this one stick.");
-        else {
-            for (int i = 0; i < it.parts.length; i++) {
-                Item p = PathData.get(it.parts[i]);
-                if (i > 0) hint.append(" + ");
-                hint.append(it.parts[i]).append(' ').append(p == null ? "" : p.en);
-            }
-            hint.append(" → ").append(it.en).append(". Make it a scene of your own.");
-        }
-        e.setHint(hint);
-        e.setHintTextColor(Ink.ink2);
-        e.setTextColor(Ink.ink);
-        e.setTypeface(Ink.sans);
-        e.setTextSize(15);
-        e.setMinLines(2);
-        e.setGravity(Gravity.TOP | Gravity.START);
-        e.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
-        e.setBackground(Ui.shape(Ink.paper2, Ink.rule, 14, false));
-        e.setPadding(Ink.dp(12), Ink.dp(10), Ink.dp(12), Ink.dp(10));
-        final Runnable save = () -> m.prog.story(it.h, e.getText().toString());
-        e.addTextChangedListener(new TextWatcher() {
-            public void beforeTextChanged(CharSequence s, int a, int b, int c2) {}
-            public void onTextChanged(CharSequence s, int a, int b, int c2) {}
-            public void afterTextChanged(Editable s) {
-                e.removeCallbacks(save);
-                e.postDelayed(save, 400);
-            }
-        });
-        e.setOnFocusChangeListener((v, f) -> { if (!f) save.run(); });
-        c.addView(e, new LinearLayout.LayoutParams(-1, -2));
-        return c;
-    }
-
-    static View storyRead(Main m, Item it) {
-        String s = m.prog.stories.get(it.h);
-        if (s == null) return why(m, it);
-        LinearLayout c = Ui.column(m, 8);
-        c.addView(Ui.label(m, "Your story"));
-        c.addView(Ui.text(m, s, 15, Ink.sans, Ink.ink));
-        return c;
     }
 
     static View words(Main m, Item it) {

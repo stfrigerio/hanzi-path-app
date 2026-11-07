@@ -101,7 +101,7 @@ class Quiz {
         if (m.prog.say && it.py.length > 0) m.say(h);
         answer.addView(Cards.reading(m, it));
         Cards.parts(m, answer, it);
-        Cards.add(answer, Cards.storyRead(m, it));
+        Cards.add(answer, Cards.why(m, it));
         answer.setVisibility(View.VISIBLE);
         showRow.setVisibility(View.GONE);
         grades.setVisibility(View.VISIBLE);

@@ -45,8 +45,8 @@ Set up once:
   square to see them again), it's said aloud (Android's Chinese voice), the
   reading in the tones' inks (1 blue, 2 green, 3 peach, 4 pink: the garden's),
   what it's made of and what it leads to, why it looks like this (Make Me a
-  Hanzi's etymology: which part gives the meaning, which the sound), a box for
-  your own story, and the HSK words you can now read.
+  Hanzi's etymology: which part gives the meaning, which the sound), and the
+  HSK words you can now read.
 - **Check**: right after the batch, a round of questions. That's the first
   grade, so a new item starts on what you showed you know.
 - **Review**: FSRS-4.5, a small scheduler with three grades (again, unsure, knew). A review shows
@@ -101,7 +101,7 @@ python3 tools/build.py [--chars 500]     # sources fetched once into ~/.cache/ha
 ## Next
 
 - Mnemonics written for you (an LLM, from the parts' meanings and the
-  etymology), shown under *Your story* until you write your own.
+  etymology).
 - Words as cards of their own, once their characters are known.
 - FSRS's weights fitted to the review log.
 - Sync progress between devices.

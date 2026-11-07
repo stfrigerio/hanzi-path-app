@@ -6,7 +6,7 @@ import java.util.List;
 
 /**
  * A batch being learnt, or one item looked up: the strokes animating on the square (tap it
- * to see them again), said aloud, its reading, parts, why, your story, the words it opens.
+ * to see them again), said aloud, its reading, parts, why, the words it opens.
  * After the batch comes the check (Quiz), its first grade.
  */
 class Learn {
@@ -41,7 +41,6 @@ class Learn {
         card.addView(Cards.reading(m, it));
         Cards.parts(m, card, it);
         Cards.add(card, Cards.why(m, it));
-        card.addView(Cards.story(m, it));
         Cards.add(card, Cards.words(m, it));
         col.addView(card);
 
