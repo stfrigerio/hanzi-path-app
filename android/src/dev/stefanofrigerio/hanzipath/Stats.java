@@ -36,6 +36,7 @@ class Stats {
     void show() {
         LinearLayout col = m.page("stats", this::show);
         col.addView(Cards.bar(m, "STATS", Ui.close(m, v -> m.home())));
+        col.addView(Levels.entry(m));
         Progress p = m.prog;
         long now = System.currentTimeMillis();
         List<Progress.Logged> log = p.reviewsSince(weekStart(now, WEEKS - 1));

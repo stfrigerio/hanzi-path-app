@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Build the app (android/) without gradle:
 # javac, d8, aapt2, zipalign, apksigner. Its assets: the path and its strokes (data/, made by
-# tools/build.py) and the faces (android/fonts). Prints the APK's path:
+# tools/build.py), the HSK lists (sources/hsk.json) and the faces (android/fonts). Prints the APK's path:
 # android/out/hanzi-path-<code>.apk, its versionCode the commits on the branch.
 #
 # Signed with KEYSTORE (default ~/.android/debug.keystore, made if missing, password
@@ -28,6 +28,7 @@ fi
 OUT=out
 rm -rf "$OUT" && mkdir -p "$OUT/classes" "$OUT/dex" "$OUT/assets"
 cp ../data/path.json ../data/strokes-*.json ../data/sentences.json "$OUT/assets/"
+cp ../sources/hsk.json "$OUT/assets/"      # the HSK lists as they are, for HSK levels (Levels)
 mkdir -p "$OUT/assets/fonts" && cp fonts/*.ttf "$OUT/assets/fonts/"
 javac -source 8 -target 8 -nowarn -Xlint:-options -bootclasspath "$JAR" -classpath "$BT/core-lambda-stubs.jar" -d "$OUT/classes" $(find src -name '*.java')
 "$BT/d8" --min-api 31 --lib "$JAR" --output "$OUT/dex" $(find "$OUT/classes" -name '*.class')

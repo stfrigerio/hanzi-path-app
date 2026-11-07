@@ -40,6 +40,7 @@ class Settings {
                 v -> { p.round = v.equals("all") ? 0 : Integer.parseInt(v); p.saveOpts(); }));
         rows.addView(choice("Say it aloud", new String[]{"on", "off"}, p.say ? "on" : "off",
                 v -> { p.say = v.equals("on"); p.saveOpts(); }));
+        rows.addView(choice("Voice speed", new String[]{"normal", "slower"}, p.speed, v -> { p.speed = v; p.saveOpts(); }));
         rows.addView(choice("Reminder", Reminder.TIMES, Reminder.label(p.remind), v -> {
             p.remind = Reminder.minutes(v);
             p.saveOpts();

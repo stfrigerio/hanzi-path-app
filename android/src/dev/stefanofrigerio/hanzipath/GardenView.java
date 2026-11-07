@@ -22,6 +22,7 @@ class GardenView extends View {
 
     int[] state = new int[0];
     int cols = 10, from = 0, shown = Integer.MAX_VALUE;
+    int[] pick;            // the places on the path drawn, in order, instead of a run of them (Levels); null: the run
     float cell, gap;
     Tap tap;
     int pressed = -1;      // the cell under the finger
@@ -74,15 +75,18 @@ class GardenView extends View {
     }
 
     /** The first cell drawn, and how many are. */
-    int first() { return Math.min(from, state.length); }
+    int first() { return pick != null ? 0 : Math.min(from, state.length); }
 
-    int count() { return Math.min(shown, state.length) - first(); }
+    int count() { return pick != null ? Math.min(shown, pick.length) : Math.min(shown, state.length) - first(); }
+
+    /** The place on the path of the j-th cell drawn. */
+    int index(int j) { return pick != null ? pick[j] : first() + j; }
 
     /** The cell under a touch (its index on the path), or -1. */
     int at(MotionEvent e) {
         int col = (int) (e.getX() / (cell + gap)), row = (int) (e.getY() / (cell + gap));
         int i = row * cols + col;
-        return e.getX() >= 0 && e.getY() >= 0 && col < cols && i < count() ? first() + i : -1;
+        return e.getX() >= 0 && e.getY() >= 0 && col < cols && i < count() ? index(i) : -1;
     }
 
     void press(int i) {
@@ -111,9 +115,9 @@ class GardenView extends View {
     protected void onDraw(Canvas c) {
         textP.setTextSize(cell * 0.56f);
         Paint.FontMetrics fm = textP.getFontMetrics();
-        for (int i = first(), end = first() + count(); i < end; i++) {
+        for (int j = 0, end = count(); j < end; j++) {
+            int i = index(j);
             Item it = PathData.items.get(i);
-            int j = i - first();
             float x = (j % cols) * (cell + gap), y = (j / cols) * (cell + gap);
             r.set(x, y, x + cell, y + cell);
             int bg = 0, line = 0, fg;
