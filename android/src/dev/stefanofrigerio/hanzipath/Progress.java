@@ -33,11 +33,12 @@ import java.util.Map;
  *   stories  what you wrote for an item
  *   meta     opts, today, days: settings and small state, each a JSON value; fsrs: the
  *            weights fitted to the learner's log (Fit), which new grades use
- *   reviews  every grade given, as given (for fitting FSRS's weights to you later); beside
- *            them, sentences read (mode "read") and practice answers (mode "practice-<kind>"),
- *            neither of them a grade: GRADED leaves them out. Each answer keeps what was
- *            tapped (picked; null in rows from before version 2): a wrong one that is another
- *            character is a confusion
+ *   reviews  every grade given, as given (Fit fits FSRS's weights to them): a review's
+ *            mode is its kind of question, a practice answer's "practice-<kind>" (graded too:
+ *            a real answer; rows from before practice was graded have r = s = d = 0); beside
+ *            them, sentences read (mode "read"), not a grade: GRADED leaves them out. Each
+ *            answer keeps what was tapped (picked; null in rows from before version 2): a
+ *            wrong one that is another character is a confusion
  *
  * Version 2 added reviews.picked (onUpgrade: the column added, every row kept).
  */
@@ -48,9 +49,13 @@ final class Progress extends SQLiteOpenHelper {
     static final double F = 19.0 / 81, C = -0.5;
     static final long RELEARN = 10 * 60_000L;   // an item you didn't know comes back this soon
     static final double MAX_S = 365, MATURE_D = 10, KNOWN = 0.5;
-    /** The rows of the review log that are FSRS grades: not a sentence read, not a practice answer. */
-    static final String GRADED = "(mode IS NULL OR (mode <> 'read' AND mode NOT LIKE 'practice-%'))";
+    /** The rows of the review log that are FSRS grades: reviews, checks and practice answers
+     *  (all real answers), not a sentence read. */
+    static final String GRADED = "(mode IS NULL OR mode <> 'read')";
     static final int PRACTICE = 20;       // items in a practice round
+    static final int PRACTICE_POOL = 40;  // drawn at random from this many of the weakest
+    static final int MORE_AFTER = 10;     // today's answers before a good day may learn past New per day
+    static final double MORE_RIGHT = 0.9; // ... and how many of them right
     static final int VERSION = 2;
     static final long CONFUSED = 60 * DAY;   // two confusions of a pair within this make it confusable
     static final long APART = 7 * DAY;       // a pair's "Tell them apart" card, at most once in this
@@ -70,6 +75,7 @@ final class Progress extends SQLiteOpenHelper {
     static class Undo {
         String h;
         Card before;
+        boolean practice;   // a practice answer: the day's practice count goes back too
     }
 
     final Map<String, Card> cards = new HashMap<>();
@@ -214,6 +220,8 @@ final class Progress extends SQLiteOpenHelper {
         v.put("r", r); v.put("s", c.s); v.put("d", c.d); v.put("picked", picked);
         getWritableDatabase().insert("reviews", null, v);
         bumpDay("reviews", 1);
+        if (how != null && how.startsWith("practice-")) bumpDay("practice", 1);
+        u.practice = how != null && how.startsWith("practice-");
         return u;
     }
 
@@ -222,6 +230,7 @@ final class Progress extends SQLiteOpenHelper {
         else { cards.remove(u.h); getWritableDatabase().delete("cards", "h = ?", new String[]{u.h}); }
         getWritableDatabase().execSQL("DELETE FROM reviews WHERE id = (SELECT MAX(id) FROM reviews WHERE " + GRADED + ")");
         bumpDay("reviews", -1);
+        if (u.practice) bumpDay("practice", -1);
     }
 
     /** 0..1: 0 for an item never met, up with every review that holds, down as it goes overdue. */
@@ -298,6 +307,26 @@ final class Progress extends SQLiteOpenHelper {
     static String date(Calendar c) { return new SimpleDateFormat("yyyy-MM-dd", Locale.ROOT).format(c.getTime()); }
 
     static String today() { return date(Calendar.getInstance()); }
+
+    /** Learnt today: past New per day too, when a good day learnt more. */
+    int newToday() { newLeftToday(); return todayNew; }
+
+    /** Today's graded answers: {how many, how many right (2 or 3)}. */
+    long[] todayAnswers() {
+        Calendar c = Calendar.getInstance();
+        c.set(Calendar.HOUR_OF_DAY, 0); c.set(Calendar.MINUTE, 0); c.set(Calendar.SECOND, 0); c.set(Calendar.MILLISECOND, 0);
+        try (Cursor k = getReadableDatabase().rawQuery("SELECT COUNT(*), COALESCE(SUM(grade >= 2), 0) FROM reviews WHERE at >= ? AND " + GRADED,
+                new String[]{String.valueOf(c.getTimeInMillis())})) {
+            return k.moveToNext() ? new long[]{k.getLong(0), k.getLong(1)} : new long[2];
+        }
+    }
+
+    /** A good day: at least MORE_AFTER answers today, MORE_RIGHT of them right. New per day
+     *  is soft then: home offers a batch more (Home.learning). */
+    boolean goodDay() {
+        long[] a = todayAnswers();
+        return a[0] >= MORE_AFTER && a[1] >= MORE_RIGHT * a[0];
+    }
 
     int newLeftToday() {
         if (!today().equals(todayDate)) { todayDate = today(); todayNew = 0; }
@@ -397,7 +426,15 @@ final class Progress extends SQLiteOpenHelper {
         return out;
     }
 
-    // ── practice (Quiz "practice"): met items asked again, logged, never graded ──
+    // ── practice (Quiz "practice"): met items asked again, graded as reviews are ──
+    /** A practice round's items: PRACTICE drawn at random from the PRACTICE_POOL weakest, so
+     *  one round after another isn't the same twenty. */
+    List<String> practiceSet(long now, java.util.Random rnd) {
+        List<String> pool = weakest(PRACTICE_POOL, now);
+        Collections.shuffle(pool, rnd);
+        return pool.size() > PRACTICE ? new ArrayList<>(pool.subList(0, PRACTICE)) : pool;
+    }
+
     /** Up to n items met on the path, the weakest first: lowest strength, then most lapses,
      *  then the longest since they were seen. */
     List<String> weakest(int n, long now) {
@@ -414,7 +451,9 @@ final class Progress extends SQLiteOpenHelper {
         return out.size() > n ? new ArrayList<>(out.subList(0, n)) : out;
     }
 
-    /** A practice answer, in the log as "practice-<kind>" with its grade, the card untouched. */
+    /** A practice answer logged without a grade, the card untouched: how practice was before
+     *  its answers went through FSRS (Progress.grade, "practice-<kind>"); kept for the tests'
+     *  old rows and the confusions. */
     void practised(String h, int g, String kind, long ms) { practised(h, g, kind, ms, null); }
 
     void practised(String h, int g, String kind, long ms, String picked) {
@@ -423,12 +462,6 @@ final class Progress extends SQLiteOpenHelper {
         v.put("r", 0); v.put("s", 0); v.put("d", 0); v.put("picked", picked);
         getWritableDatabase().insert("reviews", null, v);
         bumpDay("practice", 1);
-    }
-
-    /** The last practice answer taken back out of the log. */
-    void unpractised() {
-        getWritableDatabase().execSQL("DELETE FROM reviews WHERE id = (SELECT MAX(id) FROM reviews WHERE mode LIKE 'practice-%')");
-        bumpDay("practice", -1);
     }
 
     /** How many sentences have been read: {all of them, those since a time}. */

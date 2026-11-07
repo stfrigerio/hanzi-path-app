@@ -118,7 +118,7 @@ public class ReturnTest {
         WalkTest.tap(m, "Review 40 of 300");
         assertEquals("quiz", m.screen);
         assertEquals("review", m.quiz.kind);
-        assertEquals(due.subList(0, 40), m.quiz.queue);
+        assertEquals("the round is the 40 most due, shuffled", new java.util.HashSet<>(due.subList(0, 40)), new java.util.HashSet<>(m.quiz.queue));
         for (String h : m.quiz.queue) assertTrue(m.prog.cards.get(h).s >= Progress.SLIPPING);
         RoundTest.answer(m);
         assertEquals(40, m.prog.todayCount("reviews"));
@@ -156,7 +156,7 @@ public class ReturnTest {
         assertNotNull(ln);
         assertTrue(ln.isEnabled());
         WalkTest.tap(m, "Review 30");
-        assertEquals(due, m.quiz.queue);
+        assertEquals("the round is all of them, shuffled", new java.util.HashSet<>(due), new java.util.HashSet<>(m.quiz.queue));
     }
 
     /** Between two and three rounds due: no line yet, but new items wait for a round. */

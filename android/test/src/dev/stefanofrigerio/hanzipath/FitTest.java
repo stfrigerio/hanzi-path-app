@@ -259,13 +259,14 @@ public class FitTest {
         Main m = open();
         List<Progress.Logged> log = simulate(TRUTH, 200, 15, 7, now);
         insert(m.prog, log);
-        // practice answers and sentences read, all of them "wrong" and at odd times: ignored
+        // sentences read, all of them "wrong" and at odd times: ignored (practice answers are
+        // graded now, real answers, so they're not noise: Fit counts them like reviews)
         List<Progress.Logged> noise = new ArrayList<>();
         Random rnd = new Random(5);
         for (int i = 0; i < 2000; i++) {
             Progress.Logged l = new Progress.Logged();
             l.at = now - rnd.nextInt(300) * DAY; l.h = PathData.items.get(rnd.nextInt(200)).h; l.grade = 1;
-            l.mode = i % 4 == 0 ? "read" : i % 4 == 1 ? "practice-choose" : i % 4 == 2 ? "practice-pick" : "practice-tone";
+            l.mode = "read";
             noise.add(l);
         }
         insert(m.prog, noise);

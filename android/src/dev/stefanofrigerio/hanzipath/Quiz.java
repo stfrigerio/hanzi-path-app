@@ -27,17 +27,22 @@ import java.util.Set;
  * three (listen only while Settings' "Say it aloud" is on). The other three answers are close
  * (characters sharing a part with it, else near it on the path, ones you've met first). A
  * tap grades it: right and quick is knew it (3), right after SLOW ms unsure (2), wrong
- * again (1), which puts it at the end of the round (up to three times). Then the answer in
- * full, and Next. Undo takes the last grade back.
+ * again (1), which puts it at the end of the round (up to three times; never straight after
+ * itself while anything else is left). Then the answer in full, and Next. Undo takes the
+ * last grade back. Every round comes in a random order: the set is the round's (the most
+ * due, the batch just learnt, practice's draw), the order within it shuffled.
  *
  * A word (Words) gets the same three, with the word where the character was: word-choose
  * (the word, four readings and meanings), word-pick (its reading and meaning, four words)
  * and word-listen (said aloud, four words). Its wrong answers are other words, ones sharing
  * a character with it first, ones you've met or could (their characters known) before the rest.
  *
- * Practice (from home, when nothing is due) asks met items the same way, the weakest first,
- * but grades nothing: each answer goes in the log as "practice-<kind>" and the cards, the
- * schedule and Stats stay as they were. A miss still comes back at the end of the round.
+ * Practice (from home, when nothing is due) asks met items the same way, twenty drawn from
+ * the weakest forty, and grades them as a review does (FSRS: a right answer to a card not
+ * yet due adds little, a miss is a lapse), logged as "practice-<kind>".
+ *
+ * A round with no misses ends on "Learn next N" (Home.learning: if there's anything left
+ * to learn, and nothing holds learning back), beside the way back.
  * And tone (Tones): the character said aloud and shown, five tones to pick from; drawn now
  * and then in a review for a character whose tone you've missed or been slow on.
  *
@@ -61,7 +66,7 @@ class Quiz {
     String picked;         // the answer tapped; null while it's open
     int grade;
     HanziView hv;
-    final Random rnd = new Random();
+    final Random rnd;
     boolean fresh;         // just answered: the rings come in (Motion), once
     final List<View> ringed = new ArrayList<>(), faded = new ArrayList<>();
     Progress.Pair apart;   // a review's first card: "Tell them apart" (Apart), until Next
@@ -75,10 +80,15 @@ class Quiz {
         String mode;
     }
 
-    Quiz(Main m, List<String> items, String kind) {
+    Quiz(Main m, List<String> items, String kind) { this(m, items, kind, new Random()); }
+
+    /** A round of items, asked in an order drawn from rnd (the tests give it a seed). */
+    Quiz(Main m, List<String> items, String kind, Random rnd) {
         this.m = m;
         this.kind = kind;
+        this.rnd = rnd;
         this.queue = new ArrayList<>(items);
+        Collections.shuffle(queue, rnd);
         this.total = items.size();
         // a review round starts with a pair the learner mixes up, side by side, once a week a pair (Apart)
         if (kind.equals("review")) apart = m.prog.apartDue(System.currentTimeMillis());
@@ -424,8 +434,7 @@ class Quiz {
         grade = !right(o, h) ? 1 : ms <= SLOW ? 3 : 2;
         Last l = new Last();
         // what was tapped goes in the log with it: a wrong card is a confusion (Progress.pairs)
-        if (practice()) m.prog.practised(h, grade, mode, ms, o);   // logged, not graded: the card stays
-        else l.undo = m.prog.grade(h, grade, mode, ms, o);
+        l.undo = m.prog.grade(h, grade, practice() ? "practice-" + mode : mode, ms, o);
         l.queue = new ArrayList<>(queue);
         l.done = done;
         l.misses = misses;
@@ -445,7 +454,9 @@ class Quiz {
         int t = tries(h) + 1;
         tries.put(h, t);
         if (grade == 1) misses++;
-        if (grade == 1 && t < 3) queue.add(h);   // once more at the end of the round
+        // a miss: once more at the end of the round, after everything still left (so never
+        // straight after itself, unless it's all that's left)
+        if (grade == 1 && t < 3) queue.add(h);
         else done++;
         picked = null;
         optionsFor = null;
@@ -458,8 +469,7 @@ class Quiz {
     void undo() {
         if (last == null) return;
         Last l = last;
-        if (practice()) m.prog.unpractised();
-        else m.prog.ungrade(l.undo);
+        m.prog.ungrade(l.undo);
         queue = l.queue;
         done = l.done;
         misses = l.misses;
@@ -477,7 +487,8 @@ class Quiz {
 
     /** The round's end: a seal (好 clean, 行 fine, 练 practise), what happened, the way back.
      *  After a review, what's left: how many are still due, with Another round, or when the
-     *  next fall due. */
+     *  next fall due. A round with no misses: "Learn next N" first (solid), beside the way
+     *  back, another round and undo small under them. */
     void finish() {
         LinearLayout col = m.page("done", this::finish);
         LinearLayout card = Ui.card(m);
@@ -512,11 +523,31 @@ class Quiz {
             card.addView(rest, new LinearLayout.LayoutParams(-1, -2));
         }
         if (practice()) {
-            TextView rest = Ui.text(m, "Practice leaves the schedule as it was.", 14, Ink.sans, Ink.ink2);
+            TextView rest = Ui.text(m, "Each answer counts toward when they come back.", 14, Ink.sans, Ink.ink2);
             rest.setGravity(Gravity.CENTER);
             card.addView(rest, new LinearLayout.LayoutParams(-1, -2));
         }
-        if (more > 0 || practice()) {
+        // no misses: on to the next batch, the main way on (if anything's left to learn and
+        // nothing holds learning back: Home.learning, which a perfect round opens past New per day)
+        Home.Learning on = misses == 0 ? Home.learning(m.prog, now, true) : null;
+        boolean onward = on != null && on.open;
+        boolean again = more > 0 || practice();
+        if (onward) {
+            int n = on.items.size();
+            card.addView(Ui.even(m, 10, Ui.pill(m, "Back to the path", Ui.OUTLINE, v -> m.home()),
+                    Ui.pill(m, on.words ? "Learn " + n + (n == 1 ? " word" : " words") : "Learn next " + n, Ui.SOLID, v -> m.startLearn(true))),
+                    new LinearLayout.LayoutParams(-1, -2));
+            // another round and undo, small, under them
+            Flow small = new Flow(m, 10);
+            small.center = true;
+            if (again) small.addView(smallPill("Another round", v -> { if (practice()) m.startPractice(); else m.startReview(); }));
+            if (last != null) {
+                TextView u = smallPill("Undo the last", v -> undo());
+                u.setContentDescription("Undo the last answer");
+                small.addView(u);
+            }
+            if (small.getChildCount() > 0) card.addView(small, new LinearLayout.LayoutParams(-1, -2));
+        } else if (again) {
             // a round with more behind it: the next round beside the way back (one under the
             // other when large text won't fit them), undo under them
             card.addView(Ui.even(m, 10, Ui.pill(m, "Back to the path", Ui.OUTLINE, v -> m.home()),

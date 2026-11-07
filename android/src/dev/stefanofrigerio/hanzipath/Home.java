@@ -38,8 +38,9 @@ final class Home {
         }
         int left = p.newLeftToday();
         int batch = Math.min(p.batch, left);
-        List<String> next = Words.next(p, batch > 0 ? batch : p.batch, now);
-        boolean words = !next.isEmpty() && Words.is(next.get(0));   // this batch is words (Words)
+        Learning learning = learning(p, now, false);
+        List<String> next = learning.items;
+        boolean words = learning.words;   // this batch is words (Words)
         int streak = p.streak();
         int reviewed = p.todayCount("reviews");
 
@@ -67,7 +68,9 @@ final class Home {
         ledger.addView(line(m, "Due now", due.size() + (reviewed > 0 ? " · " + reviewed + " done today" : ""), intro));
         boolean backlog = p.backlog(due.size());
         if (backlog) ledger.addView(back(m, due.size(), p.daysAway(), p.roundOf(due.size())));
-        ledger.addView(line(m, "New today", left + " of " + p.perDay + " left", true));
+        int learnt = p.newToday();   // past New per day on a good day: what was learnt, and the day's number
+        ledger.addView(line(m, "New today", learnt > p.perDay ? learnt + " learnt, " + p.perDay + " a day"
+                : left + " of " + p.perDay + " left", true));
         ledger.addView(line(m, "Days in a row", streak > 0 ? String.valueOf(streak) : "none yet", true));
         ledger.addView(line(m, "Known", known + " of " + met + " met", true));
         int wordsMet = 0, wordsKnown = 0, wordsReady = Words.fresh(p, -1, now).size();
@@ -89,13 +92,8 @@ final class Home {
                     : "Review " + due.size(), Ui.SOLID, v -> m.startReview());
             Ui.enable(rv, !due.isEmpty(), Ui.SOLID);
         }
-        int nb = Math.min(batch, next.size());
-        boolean canLearn = batch > 0 && !next.isEmpty();
-        boolean wait = canLearn && p.pauseNew(due.size());   // a backlog: a round of reviews before anything new
-        String ln = next.isEmpty() ? "Path walked" : wait ? "Reviews first"
-                : batch > 0 ? (words ? "Learn " + nb + (nb == 1 ? " word" : " words") : "Learn next " + nb) : "Enough new for today";
-        TextView lb = Ui.pill(m, ln, Ui.OUTLINE, v -> m.startLearn());
-        Ui.enable(lb, canLearn && !wait, Ui.OUTLINE);
+        TextView lb = Ui.pill(m, learning.label, Ui.OUTLINE, v -> m.startLearn());
+        Ui.enable(lb, learning.open, Ui.OUTLINE);
         card.addView(Ui.even(m, 10, rv, lb));
         if (!next.isEmpty()) {
             SpannableStringBuilder b = new SpannableStringBuilder(words ? "Next, words   " : "Next on the path   ");
@@ -217,6 +215,36 @@ final class Home {
         s.setOnClickListener(v -> m.openSettings());
         s.setContentDescription("Settings and progress");
         col.addView(s);
+    }
+
+    /** What Learn would do now, decided in one place for home's button, Main.startLearn and a
+     *  perfect round's "Learn next N" (Quiz.finish). */
+    static final class Learning {
+        List<String> items;   // the batch it starts (or would, once open); empty: the path is walked
+        boolean words;        // the batch is words (Words)
+        boolean open;         // it can be tapped
+        String label;         // home's button
+    }
+
+    /** Learn's state: open while today's new are below New per day; past it, open again for
+     *  a batch more on a good day (Progress.goodDay: ten answers today, nine in ten right) or
+     *  straight after a round with no misses (perfect), and closed ("Enough new for today")
+     *  otherwise. Each condition that holds learning back is a step here, checked before the
+     *  ones that open it: a backlog of reviews (Progress.pauseNew) closes it first, perfect
+     *  round or not: "Reviews first". */
+    static Learning learning(Progress p, long now, boolean perfect) {
+        Learning l = new Learning();
+        int left = p.newLeftToday();
+        l.items = Words.next(p, left > 0 ? Math.min(p.batch, left) : p.batch, now);
+        l.words = !l.items.isEmpty() && Words.is(l.items.get(0));
+        int n = l.items.size();
+        String what = l.words ? n + (n == 1 ? " word" : " words") : "next " + n;
+        if (l.items.isEmpty()) l.label = "Path walked";
+        else if (p.pauseNew(p.due(now).size())) l.label = "Reviews first";   // a backlog: a round of reviews before anything new
+        else if (left > 0) { l.open = true; l.label = "Learn " + what; }
+        else if (perfect || p.goodDay()) { l.open = true; l.label = "Learn " + n + " more" + (l.words ? (n == 1 ? " word" : " words") : ""); }
+        else l.label = "Enough new for today";
+        return l;
     }
 
     /** The first run's few lines, in the Today card: how the path goes, and a small Got it
