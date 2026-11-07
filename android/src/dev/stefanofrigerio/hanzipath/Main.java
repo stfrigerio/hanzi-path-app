@@ -17,7 +17,7 @@ import android.widget.ScrollView;
 import java.util.List;
 
 /**
- * The app: one activity, its screens built in code (Home, Search, Learn, Quiz, Done, Read, Settings, Stats), each
+ * The app: one activity, its screens built in code (Home, Search, Learn, Quiz, Apart, Done, Read, Settings, Stats), each
  * a column on the paper, at most 520 dp wide, 16 dp from the sides. Back goes to the path;
  * from the path, out. The system bars are the paper's colour.
  */
@@ -32,6 +32,7 @@ public class Main extends Activity {
     Search search;
     Stats stats;
     Read read;
+    Apart apart;              // "Tell them apart": a pair side by side (a review's first card, or from Stats)
     boolean gardenOpen;       // the whole path shown on home, not just the rows around you
     Object shownKey;          // what the screen shows (page's key): a new one comes in
     android.animation.ValueAnimator motion;   // the screen's motion while it runs (Motion)
@@ -131,6 +132,7 @@ public class Main extends Activity {
         settings = null;
         stats = null;
         read = null;
+        apart = null;
         Home.build(this, page("home", this::home));
         Widget.refresh(this);   // back from a round: the widget counts what's due now
     }
@@ -194,6 +196,12 @@ public class Main extends Activity {
         stats.show();
     }
 
+    /** A pair the learner mixes up, side by side, from Stats' "Mixed up": Back to Stats. */
+    void openApart(Progress.Pair p) {
+        Stats from = stats;
+        Apart.show(this, p, "stats", () -> { if (from != null) from.show(); else home(); });
+    }
+
     void say(String h) { Speech.say(this, h); }
 
     /** Back: a looked-up item to the question it was opened from, anything else to the path. */
@@ -205,6 +213,10 @@ public class Main extends Activity {
         }
         if (screen.equals("learn") && learn != null && learn.lookup && "search".equals(learn.from) && search != null) {
             search.show();
+            return true;
+        }
+        if (screen.equals("apart") && apart != null && "stats".equals(apart.from) && stats != null) {
+            stats.show();
             return true;
         }
         if (screen.equals("learn") && learn != null && learn.lookup && "stats".equals(learn.from) && stats != null) {
