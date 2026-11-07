@@ -135,9 +135,11 @@ final class Cards {
             r.addView(Ui.text(m, w[0], 22, Ink.han, Ink.ink));
             LinearLayout t = Ui.column(m, 0);
             SpannableStringBuilder b = Ui.pinyin(w[1]);
-            int at = b.length();
-            b.append("  HSK ").append(w[3]);
-            b.setSpan(new ForegroundColorSpan(Ink.ink2), at, b.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            if (!"0".equals(w[3])) {   // 0: a word from CC-CEDICT, beyond HSK: no level to show
+                int at = b.length();
+                b.append("  HSK ").append(w[3]);
+                b.setSpan(new ForegroundColorSpan(Ink.ink2), at, b.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
             t.addView(Ui.text(m, b, 14, Ink.mono, Ink.ink));
             t.addView(Ui.text(m, w[2], 13, Ink.sans, Ink.ink2));
             r.addView(t, Ui.weight(1));
