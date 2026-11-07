@@ -166,7 +166,7 @@ MEANS = {
     "封": "to seal; envelope; to confer", "销": "to sell; to cancel; to melt", "赶": "to hurry; to catch up",
     "忽": "suddenly; to neglect", "录": "to record; record", "庭": "courtyard; hall; law court",
     "含": "to contain; to hold in mouth", "灭": "to put out; to destroy", "博": "broad; rich; learned",
-    "中": "middle; center; in", "干": "dry; to concern", "切": "close to; eager; earnest",
+    "中": "middle; center; in", "干": "to do; to work; dry", "切": "close to; eager; earnest",
 }
 
 
@@ -474,6 +474,7 @@ def plain(entries, reading=None, limit=MEANING, hint=""):
 # a character's main reading where counting words gets it wrong: the particles are said
 # in nearly every sentence, though fewer dictionary words have them
 READ = {"了": "le",      # le after every finished action; liǎo only in 了解, 了不起...
+        "干": "gàn",     # gàn "to do" (干什么, 干活) is met first in speech; gān (干净) as "also"
         "的": "de",      # de in every other sentence; dí, dì only in 的确, 目的
         "着": "zhe",     # the ongoing -ing; zháo, zhuó in a few words (着急, 着手)
         "地": "dì",      # dì in hundreds of words (地方, 地图...); de, the -ly, as "also"
