@@ -49,7 +49,11 @@ Set up once:
   words you can now read (HSK's, or CC-CEDICT's where HSK has none).
 - **Check**: right after the batch, a round of questions. That's the first
   grade, so a new item starts on what you showed you know.
-- **Review**: FSRS-4.5, a small scheduler with three grades (again, unsure, knew). A round takes
+- **Review**: FSRS-4.5, a small scheduler with three grades (again, unsure, knew). Once the log
+  holds 400 grades (100 of them second looks or later), a round's end fits its
+  weights to them (on the phone, in the background, at most weekly), and uses
+  them only if they predict a held-out fifth of the cards better; Settings →
+  Progress says which (*Reset to defaults* to undo). A round takes
   the most overdue first, 40 at most (Settings → *Reviews per round*: 20, 40,
   60, all); its end says how many are still due, with *Another round*, or when
   the next fall due.
