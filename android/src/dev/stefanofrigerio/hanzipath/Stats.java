@@ -123,7 +123,12 @@ class Stats {
             hs.addView(empty(met == 0 ? "Nothing to miss yet." : "Nothing missed yet."));
         } else {
             LinearLayout rows = Ui.column(m, 0);
-            for (int i = 0; i < hard.size(); i++) rows.addView(hardRow(hard.get(i), i > 0));
+            List<TextView> hans = new ArrayList<>();
+            for (int i = 0; i < hard.size(); i++) rows.addView(hardRow(hard.get(i), i > 0, hans));
+            // one column for them all: readings start in line under a word as under a character
+            float wide = Ink.dp(44);
+            for (TextView t : hans) wide = Math.max(wide, t.getPaint().measureText(t.getText().toString()) + Ink.dp(4));
+            for (TextView t : hans) t.setMinWidth((int) Math.ceil(wide));
             hs.addView(rows);
         }
         col.addView(hs);
@@ -166,21 +171,27 @@ class Stats {
 
     TextView note(String s) { return Ui.text(m, s, 13, Ink.sans, Ink.ink2); }
 
-    /** A hard one: the character, its reading and meaning, how often it was missed; a tap opens it. */
-    View hardRow(String h, boolean rule) {
+    /** A hard one: the character or word, its reading and meaning, how often it was missed;
+     *  a tap opens its card. */
+    View hardRow(String h, boolean rule, List<TextView> hans) {
         Item it = PathData.get(h);
+        String[] w = it == null ? Words.get(h) : null;
+        String py = it != null ? it.reading() : w[1], mean = it != null ? it.en : w[2];
         Progress.Card c = m.prog.cards.get(h);
         LinearLayout r = Ui.row(m, 14);
         r.setMinimumHeight(Ink.dp(60));
         r.setPadding(Ink.dp(4), Ink.dp(6), Ink.dp(4), Ink.dp(6));
         Ui.press(r, rule ? Home.topRule(Ink.grid) : null);
-        TextView han = Ui.text(m, it.h, 28, Ink.han, Ink.ink);
+        // a word as large as it fits: two characters at a character's size, four a little smaller
+        TextView han = Ui.text(m, h, w == null || Words.chars(h).length < 4 ? 28 : 24, Ink.han, Ink.ink);
         han.setGravity(Gravity.CENTER);
         han.setMinWidth(Ink.dp(44));
+        han.setMaxLines(1);
+        hans.add(han);
         r.addView(han);
         LinearLayout t = Ui.column(m, 2);
-        if (it.py.length > 0) t.addView(Ui.text(m, Ui.pinyin(it.py[0]), 15, Ink.monoMedium, Ink.ink));
-        TextView en = Ui.text(m, it.en, 14, Ink.sans, Ink.ink2);
+        if (!py.isEmpty()) t.addView(Ui.text(m, Ui.pinyin(py), 15, Ink.monoMedium, Ink.ink));
+        TextView en = Ui.text(m, mean, 14, Ink.sans, Ink.ink2);
         en.setMaxLines(1);
         en.setEllipsize(TextUtils.TruncateAt.END);
         t.addView(en);
@@ -188,7 +199,7 @@ class Stats {
         String missed = "missed " + (c.lapses == 1 ? "once" : c.lapses == 2 ? "twice" : c.lapses + " times");
         r.addView(Home.stat(m, missed));
         r.setOnClickListener(v -> m.lookup(h));
-        r.setContentDescription(it.h + " " + it.reading() + " " + it.en + ", " + missed);
+        r.setContentDescription(h + " " + py + " " + mean + ", " + missed);
         return r;
     }
 
@@ -249,18 +260,25 @@ class Stats {
         return out;
     }
 
-    /** The items on the path missed most, the least stable first among equals. */
+    /** The cards of the path missed most, characters and words alike, the least stable first
+     *  among equals. */
     static List<String> hardest(Progress p, int n) {
         List<String> out = new ArrayList<>();
         for (Map.Entry<String, Progress.Card> e : p.cards.entrySet())
-            if (e.getValue().lapses > 0 && PathData.get(e.getKey()) != null) out.add(e.getKey());
+            if (e.getValue().lapses > 0 && Words.onPath(e.getKey())) out.add(e.getKey());
         Collections.sort(out, (a, b) -> {
             Progress.Card x = p.cards.get(a), y = p.cards.get(b);
             if (x.lapses != y.lapses) return Long.compare(y.lapses, x.lapses);
             if (x.s != y.s) return Double.compare(x.s, y.s);
-            return Integer.compare(PathData.get(a).at, PathData.get(b).at);
+            return Integer.compare(place(a), place(b));
         });
         return out.size() > n ? new ArrayList<>(out.subList(0, n)) : out;
+    }
+
+    /** Where a card is on the path: a character's place, a word's after every character. */
+    static int place(String h) {
+        Item it = PathData.get(h);
+        return it != null ? it.at : PathData.items.size() + Words.pos.get(h);
     }
 
     static long median(List<Long> ms) {
