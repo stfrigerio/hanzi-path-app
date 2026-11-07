@@ -37,7 +37,7 @@ cp fonts/mono.ttf "$OUT/res/font/mono.ttf"
 cp fonts/mono-medium.ttf "$OUT/res/font/mono_medium.ttf"
 cp fonts/sans.ttf "$OUT/res/font/sans.ttf"
 "$BT/aapt2" compile --dir "$OUT/res" -o "$OUT/res.zip"
-"$BT/aapt2" link -I "$JAR" --manifest AndroidManifest.xml -A "$OUT/assets" -0 json -0 ttf \
+"$BT/aapt2" link -I "$JAR" --manifest AndroidManifest.xml -A "$OUT/assets" -0 ttf \
     --version-code "$CODE" --version-name "$CODE" -o "$OUT/unsigned.apk" "$OUT/res.zip"
 (cd "$OUT/dex" && zip -q ../unsigned.apk classes.dex)
 "$BT/zipalign" -f 4 "$OUT/unsigned.apk" "$OUT/aligned.apk"
