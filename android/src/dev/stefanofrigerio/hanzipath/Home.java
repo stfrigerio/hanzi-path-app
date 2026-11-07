@@ -132,6 +132,7 @@ final class Home {
         gh.addView(Ui.label(m, "The path"), Ui.weight(1));
         gh.addView(small(m, p.cards.size() + " of " + st.length + " met"));
         gs.addView(gh);
+        gs.addView(Search.entry(m));
         LinearLayout lg = Ui.row(m, 12);
         lg.addView(legend(m, Ink.hl, Ink.hl, "next"));
         lg.addView(legend(m, Ink.young, Ink.young, "learning"));

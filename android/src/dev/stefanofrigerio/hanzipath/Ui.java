@@ -99,8 +99,13 @@ final class Ui {
 
     /** Something you can touch: a hairline shape that ripples under the finger. */
     static void touch(View v, int fill, int stroke, float radiusDp) {
-        v.setBackground(new RippleDrawable(ColorStateList.valueOf(Ink.night ? 0x33ffffff : 0x22000000),
-                shape(fill, stroke, radiusDp, false), null));
+        press(v, shape(fill, stroke, radiusDp, false));
+    }
+
+    /** The ripple under the finger over a background of its own (a row's hairline, or none). */
+    static void press(View v, android.graphics.drawable.Drawable under) {
+        v.setBackground(new RippleDrawable(ColorStateList.valueOf(Ink.night ? 0x33ffffff : 0x22000000), under,
+                under == null ? new android.graphics.drawable.ColorDrawable(Ink.ink) : null));
     }
 
     static void enable(TextView pill, boolean on, int kind) {

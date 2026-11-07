@@ -17,7 +17,7 @@ import android.widget.ScrollView;
 import java.util.List;
 
 /**
- * The app: one activity, its screens built in code (Home, Learn, Quiz, Done, Settings), each
+ * The app: one activity, its screens built in code (Home, Search, Learn, Quiz, Done, Settings), each
  * a column on the paper, at most 520 dp wide, 16 dp from the sides. Back goes to the path;
  * from the path, out. The system bars are the paper's colour.
  */
@@ -29,6 +29,7 @@ public class Main extends Activity {
     Learn learn;
     Quiz quiz;
     Settings settings;
+    Search search;
     boolean gardenOpen;       // the whole path shown on home, not just the rows around you
 
     @Override
@@ -109,6 +110,8 @@ public class Main extends Activity {
     int contentWidth() { return getResources().getDisplayMetrics().widthPixels - 2 * side(); }
 
     void home() {
+        if (search != null) search.hideKeyboard();
+        search = null;
         learn = null;
         quiz = null;
         settings = null;
@@ -126,6 +129,12 @@ public class Main extends Activity {
     void lookup(String h) {
         learn = new Learn(this, java.util.Collections.singletonList(h), true, screen);
         learn.show();
+    }
+
+    /** Look it up: the path searched by character, pinyin or meaning. */
+    void openSearch() {
+        search = new Search(this);
+        search.show();
     }
 
     void startReview() {
@@ -152,6 +161,10 @@ public class Main extends Activity {
         if (screen.equals("home")) return false;
         if (screen.equals("learn") && learn != null && learn.lookup && "quiz".equals(learn.from) && quiz != null) {
             quiz.show();
+            return true;
+        }
+        if (screen.equals("learn") && learn != null && learn.lookup && "search".equals(learn.from) && search != null) {
+            search.show();
             return true;
         }
         home();
