@@ -128,6 +128,14 @@ puts all of it on the clipboard as text; *Load from clipboard* takes it back.
    most three per place (the shortest, unlike each other). Their pinyin a
    syllable per character, read from the HSK and CC-CEDICT words in them (了解
    liǎo, 睡觉 jiào), else each character's main reading.
+6. Words' and sentences' pinyin as it's said, not as the dictionary writes
+   each syllable: 不 bú before a 4th tone (不是 bú shì) and bu in 是不是; 一 yí
+   before a 4th tone, yì before the others (一个 yí ge, 一天 yì tiān), yī
+   counting, as an ordinal or a date, alone or ending a word (十一, 第一, 一月,
+   统一), yi in 看一看; 个 ge as a measure word (这个, 是个好人), gè in 个人;
+   the neutral tone of common words a source gives toned (东西 dōng xi, `NEUTRAL`
+   in build.py) and of directional complements (起来 qǐ lai). The 3rd-tone
+   change isn't marked: 你好 is written nǐ hǎo and said ní hǎo.
 
 Result: 1251 items, 1041 characters and 210 parts; 1908 HSK words and 226
 from CC-CEDICT; 2461 sentences (226 KB).

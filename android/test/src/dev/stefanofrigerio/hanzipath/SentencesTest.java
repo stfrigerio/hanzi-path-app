@@ -65,7 +65,7 @@ public class SentencesTest {
         for (int n : per.values()) assertTrue("three a place at most", n <= 3);
         // read as the words in them say: the particles, a character's other reading in a word
         assertEquals("wǒ men lái le.", py("我们来了。"));
-        assertEquals("bù shì wǒ de.", py("不是我的。"));
+        assertEquals("bú shì wǒ de.", py("不是我的。"));
     }
 
     static String py(String zh) {
