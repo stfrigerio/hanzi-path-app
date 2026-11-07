@@ -77,8 +77,15 @@ final class Home {
         Cards.add(ledger, Read.line(m, now));
         card.addView(ledger);
         LinearLayout acts = Ui.row(m, 10);
-        TextView rv = Ui.pill(m, due.isEmpty() ? "Nothing due" : "Review " + due.size(), Ui.SOLID, v -> m.startReview());
-        Ui.enable(rv, !due.isEmpty(), Ui.SOLID);
+        // nothing due: practise the weakest met instead (outlined: nothing asks for it)
+        int practise = due.isEmpty() ? p.weakest(Progress.PRACTICE, now).size() : 0;
+        TextView rv;
+        if (practise > 0) {
+            rv = Ui.pill(m, "Practice " + practise, Ui.OUTLINE, v -> m.startPractice());
+        } else {
+            rv = Ui.pill(m, due.isEmpty() ? "Nothing due" : "Review " + due.size(), Ui.SOLID, v -> m.startReview());
+            Ui.enable(rv, !due.isEmpty(), Ui.SOLID);
+        }
         acts.addView(rv, Ui.weight(1));
         int nb = Math.min(batch, next.size());
         String ln = next.isEmpty() ? "Path walked" : batch > 0 ? (words ? "Learn " + nb + (nb == 1 ? " word" : " words") : "Learn next " + nb) : "Enough new for today";

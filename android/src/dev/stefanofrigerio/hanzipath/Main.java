@@ -162,6 +162,15 @@ public class Main extends Activity {
         quiz.show();
     }
 
+    /** Practice, anytime: up to 20 items met, the weakest first, asked as a review asks them
+     *  but never graded (Quiz "practice"): the schedule stays as it was. */
+    void startPractice() {
+        List<String> items = prog.weakest(Progress.PRACTICE, System.currentTimeMillis());
+        if (items.isEmpty()) return;
+        quiz = new Quiz(this, items, "practice");
+        quiz.show();
+    }
+
     void startCheck(List<String> items) {
         quiz = new Quiz(this, items, "check");
         quiz.show();
