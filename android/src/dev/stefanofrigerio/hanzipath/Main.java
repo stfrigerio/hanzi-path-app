@@ -38,6 +38,7 @@ public class Main extends Activity {
     boolean gardenOpen;       // the whole path shown on home, not just the rows around you
     Object shownKey;          // what the screen shows (page's key): a new one comes in
     android.animation.ValueAnimator motion;   // the screen's motion while it runs (Motion)
+    final java.util.ArrayDeque<Taps.Back> taps = new java.util.ArrayDeque<>();   // cards a tapped character opened (Taps)
 
     @Override
     protected void onCreate(Bundle saved) {
@@ -218,6 +219,7 @@ public class Main extends Activity {
     boolean back() {
         if (screen.equals("home")) return false;
         if (screen.equals("tree") && tree != null) { tree.leave(); return true; }
+        if (Taps.back(this)) return true;   // a card a tapped character opened: where it was tapped
         if (screen.equals("learn") && learn != null && learn.lookup && "tree".equals(learn.from) && tree != null) { tree.show(); return true; }
         if (screen.equals("learn") && learn != null && learn.lookup && "quiz".equals(learn.from) && quiz != null) {
             quiz.show();

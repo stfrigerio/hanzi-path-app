@@ -75,6 +75,7 @@ class Read {
         zh.setGravity(Gravity.CENTER);
         zh.setLineSpacing(0, 1.15f);
         zh.setPadding(0, Ink.dp(12), 0, Ink.dp(12));
+        if (shown) Taps.link(m, zh);   // once shown, each character opens its card: before, it's reading
         card.addView(zh, new LinearLayout.LayoutParams(-1, -2));
         if (shown) {
             LinearLayout answer = Ui.column(m, 8);
