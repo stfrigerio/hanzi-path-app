@@ -14,8 +14,11 @@ import java.text.DateFormat;
 import java.util.Date;
 
 /**
- * Settings and progress: how much is new at a time and per day, how many reviews a round, the voice, the daily reminder;
- * the progress copied out to the clipboard and back in; the updates.
+ * Settings and progress, in sections as Stats has them (a mono label under a hairline):
+ * Learning (how much is new at a time and per day, how many reviews a round), Voice (said
+ * aloud or not, its speed, the line when the phone has no Chinese voice), Reminder (the time,
+ * the line when it went back to off), Progress (copied out to the clipboard and back in),
+ * Updates (the version, the token, a check); the credits last, in small text.
  */
 class Settings {
     final Main m;
@@ -32,25 +35,35 @@ class Settings {
         col.addView(Cards.bar(m, "SETTINGS AND PROGRESS", Ui.close(m, v -> m.home())));
         Progress p = m.prog;
 
-        LinearLayout rows = Ui.column(m, 10);
-        rows.addView(choice("New at a time", new String[]{"3", "5", "8", "10"}, String.valueOf(p.batch),
+        // learning: how much comes at once
+        LinearLayout learning = section("Learning");
+        learning.addView(choice("New at a time", new String[]{"3", "5", "8", "10"}, String.valueOf(p.batch),
                 v -> { p.batch = Integer.parseInt(v); p.saveOpts(); }));
-        rows.addView(choice("New per day", new String[]{"10", "15", "20", "30", "50"}, String.valueOf(p.perDay),
+        learning.addView(choice("New per day", new String[]{"10", "15", "20", "30", "50"}, String.valueOf(p.perDay),
                 v -> { p.perDay = Integer.parseInt(v); p.saveOpts(); }));
-        rows.addView(choice("Reviews per round", ROUNDS, p.round <= 0 ? "all" : String.valueOf(p.round),
+        learning.addView(choice("Reviews per round", ROUNDS, p.round <= 0 ? "all" : String.valueOf(p.round),
                 v -> { p.round = v.equals("all") ? 0 : Integer.parseInt(v); p.saveOpts(); }));
-        rows.addView(choice("Say it aloud", new String[]{"on", "off"}, p.say ? "on" : "off",
+        // review timing (FSRS): its line goes here, last in Learning
+        col.addView(learning);
+
+        // voice
+        LinearLayout vs = section("Voice");
+        vs.addView(choice("Say it aloud", new String[]{"on", "off"}, p.say ? "on" : "off",
                 v -> {
                     p.say = v.equals("on");
                     p.saveOpts();
                     if (p.say) Speech.check(m);
                     voice.setVisibility(p.say && !Speech.voice() ? View.VISIBLE : View.GONE);
                 }));
+        vs.addView(choice("Voice speed", new String[]{"normal", "slower"}, p.speed, v -> { p.speed = v; p.saveOpts(); }));
         voice = noVoice();
         voice.setVisibility(p.say && !Speech.voice() ? View.VISIBLE : View.GONE);
-        rows.addView(voice);
-        rows.addView(choice("Voice speed", new String[]{"normal", "slower"}, p.speed, v -> { p.speed = v; p.saveOpts(); }));
-        rows.addView(choice("Reminder", Reminder.TIMES, Reminder.label(p.remind), v -> {
+        vs.addView(voice);
+        col.addView(vs);
+
+        // reminder
+        LinearLayout rs = section("Reminder");
+        rs.addView(choice("Reminder", Reminder.TIMES, Reminder.label(p.remind), v -> {
             p.remind = Reminder.minutes(v);
             p.saveOpts();
             Reminder.arm(m);
@@ -59,8 +72,8 @@ class Settings {
         }));
         note = small("");
         note.setVisibility(View.GONE);
-        rows.addView(note);
-        col.addView(rows);
+        rs.addView(note);
+        col.addView(rs);
 
         // progress
         LinearLayout pr = section("Progress");
@@ -78,9 +91,9 @@ class Settings {
 
         // updates
         LinearLayout up = section("Updates");
+        up.addView(small("The app updates itself from the repo's latest release. It needs a GitHub token that can read hanzi-path (fine-grained, Contents: read-only)."));
         version = small("");
         up.addView(version);
-        up.addView(small("The app updates itself from the repo's latest release. It needs a GitHub token that can read hanzi-path (fine-grained, Contents: read-only)."));
         final EditText token = new EditText(m);
         token.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
         token.setTypeface(Ink.mono);
@@ -109,9 +122,11 @@ class Settings {
         up.addView(status);
         col.addView(up);
 
-        TextView credits = small("Characters, strokes and etymology: Make Me a Hanzi. Order: Jun Da's character frequencies. "
-                + "Meanings, and words beyond HSK: CC-CEDICT (CC BY-SA 4.0). Words: HSK 2.0. Meanings of parts: written for this app. Sentences: Tatoeba (CC BY 2.0 FR). Scheduling: FSRS-4.5.");
-        credits.setPadding(0, Ink.dp(8), 0, 0);
+        // the credits, last, in smaller text under a hairline
+        TextView credits = Ui.text(m, "Characters, strokes and etymology: Make Me a Hanzi. Order: Jun Da's character frequencies. "
+                + "Meanings, and words beyond HSK: CC-CEDICT (CC BY-SA 4.0). Words: HSK 2.0. Meanings of parts: written for this app. Sentences: Tatoeba (CC BY 2.0 FR). Scheduling: FSRS-4.5.", 12, Ink.sans, Ink.ink2);
+        credits.setPadding(0, Ink.dp(14), 0, 0);
+        credits.setBackground(Home.topRule());
         col.addView(credits);
         status();
         if (p.say) Speech.check(m);   // whether there's a voice, for the line under Say it aloud
@@ -151,6 +166,8 @@ class Settings {
         return Ui.pair(m, 12, Ui.text(m, name, 15, Ink.sans, Ink.ink), b);
     }
 
+    /** A group of settings: a hairline above, its label, then its rows (and its explanation,
+     *  where it has one, first under the label). */
     LinearLayout section(String title) {
         LinearLayout c = Ui.column(m, 10);
         c.setPadding(0, Ink.dp(14), 0, 0);
