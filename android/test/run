@@ -1,0 +1,99 @@
+#!/usr/bin/env bash
+# The check a change gets before it goes to main (every commit on main installs itself on
+# the phone): the app built (android/assemble), then walked and rendered in Robolectric,
+# the Android framework on the JVM with native graphics, at a phone's size, light and dark.
+# The renders are the window as Android lays it out, a PNG per screenful and a .txt of every
+# view's place and size: look at them.
+#
+# Fetches what it needs once into ~/.cache/hanzi-path: the SDK's build tools and platform
+# (unless ANDROID_HOME has them), Robolectric's Android 15 runtime (from Google's mirror of
+# Maven Central: Central itself rate-limits it), two AndroidX test jars. Needs java, mvn.
+#
+# Usage: android/test/run [SHOTS_DIR] [-Dtest=WalkTest#walk]   (shots: default android/test/shots)
+set -euo pipefail
+HERE=$(cd "$(dirname "$0")" && pwd)
+APP=$(dirname "$HERE")
+CACHE=${HANZI_CACHE:-$HOME/.cache/hanzi-path}
+SHOTS=$(realpath -m "${1:-$HERE/shots}")
+shift || true
+mkdir -p "$CACHE" "$SHOTS"
+
+# the SDK
+SDK=${ANDROID_HOME:-$CACHE/android-sdk}
+if ! ls "$SDK"/build-tools/*/aapt2 >/dev/null 2>&1 || ! ls "$SDK"/platforms/android-35/android.jar >/dev/null 2>&1; then
+    SDK=$CACHE/android-sdk
+    if [ ! -x "$SDK/cmdline-tools/latest/bin/sdkmanager" ]; then
+        mkdir -p "$SDK/cmdline-tools"
+        curl -sSL -o "$CACHE/clt.zip" https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+        rm -rf "$SDK/cmdline-tools/latest" "$CACHE/clt"
+        unzip -q "$CACHE/clt.zip" -d "$CACHE/clt" && mv "$CACHE/clt/cmdline-tools" "$SDK/cmdline-tools/latest"
+    fi
+    yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$SDK" "build-tools;35.0.0" "platforms;android-35" >/dev/null
+fi
+BT=$(ls -d "$SDK"/build-tools/*/ | sort -V | tail -1)
+JAR=$SDK/platforms/android-35/android.jar
+
+# Robolectric's runtime and the AndroidX jars it wants
+JARS=$CACHE/robolectric
+mkdir -p "$JARS"
+RT=android-all-instrumented-15-robolectric-12650502-i7.jar
+[ -s "$JARS/$RT" ] || curl -sSf -o "$JARS/$RT" \
+    "https://maven-central.storage-download.googleapis.com/maven2/org/robolectric/android-all-instrumented/15-robolectric-12650502-i7/$RT"
+for a in "androidx/test/monitor/1.7.2/monitor-1.7.2" "androidx/test/espresso/espresso-idling-resource/3.6.1/espresso-idling-resource-3.6.1"; do
+    n=$(basename "$a")
+    if [ ! -s "$JARS/$n.jar" ]; then
+        curl -sSf -o "$JARS/$n.aar" "https://dl.google.com/dl/android/maven2/$a.aar"
+        (cd "$JARS" && unzip -qo "$n.aar" classes.jar && mv classes.jar "$n.jar" && rm "$n.aar")
+    fi
+done
+
+# the app, and its resources as Robolectric reads them
+KS=$CACHE/test.keystore
+ANDROID_HOME=$SDK KEYSTORE=$KS "$APP/assemble" >/dev/null
+"$BT/aapt2" link -I "$JAR" --manifest "$APP/AndroidManifest.xml" -A "$APP/out/assets" -o "$APP/out/res.ap_" "$APP/out/res.zip"
+
+# a Maven project beside the app (its sources as they are), one per checkout
+WORK=$CACHE/robo-$(echo "$APP" | md5sum | cut -c1-8)
+rm -rf "$WORK/src" && mkdir -p "$WORK/src/test/java" "$WORK/src/test/resources/com/android/tools"
+cp -r "$HERE/src/." "$WORK/src/test/java/"
+cat >"$WORK/src/test/resources/com/android/tools/test_config.properties" <<EOF
+android_merged_manifest=$APP/AndroidManifest.xml
+android_merged_assets=$APP/out/assets
+android_resource_apk=$APP/out/res.ap_
+android_custom_package=dev.stefanofrigerio.hanzipath
+EOF
+cat >"$WORK/pom.xml" <<EOF
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>t</groupId><artifactId>robo</artifactId><version>1</version>
+  <properties><maven.compiler.source>17</maven.compiler.source><maven.compiler.target>17</maven.compiler.target><project.build.sourceEncoding>UTF-8</project.build.sourceEncoding></properties>
+  <dependencies>
+    <dependency><groupId>android</groupId><artifactId>android</artifactId><version>35</version><scope>system</scope><systemPath>$JAR</systemPath></dependency>
+    <dependency><groupId>org.robolectric</groupId><artifactId>robolectric</artifactId><version>4.14.1</version><scope>test</scope>
+      <exclusions><exclusion><groupId>androidx.test</groupId><artifactId>monitor</artifactId></exclusion><exclusion><groupId>androidx.test.espresso</groupId><artifactId>espresso-idling-resource</artifactId></exclusion></exclusions></dependency>
+    <dependency><groupId>x</groupId><artifactId>monitor</artifactId><version>1</version><scope>system</scope><systemPath>$JARS/monitor-1.7.2.jar</systemPath></dependency>
+    <dependency><groupId>x</groupId><artifactId>idling</artifactId><version>1</version><scope>system</scope><systemPath>$JARS/espresso-idling-resource-3.6.1.jar</systemPath></dependency>
+    <dependency><groupId>junit</groupId><artifactId>junit</artifactId><version>4.13.2</version><scope>test</scope></dependency>
+  </dependencies>
+  <build>
+    <sourceDirectory>$APP/src</sourceDirectory>
+    <plugins>
+      <plugin><artifactId>maven-compiler-plugin</artifactId><version>3.13.0</version></plugin>
+      <plugin><artifactId>maven-surefire-plugin</artifactId><version>3.2.5</version>
+        <configuration><argLine>-Xmx3g</argLine><systemPropertyVariables>
+          <robolectric.graphicsMode>NATIVE</robolectric.graphicsMode><robolectric.offline>true</robolectric.offline>
+          <robolectric.dependency.dir>$JARS</robolectric.dependency.dir><shots>$SHOTS</shots>
+        </systemPropertyVariables></configuration></plugin>
+    </plugins>
+  </build>
+</project>
+EOF
+rm -f "$SHOTS"/*.png "$SHOTS"/*.txt
+cd "$WORK"
+if mvn -q -B test "$@" >"$WORK/log" 2>&1; then
+    echo "passed; renders in $SHOTS"
+else
+    grep -v "JAVA_TOOL\|WARNING\|CloseGuard" "$WORK/log" | grep -B2 -A12 "FAIL\|Exception\|ERROR" | head -60
+    echo "FAILED (full log: $WORK/log)"
+    exit 1
+fi
