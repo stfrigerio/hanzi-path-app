@@ -1,13 +1,15 @@
 package dev.stefanofrigerio.hanzipath;
 
 import android.widget.LinearLayout;
+import android.widget.TextView;
 
 import java.util.List;
 
 /**
  * A batch being learnt, or one item looked up: the strokes animating on the square (tap it
  * to see them again, or Step through them one at a time), said aloud, its reading, parts,
- * why, the words it opens.
+ * why, the words it opens. Write it, beside Next: trace it over its outline (a hint after two
+ * misses on a stroke; Again to write it once more); not graded.
  * After the batch comes the check (Quiz), its first grade.
  */
 class Learn {
@@ -17,6 +19,7 @@ class Learn {
     final String from;
     int i;
     HanziView hv;
+    TextView write;        // Write it, beside Next (none on a word's card)
 
     Learn(Main m, List<String> items, boolean lookup, String from) {
         this.m = m;
@@ -39,7 +42,8 @@ class Learn {
         card.addView(Cards.tag(m, it));
         hv = Cards.box(m, it);
         card.addView(hv);
-        Cards.add(card, Cards.stepper(m, hv));
+        final android.view.View stepper = Cards.stepper(m, hv);
+        Cards.add(card, stepper);
         card.addView(Cards.reading(m, it));
         Cards.parts(m, card, it);
         Cards.add(card, Cards.why(m, it));
@@ -47,8 +51,28 @@ class Learn {
         Cards.add(card, Sentences.view(m, h));
         col.addView(card);
 
-        col.addView(Ui.pill(m, lookup ? "Done" : i + 1 < items.size() ? "Next" : "Check yourself", Ui.SOLID, v -> next()),
-                new LinearLayout.LayoutParams(-1, -2));
+        TextView go = Ui.pill(m, lookup ? "Done" : i + 1 < items.size() ? "Next" : "Check yourself", Ui.SOLID, v -> next());
+        if (hv.glyph != null && hv.fill.length > 0) {
+            // Write it, beside Next: trace it over its outline; the hint after 2 misses on a
+            // stroke; not graded. While it's being written the Step pill steps aside.
+            // (The Step pill keeps its place, unseen, so nothing moves under the finger.)
+            final HanziView sq = hv;
+            final TextView wr = write = Ui.pill(m, "Write it", Ui.OUTLINE, null);
+            wr.setOnClickListener(v -> {
+                if (sq.quizzing) sq.show();                 // Stop: the character whole again
+                else sq.quiz(2, true, mistakes -> wrote(wr, mistakes));
+            });
+            sq.onTrace = () -> {
+                if (stepper != null) stepper.setVisibility(sq.quizzing ? android.view.View.INVISIBLE : android.view.View.VISIBLE);
+                if (sq.quizzing) name(wr, "Stop", "Stop writing, show the character");
+                else name(wr, "Write it", "Write it: trace the strokes over the outline");
+            };
+            sq.onTrace.run();
+            col.addView(Ui.even(m, 10, write, go), new LinearLayout.LayoutParams(-1, -2));
+        } else {
+            write = null;
+            col.addView(go, new LinearLayout.LayoutParams(-1, -2));
+        }
 
         hv.setOnClickListener(v -> hv.animateStrokes());
         hv.post(hv::animateStrokes);
@@ -61,6 +85,7 @@ class Learn {
         String[] w = Words.get(h);
         LinearLayout col = m.page("learn", java.util.Arrays.asList(this, i), () -> show(false));
         hv = null;
+        write = null;
         col.addView(Cards.bar(m, lookup ? known(h) : "new word " + (i + 1) + " / " + items.size(), Ui.close(m, v -> m.back())));
         LinearLayout card = Ui.card(m);
         card.addView(Cards.wordTag(m, w));
@@ -72,6 +97,17 @@ class Learn {
         col.addView(Ui.pill(m, lookup ? "Done" : i + 1 < items.size() ? "Next" : "Check yourself", Ui.SOLID, v -> next()),
                 new LinearLayout.LayoutParams(-1, -2));
         if (speak && !lookup && m.prog.say) m.say(h);
+    }
+
+    /** Written to the end: how it went, and Again to write it once more. */
+    static void wrote(TextView write, int mistakes) {
+        name(write, mistakes == 0 ? "Clean. Again?" : mistakes == 1 ? "1 miss. Again" : mistakes + " misses. Again",
+                (mistakes == 0 ? "Written without a miss" : "Written with " + mistakes + (mistakes == 1 ? " miss" : " misses")) + ". Write it again");
+    }
+
+    static void name(TextView t, String text, String spoken) {
+        t.setText(text);
+        t.setContentDescription(spoken);
     }
 
     /** A card looked up: how well it's known, or that it's new. */

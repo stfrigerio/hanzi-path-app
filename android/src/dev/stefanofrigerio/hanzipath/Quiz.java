@@ -50,6 +50,13 @@ import java.util.Set;
  * is a confusion, and two of a pair within 60 days make it confusable (Progress.pairs). Its
  * wrong answers come from its confusables first, and once a week a pair a review round starts
  * with the two side by side (Apart: "Tell them apart", not graded, Next to the questions).
+ *
+ * And write: the reading and meaning, and you write the character on the square from nothing,
+ * stroke by stroke (HanziView.quiz: the hint after three misses on a stroke). Graded from the
+ * mistakes: none knew it (3), up to three unsure (2), more again (1); "Show it" gives up
+ * (again). Only for a character (not a part, not a word) seen twice or more, in a review or
+ * practice, never in the check; drawn by Settings' "Writing in reviews": off, sometimes
+ * (about one in four), often (about one in two). Logged as "write".
  */
 class Quiz {
     static final long SLOW = 8000;
@@ -62,7 +69,8 @@ class Quiz {
     Last last;
     String optionsFor;     // the question the options were drawn for (a redraw keeps them)
     List<String> options;
-    String mode;           // choose | pick | listen | tone, or word-choose | word-pick | word-listen
+    String mode;           // choose | pick | listen | tone | write, or word-choose | word-pick | word-listen
+    int wrong;             // write: the strokes missed (-1: given up, Show it)
     String picked;         // the answer tapped; null while it's open
     int grade;
     HanziView hv;
@@ -104,7 +112,7 @@ class Quiz {
         Item it = PathData.get(h);
         if (!h.equals(optionsFor)) {
             mode = kindFor(h);
-            options = mode.equals("tone") ? Tones.OPTIONS : options(h, mode);
+            options = mode.equals("tone") ? Tones.OPTIONS : mode.equals("write") ? Collections.<String>emptyList() : options(h, mode);
             optionsFor = h;
             shown = System.currentTimeMillis();
             if (heard()) m.say(h);
@@ -118,13 +126,17 @@ class Quiz {
                 undo, Ui.close(m, v -> m.home())));
 
         LinearLayout card = Ui.card(m);
+        boolean writing = mode.equals("write");
         TextView ask = Ui.label(m, picked == null ? (mode.endsWith("listen") ? "Which one did you hear?"
-                : mode.equals("tone") ? "Which tone is it?" : "Which one is it?")
-                : right(picked, h) ? "Right" : "Not that one");
+                : mode.equals("tone") ? "Which tone is it?" : writing ? "Write it" : "Which one is it?")
+                : writing ? written() : right(picked, h) ? "Right" : "Not that one");
         ask.setGravity(Gravity.CENTER);
-        if (picked != null) ask.setTextColor(right(picked, h) ? Ink.tone[2] : Ink.tone[4]);
+        if (picked != null) ask.setTextColor(writing ? Ink.tone[grade == 3 ? 2 : grade == 2 ? 3 : 4]
+                : right(picked, h) ? Ink.tone[2] : Ink.tone[4]);
         card.addView(ask, new LinearLayout.LayoutParams(-1, -2));
-        if (mode.equals("tone")) {
+        if (writing) {
+            write(card, h, it);
+        } else if (mode.equals("tone")) {
             Tones.question(this, card, it);
         } else if (mode.endsWith("choose")) {
             if (word != null) {
@@ -154,7 +166,7 @@ class Quiz {
             answer.setBackground(Home.topRule());
             // pick asked by the reading and meaning: they're above already (with the speaker
             // now), so the answer is what it's made of and why
-            boolean asked = mode.endsWith("pick");
+            boolean asked = mode.endsWith("pick") || writing;
             if (word != null) {
                 if (!asked) answer.addView(Cards.wordReading(m, word));
                 answer.addView(Cards.chips(m, "Its characters", Words.chars(h)));
@@ -186,13 +198,64 @@ class Quiz {
         });
     }
 
+    /** Write's question: the reading and meaning (said), the empty square to write it on, and
+     *  Show it small under it to give up. Once written: the character whole (tap: its strokes). */
+    void write(LinearLayout card, String h, Item it) {
+        card.addView(said(h));
+        hv = Cards.box(m, it);
+        hv.setContentDescription(picked == null ? "Write the character here, stroke by stroke" : "Stroke order of " + h);
+        card.addView(hv);
+        if (picked != null) {
+            hv.show();
+            hv.setOnClickListener(v -> hv.animateStrokes());
+            return;
+        }
+        final HanziView sq = hv;
+        sq.quiz(3, false, this::wrote);
+        TextView give = smallPill("Show it", v -> { if (picked == null && sq.quizzing) { sq.endTrace(); wrote(-1); } });
+        give.setContentDescription("Show the character: you didn't know it");
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, -2);
+        lp.gravity = Gravity.CENTER_HORIZONTAL;
+        card.addView(give, lp);
+    }
+
+    /** How the writing went, as its label says it once done. */
+    String written() {
+        if (wrong < 0) return "Shown";
+        if (wrong == 0) return "Right";
+        return (grade == 2 ? "Nearly: " : "") + wrong + (wrong == 1 ? " miss" : " misses");
+    }
+
+    /** The grade from the misses: none knew (3), up to three unsure (2), more (or given up) again (1). */
+    static int writeGrade(int mistakes) { return mistakes < 0 ? 1 : mistakes == 0 ? 3 : mistakes <= 3 ? 2 : 1; }
+
+    /** The last stroke written (or Show it, -1): graded from the misses. */
+    void wrote(int mistakes) {
+        if (picked != null || !mode.equals("write")) return;
+        String h = queue.get(0);
+        wrong = mistakes;
+        answered(h, null, writeGrade(mistakes), System.currentTimeMillis() - shown);
+    }
+
+    /** Writing in reviews (Settings): the share of eligible questions that ask you to write. */
+    float writeShare() { return m.prog.write.equals("often") ? 0.5f : m.prog.write.equals("off") ? 0 : 0.25f; }
+
+    /** Whether h can be written: a character (not a part, not a word) with its strokes. */
+    boolean writable(String h) {
+        if (Words.is(h)) return false;
+        Item it = PathData.get(h);
+        return it != null && !it.isPart() && PathData.glyph(m, h) != null;
+    }
+
     /** The kind of question for h: choose in the check and while it's new (seen fewer than
-     *  twice), then any of the three; listen only with Say it aloud on and a Chinese voice
-     *  on the phone to say it (Speech.voice). */
+     *  twice), then write now and then (Settings: writeShare), else any of the three; listen
+     *  only with Say it aloud on and a Chinese voice on the phone to say it (Speech.voice). */
     String kindFor(String h) {
         Progress.Card c = m.prog.cards.get(h);
         String w = Words.is(h) ? "word-" : "";
         if (kind.equals("check") || c == null || c.reps < 2) return w + "choose";
+        float share = writeShare();
+        if (share > 0 && rnd.nextFloat() < share && writable(h)) return "write";
         if (kind.equals("review") && Tones.fits(m.prog, h) && rnd.nextInt(Tones.EVERY) == 0) return "tone";
         List<String> k = new ArrayList<>(Arrays.asList("choose", "pick"));
         if (m.prog.say && Speech.voice() && !py(h).isEmpty()) k.add("listen");   // no Chinese voice: nothing to hear
@@ -431,10 +494,17 @@ class Quiz {
         if (picked != null) return;
         String h = queue.get(0);
         long ms = System.currentTimeMillis() - shown;
-        grade = !right(o, h) ? 1 : ms <= SLOW ? 3 : 2;
-        Last l = new Last();
         // what was tapped goes in the log with it: a wrong card is a confusion (Progress.pairs)
-        l.undo = m.prog.grade(h, grade, practice() ? "practice-" + mode : mode, ms, o);
+        answered(o, o, !right(o, h) ? 1 : ms <= SLOW ? 3 : 2, ms);
+    }
+
+    /** An answer given (o: what shows as picked; logged: what goes in the log as tapped, null
+     *  for none): graded g, then the answer in full. */
+    void answered(String o, String logged, int g, long ms) {
+        String h = queue.get(0);
+        grade = g;
+        Last l = new Last();
+        l.undo = m.prog.grade(h, grade, practice() ? "practice-" + mode : mode, ms, logged);
         l.queue = new ArrayList<>(queue);
         l.done = done;
         l.misses = misses;
@@ -444,7 +514,7 @@ class Quiz {
         last = l;
         picked = o;
         fresh = true;
-        Motion.felt(m.root, right(o, h));
+        Motion.felt(m.root, grade > 1);
         if (m.prog.say && !py(h).isEmpty()) m.say(h);
         show();
     }

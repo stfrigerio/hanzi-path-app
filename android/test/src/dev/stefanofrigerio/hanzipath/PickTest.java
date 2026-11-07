@@ -191,7 +191,7 @@ public class PickTest {
     }
 
     /** Which kind: choose while new and in the check, then any of the three (listen only with
-     *  the voice on). */
+     *  the voice on), or write (Settings' Writing in reviews). */
     @Test
     public void kinds() throws Exception {
         Main m = Robolectric.buildActivity(Main.class).setup().visible().get();
@@ -206,6 +206,10 @@ public class PickTest {
         m.prog.grade(b, 3, "choose", 1000);
         Set<String> got = new HashSet<>();
         for (int i = 0; i < 300; i++) { got.add(review.kindFor(a)); assertEquals("choose", check.kindFor(a)); }
+        assertEquals("writing too (sometimes, the default: WriteTest)", new HashSet<>(Arrays.asList("choose", "pick", "listen", "write")), got);
+        m.prog.write = "off";
+        got.clear();
+        for (int i = 0; i < 300; i++) got.add(review.kindFor(a));
         assertEquals(new HashSet<>(Arrays.asList("choose", "pick", "listen")), got);
         m.prog.say = false;
         got.clear();
