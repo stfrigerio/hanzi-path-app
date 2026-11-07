@@ -152,11 +152,8 @@ class Settings {
     View choice(String name, String[] values, String current, Pick pick) {
         final int[] at = {java.util.Arrays.asList(values).indexOf(current)};
         if (at[0] < 0) at[0] = 0;
-        final TextView b = Ui.pill(m, values[at[0]] + "  ›", Ui.OUTLINE, null);
-        b.setTypeface(Ink.monoMedium);
-        b.setTextSize(14);
-        b.setMinHeight(Ink.dp(38));
-        b.setPadding(Ink.dp(14), 0, Ink.dp(14), 0);
+        final TextView b = Ui.small(m, values[at[0]] + "  ›", null);
+        b.setTypeface(Ink.monoMedium);   // a value: the mono, as figures are
         b.setOnClickListener(v -> {
             at[0] = (at[0] + 1) % values.length;
             b.setText(values[at[0]] + "  ›");
@@ -170,14 +167,10 @@ class Settings {
     /** A group of settings: a hairline above, its label, then its rows (and its explanation,
      *  where it has one, first under the label). */
     LinearLayout section(String title) {
-        LinearLayout c = Ui.column(m, 10);
-        c.setPadding(0, Ink.dp(14), 0, 0);
-        c.setBackground(Home.topRule());
-        c.addView(Ui.label(m, title));
-        return c;
+        return Ui.section(m, title, null);
     }
 
-    TextView small(String s) { return Ui.text(m, s, 13, Ink.sans, Ink.ink2); }
+    TextView small(String s) { return Ui.note(m, s); }
 
     /** Under Say it aloud, on a phone without a Chinese voice (Speech): why it's silent, and a
      *  pill to Android's text-to-speech settings to install one. */

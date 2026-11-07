@@ -48,10 +48,8 @@ final class Cards {
      *  None for a single stroke. */
     static TextView stepper(Main m, HanziView hv) {
         if (hv.glyph == null || hv.fill.length < 2) return null;
-        TextView t = Ui.pill(m, hv.stepLabel(), Ui.OUTLINE, v -> hv.step());
-        t.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 13);
-        t.setTypeface(Ink.monoMedium);
-        t.setPadding(Ink.dp(16), 0, Ink.dp(16), 0);
+        TextView t = Ui.small(m, hv.stepLabel(), v -> hv.step());
+        t.setTypeface(Ink.monoMedium);   // "3 / 7": figures, in the mono
         t.setMinWidth(Ink.dp(96));
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, -2);
         lp.gravity = Gravity.CENTER_HORIZONTAL;
@@ -230,11 +228,14 @@ final class Cards {
         return c;
     }
 
-    /** The bar over a card: a count on the left; Undo and × on the right. */
+    /** The bar over a screen: its name or the round's count on the left, as a section's label
+     *  (shown in capitals, its text as given); Undo and × on the right. */
     static LinearLayout bar(Main m, String count, View... right) {
         LinearLayout r = Ui.row(m, 8);
-        TextView t = Ui.text(m, count, 13, Ink.mono, Ink.ink2);
-        t.setLetterSpacing(0.06f);
+        r.setMinimumHeight(Ink.dp(40));
+        TextView t = Ui.label(m, "");
+        t.setAllCaps(true);
+        t.setText(count);
         r.addView(t, Ui.weight(1));
         for (View v : right) if (v != null) r.addView(v);
         return r;

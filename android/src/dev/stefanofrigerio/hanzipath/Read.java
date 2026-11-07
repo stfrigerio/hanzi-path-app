@@ -54,7 +54,7 @@ class Read {
         r.setMinimumHeight(Ink.dp(38));
         r.addView(Ui.text(m, "Read " + Math.min(ROUND, n) + " sentences", 15, Ink.sans, Ink.ink), Ui.weight(1));
         r.addView(Home.stat(m, n + " you can read"));
-        r.addView(Ui.text(m, "›", 18, Ink.sans, Ink.ink));
+        r.addView(Ui.text(m, "›", 20, Ink.sans, Ink.ink));   // the › as on every way in
         Ui.press(r, Home.topRule(Ink.grid));
         r.setOnClickListener(v -> m.startRead());
         r.setContentDescription("Read " + Math.min(ROUND, n) + " sentences, of " + n + " you can read");
@@ -133,15 +133,11 @@ class Read {
                 : "That's all of them for now: more come within reach as you learn.", 14, Ink.sans, Ink.ink2);
         more.setGravity(Gravity.CENTER);
         card.addView(more, new LinearLayout.LayoutParams(-1, -2));
-        LinearLayout acts = Ui.row(m, 10);
-        acts.setGravity(Gravity.CENTER);
-        if (can > n) {
-            acts.addView(Ui.pill(m, "Back to the path", Ui.OUTLINE, v -> m.home()), Ui.weight(1));
-            acts.addView(Ui.pill(m, "Another round", Ui.SOLID, v -> m.startRead()), Ui.weight(1));
-        } else {
-            acts.addView(Ui.pill(m, "Back to the path", Ui.SOLID, v -> m.home()));
-        }
-        card.addView(acts, new LinearLayout.LayoutParams(-1, -2));
+        // as the quiz's end: the two side by side (one under the other once the text is large),
+        // or the way back alone across the card
+        card.addView(can > n ? Ui.even(m, 10, Ui.pill(m, "Back to the path", Ui.OUTLINE, v -> m.home()),
+                        Ui.pill(m, "Another round", Ui.SOLID, v -> m.startRead()))
+                : Ui.pill(m, "Back to the path", Ui.SOLID, v -> m.home()), new LinearLayout.LayoutParams(-1, -2));
         col.addView(card);
     }
 }

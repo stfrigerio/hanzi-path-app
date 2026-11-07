@@ -114,12 +114,10 @@ final class Home {
         int[] week = week(p, now);
         int sum = 0;
         for (int n : week) sum += n;
-        LinearLayout ws = Ui.column(m, 6);
-        ws.setPadding(0, Ink.dp(8), 0, 0);
-        ws.addView(Ui.pair(m, 12, Ui.label(m, "The week"), small(m, sum + " due in 7 days")));
+        LinearLayout ws = Ui.section(m, "The week", small(m, sum + " due in 7 days"));
         if (sum == 0) {
-            ws.addView(Ui.text(m, p.cards.isEmpty() ? "Nothing to review yet: what you learn comes back here, day by day."
-                    : "Nothing falls due this week.", 14, Ink.sans, Ink.ink2));
+            ws.addView(Ui.note(m, p.cards.isEmpty() ? "Nothing to review yet: what you learn comes back here, day by day."
+                    : "Nothing falls due this week."));
         } else {
             WeekView wv = new WeekView(m);
             String[] days = new String[7];
@@ -163,9 +161,7 @@ final class Home {
             else if (st[i] == GardenView.WILT) aboveWilt++;
             else if (st[i] == GardenView.YOUNG) aboveYoung++;
         }
-        LinearLayout gs = Ui.column(m, 10);
-        gs.setPadding(0, Ink.dp(8), 0, 0);
-        gs.addView(Ui.pair(m, 12, Ui.label(m, "The path"), small(m, met + " of " + st.length + " met")));
+        LinearLayout gs = Ui.section(m, "The path", small(m, met + " of " + st.length + " met"));
         gs.addView(Search.entry(m));
         Flow lg = new Flow(m, 12);   // large text: the legend wraps onto a second line
         lg.addView(legend(m, Ink.hl, Ink.hl, "next"));
@@ -187,7 +183,7 @@ final class Home {
         gs.addView(g, new LinearLayout.LayoutParams(-1, -2));
         if (from > 0 || fold < st.length) {
             int more = st.length - (fold - from);
-            TextView t = Ui.pill(m, "", Ui.OUTLINE, null);
+            TextView t = Ui.small(m, "", null);
             Runnable label = () -> t.setText(m.gardenOpen ? "Fold the path" : "Show the whole path (" + more + " more)");
             label.run();
             t.setOnClickListener(v -> {
@@ -204,18 +200,11 @@ final class Home {
         col.addView(gs);
         col.addView(Parts.entry(m));
 
-        col.addView(Stats.entry(m));
-
-        // settings
-        LinearLayout s = Ui.row(m, 8);
-        s.setPadding(0, Ink.dp(16), 0, Ink.dp(8));
-        s.setBackground(topRule(Ink.rule));
-        s.addView(Ui.label(m, "Settings and progress"), Ui.weight(1));
-        s.addView(Ui.text(m, "›", 20, Ink.sans, Ink.ink));
-        s.setMinimumHeight(Ink.dp(48));
-        s.setOnClickListener(v -> m.openSettings());
-        s.setContentDescription("Settings and progress");
-        col.addView(s);
+        // the ways into the other screens, one under the other as a list
+        LinearLayout ways = Ui.column(m, 0);
+        ways.addView(Stats.entry(m));
+        ways.addView(Ui.entry(m, "Settings and progress", null, v -> m.openSettings()));
+        col.addView(ways);
     }
 
     /** What Learn would do now, decided in one place for home's button, Main.startLearn and a
@@ -264,18 +253,13 @@ final class Home {
                     b.setSpan(new TypefaceSpan(Ink.han), i, i + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                     b.setSpan(new ForegroundColorSpan(Ink.ink), i, i + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                 }
-            TextView t = Ui.text(m, b, 14, Ink.sans, Ink.ink2);
-            t.setLineSpacing(0, 1.15f);
-            c.addView(t);
+            c.addView(Ui.note(m, b));
         }
-        TextView ok = Ui.pill(m, "Got it", Ui.OUTLINE, v -> {
+        TextView ok = Ui.small(m, "Got it", v -> {
             m.prog.introDone = true;
             m.prog.saveOpts();
             m.home();
         });
-        ok.setMinHeight(Ink.dp(36));
-        ok.setTextSize(14);
-        ok.setPadding(Ink.dp(14), 0, Ink.dp(14), 0);
         LinearLayout.LayoutParams op = new LinearLayout.LayoutParams(-2, -2);
         op.gravity = Gravity.END;
         c.addView(ok, op);
@@ -288,8 +272,7 @@ final class Home {
     static View back(Main m, int due, int away, int round) {
         String s = due + " due" + (away >= 2 ? " after " + away + " days away" : "")
                 + ". Rounds of " + round + " bring them back, what's slipping first.";
-        TextView t = Ui.text(m, s, 14, Ink.sans, Ink.ink2);
-        t.setLineSpacing(0, 1.15f);
+        TextView t = Ui.note(m, s);
         t.setPadding(0, 0, 0, Ink.dp(8));
         return t;
     }
@@ -350,12 +333,5 @@ final class Home {
     static android.graphics.drawable.Drawable topRule() { return topRule(Ink.rule); }
 
     /** A hairline along a view's top. */
-    static android.graphics.drawable.Drawable topRule(int color) {
-        android.graphics.drawable.GradientDrawable line = Ui.shape(color, 0, 0, false);
-        android.graphics.drawable.LayerDrawable l = new android.graphics.drawable.LayerDrawable(
-                new android.graphics.drawable.Drawable[]{line});
-        l.setLayerHeight(0, Math.max(1, Ink.dp(1)));
-        l.setLayerGravity(0, Gravity.TOP | Gravity.FILL_HORIZONTAL);
-        return l;
-    }
+    static android.graphics.drawable.Drawable topRule(int color) { return Ui.topRule(color); }
 }

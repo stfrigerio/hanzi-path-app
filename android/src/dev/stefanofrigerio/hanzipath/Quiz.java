@@ -409,11 +409,7 @@ class Quiz {
     }
 
     TextView smallPill(String s, View.OnClickListener on) {
-        TextView t = Ui.pill(m, s, Ui.OUTLINE, on);
-        t.setMinHeight(Ink.dp(36));
-        t.setTextSize(14);
-        t.setPadding(Ink.dp(14), 0, Ink.dp(14), 0);
-        return t;
+        return Ui.small(m, s, on);
     }
 
     boolean practice() { return kind.equals("practice"); }
@@ -493,12 +489,7 @@ class Quiz {
         LinearLayout col = m.page("done", this::finish);
         LinearLayout card = Ui.card(m);
         card.setGravity(Gravity.CENTER_HORIZONTAL);
-        TextView seal = Ui.text(m, misses == 0 ? "好" : misses <= total / 3.0 ? "行" : "练", 60, Ink.brush, Ink.tone[4]);
-        android.graphics.drawable.GradientDrawable ring = Ui.shape(0, 0, 12, false);
-        ring.setStroke(Ink.dp(2), Ink.tone[4]);
-        seal.setBackground(ring);
-        seal.setPadding(Ink.dp(14), Ink.dp(4), Ink.dp(14), Ink.dp(4));
-        seal.setRotation(-4);
+        TextView seal = Ui.seal(m, misses == 0 ? "好" : misses <= total / 3.0 ? "行" : "练");
         LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(-2, -2);
         sp.gravity = Gravity.CENTER_HORIZONTAL;
         sp.topMargin = Ink.dp(8);
@@ -561,15 +552,15 @@ class Quiz {
                 card.addView(u, up);
             }
         } else {
-            Flow acts = new Flow(m, 10);   // side by side, centred; wrapped when the text is large
-            acts.center = true;
+            // the way back alone: the whole line, undo small under it, as in the others
+            card.addView(Ui.pill(m, "Back to the path", Ui.SOLID, v -> m.home()), new LinearLayout.LayoutParams(-1, -2));
             if (last != null) {
-                TextView u = Ui.pill(m, "Undo the last", Ui.OUTLINE, v -> undo());
+                LinearLayout.LayoutParams up = new LinearLayout.LayoutParams(-2, -2);
+                up.gravity = Gravity.CENTER_HORIZONTAL;
+                TextView u = smallPill("Undo the last", v -> undo());
                 u.setContentDescription("Undo the last answer");
-                acts.addView(u);
+                card.addView(u, up);
             }
-            acts.addView(Ui.pill(m, "Back to the path", Ui.SOLID, v -> m.home()));
-            card.addView(acts, new LinearLayout.LayoutParams(-1, -2));
         }
         col.addView(card);
     }

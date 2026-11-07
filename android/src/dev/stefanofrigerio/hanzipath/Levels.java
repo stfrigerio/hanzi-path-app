@@ -132,9 +132,8 @@ final class Levels {
         int[] st = states(m.prog, now);
 
         LinearLayout head = Ui.column(m, 10);
-        head.addView(Ui.text(m, "A character's level is the lowest of the HSK words it's in. Tap one to open it.",
-                14, Ink.sans, Ink.ink2));
-        LinearLayout lg = Ui.row(m, 12);
+        head.addView(Ui.note(m, "A character's level is the lowest of the HSK words it's in. Tap one to open it."));
+        Flow lg = new Flow(m, 12);   // as home's legend: wraps once the text is large
         lg.addView(Home.legend(m, Ink.hl, Ink.hl, "next"));
         lg.addView(Home.legend(m, Ink.young, Ink.young, "learning"));
         lg.addView(Home.legend(m, Ink.known, Ink.known, "known"));
@@ -148,10 +147,7 @@ final class Levels {
 
     /** A level: its name, the counts, the bar, its characters folded to a few rows. */
     View section(Level l, int[] st) {
-        LinearLayout s = Ui.column(m, 10);
-        s.setPadding(0, Ink.dp(14), 0, 0);
-        s.setBackground(Home.topRule());
-        s.addView(Ui.label(m, l.name()));
+        LinearLayout s = Ui.section(m, l.name(), null);
         TextView line = Home.stat(m, l.line());
         line.setTextSize(13);
         s.addView(line);
@@ -174,10 +170,7 @@ final class Levels {
 
         if (l.chars.size() > fold) {
             int more = l.chars.size() - fold;
-            TextView t = Ui.pill(m, "", Ui.OUTLINE, null);
-            t.setMinHeight(Ink.dp(36));
-            t.setTextSize(14);
-            t.setPadding(Ink.dp(14), 0, Ink.dp(14), 0);
+            TextView t = Ui.small(m, "", null);
             Runnable label = () -> t.setText(open[l.n] ? "Fold " + l.name() : "Show all (" + more + " more)");
             label.run();
             t.setOnClickListener(v -> {
@@ -194,14 +187,6 @@ final class Levels {
 
     /** Stats' way in, at its top: a row like home's Stats and Settings rows. */
     static View entry(Main m) {
-        LinearLayout s = Ui.row(m, 8);
-        s.setPadding(0, Ink.dp(12), 0, Ink.dp(12));
-        s.addView(Ui.label(m, "HSK levels"), Ui.weight(1));
-        s.addView(Ui.text(m, "›", 20, Ink.sans, Ink.ink));
-        s.setMinimumHeight(Ink.dp(48));
-        Ui.press(s, Home.topRule(Ink.rule));
-        s.setContentDescription("HSK levels: each level's characters and words, how many known");
-        s.setOnClickListener(v -> m.openLevels());
-        return s;
+        return Ui.entry(m, "HSK levels", "HSK levels: each level's characters and words, how many known", v -> m.openLevels());
     }
 }
