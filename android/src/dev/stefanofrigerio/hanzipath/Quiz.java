@@ -343,7 +343,7 @@ class Quiz {
     /** Three close wrong answers: its confusables, then siblings (sharing a part), then neighbours on the path; ones
      *  met first; each meaning once; to listen, each reading once too. */
     List<String> options(String h, String mode) {
-        if (Words.is(h)) return pickFrom(h, mode, wordPool(h));
+        if (Words.is(h)) return pickFrom(h, mode, wordPool(h, mode));
         Item it = PathData.get(h);
         List<String> sib = new ArrayList<>(), near = new ArrayList<>();
         for (String p : it.parts) {
@@ -367,28 +367,15 @@ class Quiz {
         return pickFrom(h, mode, pool);
     }
 
-    /** A word's wrong answers, in order of closeness: words sharing a character with it, then
-     *  its neighbours among the path's words; in each, ones met or ready first. */
-    List<String> wordPool(String h) {
-        long now = System.currentTimeMillis();
-        List<String> sib = new ArrayList<>(), near = new ArrayList<>();
-        for (String c : Words.chars(h)) for (String w : Words.with(c)) if (!w.equals(h) && !sib.contains(w)) sib.add(w);
-        int at = Words.pos.get(h);
-        for (int d = -40; d <= 40; d++) {
-            int i = at + d;
-            if (d != 0 && i >= 0 && i < Words.all.size()) near.add(Words.all.get(i)[0]);
-        }
-        Collections.shuffle(sib, rnd);
-        Collections.shuffle(near, rnd);
-        List<String> pool = new ArrayList<>(), rest = new ArrayList<>();
-        for (List<String> l : Arrays.asList(sib, near))
-            for (String s : l) (m.prog.cards.containsKey(s) || Words.ready(m.prog, s, now) ? pool : rest).add(s);
-        pool.addAll(rest);
-        return pool;
+    /** A word's wrong answers, in order of closeness (WordChoices): words sharing a character
+     *  with it, then of its field, ones met or ready first; then its neighbours on the path.
+     *  For pick, ones as long as it and sounding like it first. */
+    List<String> wordPool(String h, String mode) {
+        return WordChoices.pool(m.prog, h, mode, rnd, System.currentTimeMillis());
     }
 
-    /** The four from a pool in order of preference: each meaning once; to listen, each
-     *  reading once too. */
+    /** The four from a pool in order of preference: each meaning once (for words, nor one
+     *  meaning inside another: WordChoices.sameMeaning); to listen, each reading once too. */
     List<String> pickFrom(String h, String mode, List<String> pool) {
         List<String> out = new ArrayList<>();
         Set<String> meanings = new HashSet<>(), readings = new HashSet<>();
@@ -400,12 +387,18 @@ class Quiz {
             if (out.size() >= 4) break;
             if (!Words.onPath(s) || out.contains(s) || meanings.contains(en(s))
                     || heard && (py(s).isEmpty() || readings.contains(py(s)))) continue;
+            if (Words.is(h) && Words.is(s) && sameAs(out, s)) continue;
             out.add(s);
             meanings.add(en(s));
             if (!py(s).isEmpty()) readings.add(py(s));
         }
         Collections.shuffle(out, rnd);
         return out;
+    }
+
+    static boolean sameAs(List<String> out, String s) {
+        for (String o : out) if (Words.is(o) && WordChoices.sameMeaning(o, s)) return true;
+        return false;
     }
 
     TextView smallPill(String s, View.OnClickListener on) {
