@@ -21,7 +21,8 @@ import java.util.Set;
  *      lose; the stop-words, "to", "a", "of", and the words in too many meanings, "person",
  *      left out),
  *   3. the same two not met yet,
- *   4. its neighbours among the path's words, met or ready first.
+ *   4. its neighbours among the path's words, met or ready first;
+ *   5. for pick, any word as long as it, met or ready first.
  *
  * For pick (the reading and meaning asked, four words to tell apart), the ones as long as
  * it first, and among them the ones that sound like it (the same first syllable, or the
@@ -141,11 +142,16 @@ final class WordChoices {
         Collections.shuffle(sib, rnd);
         Collections.shuffle(fld, rnd);
         Collections.shuffle(near, rnd);
+        List<String> far = new ArrayList<>();   // pick: any word as long as it, the last resort
+        if (mode.endsWith("pick")) for (String[] w : Words.all)
+            if (Words.chars(w[0]).length == hc.length && seen.add(w[0])) far.add(w[0]);
+        Collections.shuffle(far, rnd);
         List<List<String>> tier = new ArrayList<>();
-        for (int i = 0; i < 6; i++) tier.add(new ArrayList<String>());
+        for (int i = 0; i < 8; i++) tier.add(new ArrayList<String>());
         for (String s : sib) tier.get(known(p, s, now) ? 0 : 2).add(s);
         for (String s : fld) tier.get(known(p, s, now) ? 1 : 3).add(s);
         for (String s : near) tier.get(known(p, s, now) ? 4 : 5).add(s);
+        for (String s : far) tier.get(known(p, s, now) ? 6 : 7).add(s);
         List<String> out = new ArrayList<>();
         for (List<String> l : tier) out.addAll(l);
         if (mode.endsWith("pick")) {
