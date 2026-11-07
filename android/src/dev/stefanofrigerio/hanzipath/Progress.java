@@ -40,7 +40,17 @@ import java.util.Map;
  *            answer keeps what was tapped (picked; null in rows from before version 2): a
  *            wrong one that is another character is a confusion
  *
- * Version 2 added reviews.picked (onUpgrade: the column added, every row kept).
+ * Learning steps, around FSRS (as Anki's): a new item isn't left to its first stability
+ * straight after the check. A right check brings it back in an hour, a right answer then
+ * the next day, and only after that does it graduate to FSRS's interval; a miss on the way
+ * starts it over at 10 minutes (RELEARN). A graduated item missed (a lapse) relearns: 10
+ * minutes, then a day, then FSRS again. The card's step says where it is: 0 graduated (every
+ * card from before the steps), k > 0 waiting at LEARN[k - 1], -k at LAPSE[k - 1]. The steps
+ * only set when it's due: S and D take FSRS's formulas on every grade, as before (a review
+ * an hour on, at a recall near 1, adds little to S).
+ *
+ * Version 2 added reviews.picked (onUpgrade: the column added, every row kept); version 3
+ * cards.step (the column added, 0 for every card kept: graduated, as they were).
  */
 final class Progress extends SQLiteOpenHelper {
     static final long DAY = 86_400_000L;
@@ -56,19 +66,28 @@ final class Progress extends SQLiteOpenHelper {
     static final int PRACTICE_POOL = 40;  // drawn at random from this many of the weakest
     static final int MORE_AFTER = 10;     // today's answers before a good day may learn past New per day
     static final double MORE_RIGHT = 0.9; // ... and how many of them right
-    static final int VERSION = 2;
+    static final int VERSION = 3;
+    /** A new item's steps: after a miss, after the check (or a miss's step) right, then the next day. */
+    static final long[] LEARN = {RELEARN, 3_600_000L, DAY};
+    /** A lapsed item's steps: after the miss, then the next day. */
+    static final long[] LAPSE = {RELEARN, DAY};
     static final long CONFUSED = 60 * DAY;   // two confusions of a pair within this make it confusable
     static final long APART = 7 * DAY;       // a pair's "Tell them apart" card, at most once in this
 
     static class Card {
         double s, d;
         long reps, lapses, first, last, due, grade;
+        /** Its learning step: 0 graduated (FSRS's interval), k > 0 at LEARN[k - 1], -k at LAPSE[k - 1]. */
+        int step;
 
         Card copy() {
             Card c = new Card();
             c.s = s; c.d = d; c.reps = reps; c.lapses = lapses; c.first = first; c.last = last; c.due = due; c.grade = grade;
+            c.step = step;
             return c;
         }
+
+        boolean learning() { return step != 0; }
     }
 
     /** What undo needs: the card as it was (null: there wasn't one). */
@@ -100,7 +119,7 @@ final class Progress extends SQLiteOpenHelper {
     @Override
     public void onCreate(SQLiteDatabase db) {
         db.execSQL("CREATE TABLE cards (h TEXT PRIMARY KEY, s REAL, d REAL, reps INTEGER, lapses INTEGER,"
-                + " first INTEGER, last INTEGER, due INTEGER, grade INTEGER)");
+                + " first INTEGER, last INTEGER, due INTEGER, grade INTEGER, step INTEGER NOT NULL DEFAULT 0)");
         db.execSQL("CREATE TABLE stories (h TEXT PRIMARY KEY, text TEXT, at INTEGER)");
         db.execSQL("CREATE TABLE meta (k TEXT PRIMARY KEY, v TEXT)");
         db.execSQL("CREATE TABLE reviews (id INTEGER PRIMARY KEY AUTOINCREMENT, at INTEGER, h TEXT,"
@@ -112,6 +131,8 @@ final class Progress extends SQLiteOpenHelper {
     public void onUpgrade(SQLiteDatabase db, int from, int to) {
         // 1 → 2: what was tapped, beside each answer; the rows from before keep null
         if (from < 2) db.execSQL("ALTER TABLE reviews ADD COLUMN picked TEXT");
+        // 2 → 3: each card's learning step; every card kept is graduated (0), as it was
+        if (from < 3) db.execSQL("ALTER TABLE cards ADD COLUMN step INTEGER NOT NULL DEFAULT 0");
     }
 
     // ── the scheduler ──
@@ -193,6 +214,7 @@ final class Progress extends SQLiteOpenHelper {
         Card c = cards.get(h);
         u.before = c == null ? null : c.copy();
         double r = 0;
+        boolean met = c != null;
         if (c == null) {
             c = new Card();
             c.s = w[g - 1];
@@ -213,7 +235,7 @@ final class Progress extends SQLiteOpenHelper {
         c.reps += 1;
         c.last = now;
         c.grade = g;
-        c.due = now + (g == 1 ? RELEARN : (long) (c.s * DAY));
+        step(c, met, g, now);
         putCard(h, c);
         ContentValues v = new ContentValues();
         v.put("at", now); v.put("h", h); v.put("grade", g); v.put("mode", how); v.put("ms", ms);
@@ -223,6 +245,29 @@ final class Progress extends SQLiteOpenHelper {
         if (how != null && how.startsWith("practice-")) bumpDay("practice", 1);
         u.practice = how != null && how.startsWith("practice-");
         return u;
+    }
+
+    /** Where a grade leaves the card on its steps, and when it's due: FSRS's interval once
+     *  graduated, a step's while learning (the class's note). S is already updated. */
+    static void step(Card c, boolean met, int g, long now) {
+        int k = met ? c.step : 1;   // the check after learning: as if at the first step
+        long[] steps = k < 0 ? LAPSE : LEARN;
+        if (g == 1) {
+            // a miss: a graduated card lapses, a learning one starts over; 10 minutes either way
+            c.step = k > 0 ? 1 : -1;
+            c.due = now + steps[0];
+            return;
+        }
+        int at = Math.abs(k);   // the step just passed (1-based); 0: a graduated review
+        if (at > 0 && at < steps.length) {
+            c.step = k > 0 ? at + 1 : -(at + 1);
+            c.due = now + steps[at];
+            return;
+        }
+        // graduated, or past the last step: FSRS's interval, no sooner than the last step
+        long ivl = (long) (c.s * DAY);
+        c.due = now + (at > 0 ? Math.max(ivl, steps[steps.length - 1]) : ivl);
+        c.step = 0;
     }
 
     void ungrade(Undo u) {
@@ -628,11 +673,12 @@ final class Progress extends SQLiteOpenHelper {
         w = W;
         loads++;
         SQLiteDatabase db = getReadableDatabase();
-        try (Cursor c = db.rawQuery("SELECT h, s, d, reps, lapses, first, last, due, grade FROM cards", null)) {
+        try (Cursor c = db.rawQuery("SELECT h, s, d, reps, lapses, first, last, due, grade, step FROM cards", null)) {
             while (c.moveToNext()) {
                 Card k = new Card();
                 k.s = c.getDouble(1); k.d = c.getDouble(2); k.reps = c.getLong(3); k.lapses = c.getLong(4);
                 k.first = c.getLong(5); k.last = c.getLong(6); k.due = c.getLong(7); k.grade = c.getLong(8);
+                k.step = c.getInt(9);
                 cards.put(c.getString(0), k);
             }
         }
@@ -676,6 +722,7 @@ final class Progress extends SQLiteOpenHelper {
         ContentValues v = new ContentValues();
         v.put("h", h); v.put("s", c.s); v.put("d", c.d); v.put("reps", c.reps); v.put("lapses", c.lapses);
         v.put("first", c.first); v.put("last", c.last); v.put("due", c.due); v.put("grade", c.grade);
+        v.put("step", c.step);
         getWritableDatabase().insertWithOnConflict("cards", null, v, SQLiteDatabase.CONFLICT_REPLACE);
     }
 
@@ -687,13 +734,14 @@ final class Progress extends SQLiteOpenHelper {
 
     // ── a copy out and back in (Settings) ──
     /** Everything as text: {v: 2, cards, stories, meta, reviews}, as the web version wrote it;
-     *  a review carries "picked" when it has one (a copy without it reads as null). */
+     *  a review carries "picked" when it has one (a copy without it reads as null), a card its
+     *  learning step (a copy without it reads as 0: graduated). */
     String export() throws Exception {
         JSONObject cs = new JSONObject(), st = new JSONObject(), meta = new JSONObject();
         for (Map.Entry<String, Card> e : cards.entrySet()) {
             Card c = e.getValue();
             cs.put(e.getKey(), new JSONObject().put("s", c.s).put("d", c.d).put("reps", c.reps).put("lapses", c.lapses)
-                    .put("first", c.first).put("last", c.last).put("due", c.due).put("grade", c.grade));
+                    .put("first", c.first).put("last", c.last).put("due", c.due).put("grade", c.grade).put("step", c.step));
         }
         for (Map.Entry<String, String> e : stories.entrySet()) st.put(e.getKey(), e.getValue());
         meta.put("opts", opts());
@@ -738,6 +786,7 @@ final class Progress extends SQLiteOpenHelper {
                 Card c = new Card();
                 c.s = o.optDouble("s", 0); c.d = o.optDouble("d", 5); c.reps = o.optLong("reps"); c.lapses = o.optLong("lapses");
                 c.first = o.optLong("first"); c.last = o.optLong("last"); c.due = o.optLong("due"); c.grade = o.optLong("grade");
+                c.step = o.optInt("step");
                 putCard(h, c);
             }
             JSONObject st = all.optJSONObject("stories");

@@ -148,7 +148,12 @@ public class HomeTest {
         int sum = 0;
         for (int n : wk) sum += n;
         assertEquals("the five come back within the week", 5, sum);
-        assertEquals("nothing due today after a perfect check", 0, wk[0]);
+        // a perfect check: all five again in an hour (their first learning step), today unless that's past midnight
+        Calendar mid = Calendar.getInstance();
+        mid.set(Calendar.HOUR_OF_DAY, 0); mid.set(Calendar.MINUTE, 0); mid.set(Calendar.SECOND, 0); mid.set(Calendar.MILLISECOND, 0);
+        mid.add(Calendar.DATE, 1);
+        boolean today = System.currentTimeMillis() + 3_600_000L < mid.getTimeInMillis();
+        assertEquals("back in an hour after a perfect check", 5, wk[today ? 0 : 1]);
 
         // reviews spread over the week
         int[] want = seed(m);

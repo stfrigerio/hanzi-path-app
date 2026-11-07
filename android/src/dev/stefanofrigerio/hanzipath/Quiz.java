@@ -504,7 +504,7 @@ class Quiz {
         sp.topMargin = Ink.dp(8);
         card.addView(seal, sp);
         String said = kind.equals("check")
-                ? total + " new on the path. They come back in a few days, or in minutes if you missed them."
+                ? total + " new on the path. They come back in an hour, then tomorrow; in minutes if you missed them."
                 : practice() ? total + " practised" + (misses > 0 ? ", " + misses + " missed." : ", all of them right.")
                 : total + " reviewed" + (misses > 0 ? ", " + misses + " to go over again." : ", all of them held.");
         TextView t = Ui.text(m, said, 16, Ink.sans, Ink.ink);

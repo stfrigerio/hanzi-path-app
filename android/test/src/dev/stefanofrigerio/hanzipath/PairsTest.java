@@ -81,7 +81,7 @@ public class PairsTest {
             db.setVersion(1);
         }
         Progress p = new Progress(ctx);
-        assertEquals(2, p.getReadableDatabase().getVersion());
+        assertEquals(Progress.VERSION, p.getReadableDatabase().getVersion());
         boolean has = false;
         try (Cursor c = p.getReadableDatabase().rawQuery("PRAGMA table_info(reviews)", null)) {
             while (c.moveToNext()) has |= c.getString(1).equals("picked");
