@@ -287,6 +287,14 @@ final class Progress extends SQLiteOpenHelper {
         return out;
     }
 
+    /** How many sentences have been read: {all of them, those since a time}. */
+    long[] readCounts(long since) {
+        try (Cursor c = getReadableDatabase().rawQuery("SELECT COUNT(*), COALESCE(SUM(at >= ?), 0) FROM reviews WHERE mode = 'read'",
+                new String[]{String.valueOf(since)})) {
+            return c.moveToNext() ? new long[]{c.getLong(0), c.getLong(1)} : new long[2];
+        }
+    }
+
     // ── the review log, read back (Stats) ──
     /** One grade as it was logged. */
     static final class Logged {
