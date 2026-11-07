@@ -63,6 +63,7 @@ final class Progress extends SQLiteOpenHelper {
     final Map<String, String> stories = new HashMap<>();
     int batch = 5, perDay = 15;
     boolean say = true;
+    int remind = -1;                      // the daily reminder: minutes after midnight, -1 off
     String todayDate = "";
     int todayNew = 0;
     JSONObject days = new JSONObject();   // {"2026-11-06": {"reviews": 12, "learnt": 5}}
@@ -228,7 +229,7 @@ final class Progress extends SQLiteOpenHelper {
     // ── settings and stories ──
     void saveOpts() {
         try {
-            putMeta("opts", new JSONObject().put("batch", batch).put("perDay", perDay).put("say", say).toString());
+            putMeta("opts", new JSONObject().put("batch", batch).put("perDay", perDay).put("say", say).put("remind", remind).toString());
         } catch (Exception e) { /* unchanged */ }
     }
 
@@ -243,6 +244,33 @@ final class Progress extends SQLiteOpenHelper {
         ContentValues v = new ContentValues();
         v.put("h", h); v.put("text", text.trim()); v.put("at", System.currentTimeMillis());
         db.insertWithOnConflict("stories", null, v, SQLiteDatabase.CONFLICT_REPLACE);
+    }
+
+    // ── a look from outside the app (the reminder): the database opened read-only ──
+    /** What the reminder needs: its time (-1 off) and what's due now on the path, most overdue first. */
+    static final class Peek {
+        int remind = -1;
+        final List<String> due = new ArrayList<>();
+    }
+
+    static Peek peek(Context ctx, long now) {
+        Peek p = new Peek();
+        java.io.File f = ctx.getDatabasePath("hanzi.db");
+        if (!f.exists()) return p;
+        try (SQLiteDatabase db = SQLiteDatabase.openDatabase(f.getPath(), null, SQLiteDatabase.OPEN_READONLY)) {
+            try (Cursor c = db.rawQuery("SELECT v FROM meta WHERE k = 'opts'", null)) {
+                if (c.moveToNext()) p.remind = new JSONObject(c.getString(0)).optInt("remind", -1);
+            }
+            final Map<String, Double> late = new HashMap<>();
+            try (Cursor c = db.rawQuery("SELECT h, s, last FROM cards WHERE due <= ?", new String[]{String.valueOf(now)})) {
+                while (c.moveToNext())
+                    if (PathData.get(c.getString(0)) != null)
+                        late.put(c.getString(0), (now - c.getLong(2)) / Math.max(c.getDouble(1), 0.01));
+            }
+            p.due.addAll(late.keySet());
+            Collections.sort(p.due, (a, b) -> Double.compare(late.get(b), late.get(a)));
+        } catch (Exception e) { /* unreadable: nothing to say */ }
+        return p;
     }
 
     // ── the database ──
@@ -270,6 +298,7 @@ final class Progress extends SQLiteOpenHelper {
                         batch = o.optInt("batch", batch);
                         perDay = o.optInt("perDay", perDay);
                         say = o.optBoolean("say", say);
+                        remind = o.optInt("remind", remind);
                     } else if (k.equals("today")) {
                         JSONObject o = new JSONObject(c.getString(1));
                         todayDate = o.optString("d");
@@ -305,7 +334,7 @@ final class Progress extends SQLiteOpenHelper {
                     .put("first", c.first).put("last", c.last).put("due", c.due).put("grade", c.grade));
         }
         for (Map.Entry<String, String> e : stories.entrySet()) st.put(e.getKey(), e.getValue());
-        meta.put("opts", new JSONObject().put("batch", batch).put("perDay", perDay).put("say", say));
+        meta.put("opts", new JSONObject().put("batch", batch).put("perDay", perDay).put("say", say).put("remind", remind));
         meta.put("today", obj("d", todayDate, "n", todayNew));
         meta.put("days", days);
         JSONArray rv = new JSONArray();
