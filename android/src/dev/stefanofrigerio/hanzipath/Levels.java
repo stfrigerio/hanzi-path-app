@@ -94,7 +94,7 @@ final class Levels {
             if (l == null && it.isPart()) continue;    // 氵, 亻: parts, not characters of their own
             Level v = out[l == null ? 0 : l];
             v.chars.add(it.at);
-            if (p.strength(it.h, now) >= Progress.KNOWN) v.known++;
+            if (p.state(it.h, now, false) == GardenView.KNOWN) v.known++;
             else if (p.cards.containsKey(it.h)) v.learning++;
         }
         for (Map.Entry<String, Integer> e : hsk(ctx).entrySet()) {
@@ -105,20 +105,19 @@ final class Levels {
         return out;
     }
 
-    /** The garden's state of every place on the path, as home draws it: known, learning,
-     *  wilting; the next batch on the highlighter, the forty after it outlined, the rest faint. */
+    /** The garden's state of every place on the path, as home draws it (Progress.state): known,
+     *  learning, wilting; the next batch on the highlighter, the forty after it outlined, the rest faint. */
     static int[] states(Progress p, long now) {
         int[] st = new int[PathData.items.size()];
         int firstNew = -1, b = Math.min(p.batch, p.newLeftToday()), k = b > 0 ? b : p.batch;
         for (int i = 0; i < st.length; i++) {
             Item it = PathData.items.get(i);
-            Progress.Card c = p.cards.get(it.h);
-            if (c != null) {
-                st[i] = p.strength(it.h, now) >= Progress.KNOWN ? GardenView.KNOWN
-                        : c.due <= now && c.reps > 1 ? GardenView.WILT : GardenView.YOUNG;
+            if (p.cards.containsKey(it.h)) {
+                st[i] = p.state(it.h, now, false);
             } else {
                 if (firstNew < 0) firstNew = i;
-                st[i] = i < firstNew + k ? GardenView.NEXT : i < firstNew + 40 ? GardenView.NEAR : GardenView.FAR;
+                st[i] = p.state(it.h, now, i < firstNew + k);
+                if (st[i] == GardenView.NEAR && i >= firstNew + 40) st[i] = GardenView.FAR;
             }
         }
         return st;
@@ -136,6 +135,9 @@ final class Levels {
         Flow lg = new Flow(m, 12);   // as home's legend: wraps once the text is large
         lg.addView(Home.legend(m, Ink.hl, Ink.hl, "next"));
         lg.addView(Home.legend(m, Ink.young, Ink.young, "learning"));
+        boolean wilting = false;
+        for (int x : st) wilting |= x == GardenView.WILT;
+        if (wilting) lg.addView(Home.legend(m, Ink.paper2, Ink.young, "wilting"));
         lg.addView(Home.legend(m, Ink.known, Ink.known, "known"));
         lg.addView(Home.legend(m, 0, Ink.rule, "ahead"));
         head.addView(lg);
