@@ -654,7 +654,7 @@ def light(w, syl):
 def spoken(han, syl, ends=(), stops=(), heads=()):
     """Dictionary tones to the ones said, a syllable per character of han: 不 bú before a
     4th tone and bu in 是不是; 一 yí before a 4th tone, yì before the others, yī counting
-    (十一, 第一, 一二, 一月), alone or ending a word (统一, in ends), yi in 看一看; 个 ge
+    (十一, 第一, 一二, 一月, 周一, 初一), alone or ending a word (统一, in ends), yi in 看一看; 个 ge
     as a measure word: after a number or 这, 那, 哪, 几, 每, 某 (一个, 这个), and after a
     verb that drops the 一 (是个好人, 有个问题) unless 个 starts a word (有个性). ends and
     heads: where a word of two or more ends and starts; stops: the characters a
@@ -677,8 +677,8 @@ def spoken(han, syl, ends=(), stops=(), heads=()):
     for i, c in enumerate(han):
         prev, nxt = near(i, -1), near(i, 1)
         if c == "一" and tone(syl[i]) == "yī":
-            if not nxt or i in ends or prev in NUMERAL or nxt in DIGIT or prev in ("第", "期", "拜") \
-                    or nxt in ("月", "号") or han[i + 1:i + 3] == "年级":
+            if not nxt or i in ends or prev in NUMERAL or nxt in DIGIT or prev in ("第", "期", "拜", "周", "初") \
+                    or nxt in ("月", "号") or prev == "月" and nxt == "日" or han[i + 1:i + 3] == "年级":
                 continue                        # counting, an ordinal, a date, alone, a word's end
             if prev == nxt:
                 out[i] = "yi"                   # 看一看
@@ -829,15 +829,15 @@ def lexicon(ced, hsk, onpath):
             syl = [tone(s) for s in es[0][0].split()]
             if len(syl) == len(w) and all(SYLLABLE.match(s) for s in syl):
                 lex[w] = (syl, False)
+    for w, py in PHRASES.items():
+        if all(c in onpath for c in w):
+            lex.setdefault(w, (py.split(), False))
     return lex
 
 
-def said(han, lex, main, stops=()):
-    """A sentence's syllables, one per character: split into the fewest words the lexicon
-    knows (more of HSK's on a tie), each read as it's said in that word (了解 liǎo, 睡觉
-    jiào); a character alone by its main reading, but de for 地 after a doubled word (慢慢地)
-    and for 得 before how something's done (说得很好). Then as it's spoken (spoken(), light()):
-    不是 bú shì, 一个 yí ge, 东西 dōng xi. stops: the characters a punctuation mark follows."""
+def segment(han, lex, main):
+    """[(word, its syllables)]: han split into the fewest words the lexicon knows (more of
+    HSK's on a tie), a character alone by its main reading."""
     n = len(han)
     best = [(0, 0, None)] + [None] * n      # (words, -characters in HSK words, (start, syllables))
     for i in range(1, n + 1):
@@ -859,17 +859,75 @@ def said(han, lex, main, stops=()):
         j, syl = best[i][2]
         words.insert(0, (han[j:i], syl))
         i = j
-    out, ends, heads = [], set(), set()
-    for w, syl in words:
+    return words
+
+
+# words the lexicon leaves out that a sentence reads wrong without: names (CC-CEDICT's,
+# kept out of the lexicon) with a character not read by its main reading, and a word
+# CC-CEDICT hasn't
+PHRASES = {"重庆": "chóng qìng", "彼得": "bǐ dé", "干性": "gān xìng"}
+# a character alone in a sentence whose main reading is the rarer one there: 差 chā is in
+# words (差别, 差异); alone it's chà, bad or short of
+ALONE = {"差": "chà"}
+# 为 is wéi, "as", after a verb that names or makes something (选为, 称自己为 "call
+# oneself"), and with 以 earlier in the clause (以草为食 "take grass as food"); the
+# lexicon's 成为, 认为, 以为, 作为 are wéi already, its 因为, 为了, 为什么 wèi
+WEI_AFTER = {"任命", "选", "称", "奉", "形容", "视", "评", "选举", "推举", "推选", "尊", "誉",
+             "封", "译", "改", "变", "化", "分", "列", "当选"}
+WEI_FAR = {"以", "任命", "称", "选", "视", "奉", "尊", "封", "评", "形容"}
+# 得 děi, must, after who must (我得走了, 我们还得付) and before what's done
+DEI_AFTER = {"我", "你", "他", "她", "它", "我们", "你们", "他们", "她们", "咱们", "大家",
+             "还", "也", "就", "都", "又", "总", "必须", "真的", "可"}
+
+
+def alone(w, prev, nxt, before, main):
+    """The reading of w, a character that's a word by itself in a sentence, from the words
+    around it in its clause: prev and nxt the words just before and after it ("" at the
+    clause's edge), before every word of the clause before it."""
+    if w in ALONE:
+        return ALONE[w]
+    if w == "为" and (prev in WEI_AFTER or WEI_FAR & set(before)):
+        return "wéi"                             # 选为市长, 以草为食
+    if w == "得":
+        if prev in DEI_AFTER and nxt and nxt != "了":
+            return "děi"                         # 我得走了
+        if prev and nxt and prev[-1] not in NUMERAL:
+            return "de"                          # 说得很好, 跑得那么快; dé: 二得三, 得了
+    if w == "地" and nxt and (len(prev) > 1 or len(before) > 1 and before[-2] == prev):
+        return "de"                              # 认真地讨论, 慢慢地走
+    if w == "还" and nxt in ("", "了", "的", "给"):
+        return "huán"                            # 有借有还, 早晚要还的
+    if w == "只" and (prev[-1:] in NUMERAL | set("这那哪几每某半") or prev in ("是", "有")) \
+            and nxt[:1] not in set("是有要能会想需好"):
+        return "zhī"                             # 两只脚, 这只狗, 是只虫
+    if w == "干" and prev[-1:] in set("弄晒擦烘吹洗烤"):
+        return "gān"                             # 弄干, dry
+    if w == "数" and nxt in ("到", "着", "了", "过", "一", "不", "清", "完"):
+        return "shǔ"                             # 数到三十, count; shù in 数千人
+    if w == "种" and nxt in ("了", "着", "过"):
+        return "zhòng"                           # 种了桂花, plant
+    return main[w]
+
+
+def said(han, lex, main, stops=()):
+    """A sentence's syllables, one per character: split into words (segment()), each read
+    as it's said in that word (了解 liǎo, 睡觉 jiào); a character alone by its main
+    reading, unless the words around it say otherwise (alone(): 得 de in 说得很好, 为 wéi
+    in 选为). Then as it's spoken (spoken(), light()): 不是 bú shì, 一个 yí ge, 东西 dōng xi.
+    stops: the characters a punctuation mark follows."""
+    words = segment(han, lex, main)
+    out, ends, heads, clause = [], set(), set(), []
+    for x, (w, syl) in enumerate(words):
         k = len(out)
-        if w == "地" and k >= 2 and han[k - 1] == han[k - 2]:
-            syl = ["de"]
-        elif w == "得" and 0 < k < n - 1 and han[k + 1] in "很太非真好快慢多少清越更最不":
-            syl = ["de"]
-        if len(w) > 1:
+        if len(w) == 1:
+            prev = clause[-1] if clause else ""
+            nxt = words[x + 1][0] if x + 1 < len(words) and k not in stops else ""
+            syl = [alone(w, prev, nxt, clause, main)]
+        else:
             heads.add(k)
             ends.add(k + len(w) - 1)
         out += light(w, syl)
+        clause = [] if len(out) - 1 in stops else clause + [w]
     return spoken(han, out, ends, stops, heads)
 
 
