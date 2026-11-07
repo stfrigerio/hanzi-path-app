@@ -55,7 +55,7 @@ class Settings {
         // progress
         LinearLayout pr = section("Progress");
         pr.addView(small("Kept in the app's database, and in Android's backup. Copy it out to keep a copy or move it to another phone."));
-        LinearLayout acts = Ui.row(m, 8);
+        Flow acts = new Flow(m, 8);   // wraps once the text is large
         acts.addView(Ui.pill(m, "Copy progress", Ui.OUTLINE, v -> copyOut()));
         final TextView load = Ui.pill(m, "Load from clipboard", Ui.OUTLINE, null);
         load.setOnClickListener(v -> loadIn(load));
@@ -81,8 +81,10 @@ class Settings {
         token.setBackground(Ui.shape(Ink.paper2, Ink.rule, 999, false));
         token.setPadding(Ink.dp(14), Ink.dp(10), Ink.dp(14), Ink.dp(10));
         token.setHint(prefs().getString("token", "").isEmpty() ? "GitHub token" : "Token saved. Paste a new one to replace it.");
-        up.addView(token, new LinearLayout.LayoutParams(-1, Ink.dp(44)));
-        LinearLayout ua = Ui.row(m, 8);
+        token.setMinHeight(Ink.dp(44));   // as tall as large text needs, 44 dp at least
+        token.setContentDescription("GitHub token");
+        up.addView(token, new LinearLayout.LayoutParams(-1, -2));
+        Flow ua = new Flow(m, 8);
         ua.addView(Ui.pill(m, "Save token", Ui.OUTLINE, v -> {
             String t = token.getText().toString().trim();
             if (t.isEmpty()) { status.setText("Paste the token first."); return; }
@@ -118,10 +120,9 @@ class Settings {
 
     interface Pick { void set(String v); }
 
-    /** A setting: its name, and a pill that steps through the values. */
+    /** A setting: its name, and a pill that steps through the values (under the name, at the
+     *  end, when large text won't fit both on a line). */
     View choice(String name, String[] values, String current, Pick pick) {
-        LinearLayout r = Ui.row(m, 12);
-        r.addView(Ui.text(m, name, 15, Ink.sans, Ink.ink), Ui.weight(1));
         final int[] at = {java.util.Arrays.asList(values).indexOf(current)};
         if (at[0] < 0) at[0] = 0;
         final TextView b = Ui.pill(m, values[at[0]] + "  ›", Ui.OUTLINE, null);
@@ -132,11 +133,11 @@ class Settings {
         b.setOnClickListener(v -> {
             at[0] = (at[0] + 1) % values.length;
             b.setText(values[at[0]] + "  ›");
+            b.setContentDescription(name + ": " + values[at[0]] + ". Tap to change.");
             pick.set(values[at[0]]);
         });
         b.setContentDescription(name + ": " + values[at[0]] + ". Tap to change.");
-        r.addView(b);
-        return r;
+        return Ui.pair(m, 12, Ui.text(m, name, 15, Ink.sans, Ink.ink), b);
     }
 
     LinearLayout section(String title) {

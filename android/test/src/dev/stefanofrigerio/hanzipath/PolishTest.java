@@ -39,7 +39,7 @@ public class PolishTest {
     }
 
     static int speakers(View v) {
-        int n = v.getContentDescription() != null && v.getContentDescription().toString().equals("Say it") ? 1 : 0;
+        int n = v.getContentDescription() != null && v.getContentDescription().toString().startsWith("Say it") ? 1 : 0;   // listen.s: "Say it again"
         if (v instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) v).getChildCount(); i++) n += speakers(((ViewGroup) v).getChildAt(i));
         return n;
     }

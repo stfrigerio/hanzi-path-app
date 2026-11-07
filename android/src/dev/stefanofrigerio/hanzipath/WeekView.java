@@ -43,9 +43,21 @@ class WeekView extends View {
         invalidate();
     }
 
+    /** 60 dp for the bars, and room over them for a figure and under them for the day as
+     *  tall as the text is: large text (Android's font size) never cuts either. */
     @Override
     protected void onMeasure(int ws, int hs) {
-        setMeasuredDimension(MeasureSpec.getSize(ws), Ink.dp(104));
+        setMeasuredDimension(MeasureSpec.getSize(ws), Ink.dp(60) + above() + below());
+    }
+
+    int above() {
+        Paint.FontMetrics f = num.getFontMetrics();
+        return Math.max(Ink.dp(20), (int) Math.ceil(f.descent - f.ascent) + Ink.dp(6));
+    }
+
+    int below() {
+        Paint.FontMetrics f = day.getFontMetrics();
+        return Math.max(Ink.dp(24), Ink.dp(10) + (int) Math.ceil(f.descent - f.ascent));
     }
 
     @Override
@@ -53,7 +65,7 @@ class WeekView extends View {
         int max = 1, tallest = -1;
         for (int i = 0; i < counts.length; i++) if (counts[i] > max || (tallest < 0 && counts[i] == max)) { max = counts[i]; tallest = i; }
         float w = getWidth(), slot = w / counts.length, bar = Math.min(slot * (sparse ? 0.62f : 0.5f), Ink.dp(26));
-        float top = Ink.dp(20), base = getHeight() - Ink.dp(24), hair = line.getStrokeWidth();
+        float top = above(), base = getHeight() - below(), hair = line.getStrokeWidth();
         Paint.FontMetrics nf = num.getFontMetrics(), df = day.getFontMetrics();
 
         // the baseline, faint, under every day

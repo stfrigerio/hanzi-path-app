@@ -85,6 +85,7 @@ class Quiz {
         ringed.clear();
         faded.clear();
         TextView undo = last == null ? null : smallPill("Undo", v -> undo());
+        if (undo != null) undo.setContentDescription("Undo the last answer");
         col.addView(Cards.bar(m, (kind.equals("check") ? "check " : "review ") + Math.min(done + 1, total) + " / " + total,
                 undo, Ui.close(m, v -> m.home())));
 
@@ -154,7 +155,8 @@ class Quiz {
     }
 
     /** The kind of question for h: choose in the check and while it's new (seen fewer than
-     *  twice), then any of the three; listen only with a voice to say it. */
+     *  twice), then any of the three; listen only with Say it aloud on and a Chinese voice
+     *  on the phone to say it (Speech.voice). */
     String kindFor(String h) {
         Progress.Card c = m.prog.cards.get(h);
         String w = Words.is(h) ? "word-" : "";
@@ -210,6 +212,7 @@ class Quiz {
         c.setGravity(Gravity.CENTER_HORIZONTAL);
         c.setPadding(0, Ink.dp(8), 0, Ink.dp(8));
         View sp = Ui.speaker(m, v -> m.say(h));
+        sp.setContentDescription("Say it again");
         c.addView(sp, new LinearLayout.LayoutParams(Ink.dp(88), Ink.dp(88)));
         TextView t = Ui.text(m, "tap to hear it again", 13, Ink.mono, Ink.ink2);
         t.setGravity(Gravity.CENTER);
@@ -222,19 +225,23 @@ class Quiz {
         LinearLayout g = Ui.column(m, 10);
         for (int r = 0; r < 2; r++) {
             LinearLayout row = Ui.row(m, 10);
-            for (int i = 2 * r; i < 2 * r + 2 && i < options.size(); i++) row.addView(cell(options.get(i), h), Ui.weight(1));
+            for (int i = 2 * r; i < 2 * r + 2 && i < options.size(); i++) row.addView(cell(options.get(i), h, i), Ui.weight(1));
             g.addView(row, new LinearLayout.LayoutParams(-1, -2));
         }
         return g;
     }
 
     /** A character to pick, drawn from its strokes. After a tap, as option(): the right one
-     *  ringed green, a wrong pick pink, the rest fade. */
-    View cell(String o, String h) {
+     *  ringed green, a wrong pick pink, the rest fade. Spoken (TalkBack) by its place while
+     *  it's open, "Answer 2 of 4", not by the character, whose name would be its sound and
+     *  so the answer; once answered, by what it is. */
+    View cell(String o, String h, int n) {
         View v;
         if (Words.is(o)) {
-            // a word, written: four characters still fit half the card
-            TextView t = Ui.text(m, o, Words.chars(o).length > 3 ? 30 : 34, Ink.han, Ink.ink);
+            // a word, written: four characters still fit half the card, at any font size
+            // (drawn as the squares are, not scaled as reading text)
+            TextView t = Ui.text(m, o, 0, Ink.han, Ink.ink);
+            t.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, Words.chars(o).length > 3 ? 30 : 34);
             t.setGravity(Gravity.CENTER);
             t.setMaxLines(1);
             t.setMinHeight(Ink.dp(96));
@@ -247,7 +254,10 @@ class Quiz {
             c.show();
             v = c;
         }
-        v.setContentDescription(o);
+        v.setTag(o);   // what it is (the tests find answers by it)
+        String place = "Answer " + (n + 1) + " of " + options.size();
+        v.setContentDescription(picked == null ? place
+                : place + ": " + o + ", " + spoken(o) + (o.equals(h) ? ", the right one" : o.equals(picked) ? ", your pick" : ""));
         if (picked == null) {
             Ui.touch(v, Ink.paper, Ink.ink, 16);
             v.setOnClickListener(x -> pick(o));
@@ -285,8 +295,15 @@ class Quiz {
             Ui.style(t, Ui.OUTLINE);
             t.setOnClickListener(v -> pick(o));
         } else mark(t, o, h, 999);
-        t.setContentDescription((!py.isEmpty() ? py + ", " : "") + en);
+        t.setTag(o);
+        t.setContentDescription("Answer: " + spoken(o) + (picked == null ? "" : o.equals(h) ? ", the right one" : o.equals(picked) ? ", your pick" : ""));
         return t;
+    }
+
+    /** An answer as TalkBack says it: "shuǐ, water" (its reading, if it has one, and meaning). */
+    static String spoken(String o) {
+        String py = py(o);
+        return (!py.isEmpty() ? py + ", " : "") + en(o);
     }
 
     /** Three close wrong answers: siblings (sharing a part), then neighbours on the path; ones
@@ -456,22 +473,28 @@ class Quiz {
             rest.setGravity(Gravity.CENTER);
             card.addView(rest, new LinearLayout.LayoutParams(-1, -2));
         }
-        LinearLayout acts = Ui.row(m, 10);
-        acts.setGravity(Gravity.CENTER);
         if (more > 0) {
-            // a round with more behind it: the next round beside the way back, undo under them
-            acts.addView(Ui.pill(m, "Back to the path", Ui.OUTLINE, v -> m.home()), Ui.weight(1));
-            acts.addView(Ui.pill(m, "Another round", Ui.SOLID, v -> m.startReview()), Ui.weight(1));
-            card.addView(acts);
+            // a round with more behind it: the next round beside the way back (one under the
+            // other when large text won't fit them), undo under them
+            card.addView(Ui.even(m, 10, Ui.pill(m, "Back to the path", Ui.OUTLINE, v -> m.home()),
+                    Ui.pill(m, "Another round", Ui.SOLID, v -> m.startReview())), new LinearLayout.LayoutParams(-1, -2));
             if (last != null) {
                 LinearLayout.LayoutParams up = new LinearLayout.LayoutParams(-2, -2);
                 up.gravity = Gravity.CENTER_HORIZONTAL;
-                card.addView(smallPill("Undo the last", v -> undo()), up);
+                TextView u = smallPill("Undo the last", v -> undo());
+                u.setContentDescription("Undo the last answer");
+                card.addView(u, up);
             }
         } else {
-            if (last != null) acts.addView(Ui.pill(m, "Undo the last", Ui.OUTLINE, v -> undo()));
+            Flow acts = new Flow(m, 10);   // side by side, centred; wrapped when the text is large
+            acts.center = true;
+            if (last != null) {
+                TextView u = Ui.pill(m, "Undo the last", Ui.OUTLINE, v -> undo());
+                u.setContentDescription("Undo the last answer");
+                acts.addView(u);
+            }
             acts.addView(Ui.pill(m, "Back to the path", Ui.SOLID, v -> m.home()));
-            card.addView(acts);
+            card.addView(acts, new LinearLayout.LayoutParams(-1, -2));
         }
         col.addView(card);
     }
