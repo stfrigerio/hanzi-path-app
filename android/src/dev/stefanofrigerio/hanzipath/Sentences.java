@@ -154,6 +154,7 @@ final class Sentences {
         LinearLayout t = Ui.column(m, 2);
         TextView zh = Ui.text(m, marked(s, h), 22, Ink.han, Ink.ink);
         zh.setLineSpacing(0, 1.1f);
+        Taps.link(m, zh, h);   // every character opens its card, but the card's own
         t.addView(zh);
         t.addView(Ui.text(m, pinyin(s, h), 14, Ink.mono, Ink.ink));
         TextView en = Ui.text(m, s.en, 14, Ink.sans, Ink.ink2);

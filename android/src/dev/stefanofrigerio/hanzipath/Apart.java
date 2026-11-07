@@ -67,6 +67,7 @@ final class Apart {
         tell.addView(Ui.label(m, "What tells them apart"));
         TextView line = Ui.text(m, line(a, b), 15, Ink.sans, Ink.ink);
         line.setLineSpacing(0, 1.1f);
+        Taps.link(m, line, a.h, b.h);   // the parts open their cards; the two are here already
         tell.addView(line);
         card.addView(tell, new LinearLayout.LayoutParams(-1, -2));
 

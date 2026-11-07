@@ -124,7 +124,9 @@ final class Cards {
         if (it.why == null || it.why.isEmpty()) return null;
         LinearLayout c = Ui.column(m, 8);
         c.addView(Ui.label(m, "Why it looks like this"));
-        c.addView(Ui.text(m, whyText(it.why), 15, Ink.sans, Ink.ink));
+        TextView t = Ui.text(m, whyText(it.why), 15, Ink.sans, Ink.ink);
+        Taps.link(m, t, it.h);   // its parts open their cards; its own doesn't
+        c.addView(t);
         return c;
     }
 
@@ -164,7 +166,9 @@ final class Cards {
         for (String[] w : it.words) {
             LinearLayout r = Ui.row(m, 12);
             r.setGravity(Gravity.TOP);
-            r.addView(Ui.text(m, w[0], 22, Ink.han, Ink.ink));
+            TextView han = Ui.text(m, w[0], 22, Ink.han, Ink.ink);
+            Taps.link(m, han, it.h);   // its other characters open their cards; the row says it
+            r.addView(han);
             LinearLayout t = Ui.column(m, 0);
             SpannableStringBuilder b = Ui.pinyin(w[1]);
             if (!"0".equals(w[3])) {   // 0: a word from CC-CEDICT, beyond HSK: no level to show
@@ -206,6 +210,8 @@ final class Cards {
         t.setPadding(0, Ink.dp(12), 0, Ink.dp(4));
         t.setLayoutParams(new LinearLayout.LayoutParams(-1, -2));
         t.setContentDescription(h);
+        // on its own card each character opens its card; never in a question: it would give it away
+        if ("learn".equals(m.screen)) Taps.link(m, t);
         return t;
     }
 
