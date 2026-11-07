@@ -334,6 +334,7 @@ final class Progress extends SQLiteOpenHelper {
 
     /** Days since the last day with something done (0: today; -1: never). */
     int daysAway() {
+        if (days.length() == 0) return -1;   // nothing logged (a fresh start, an old copy): no walk back through ten years
         Calendar c = Calendar.getInstance();
         for (int n = 0; n <= 3660; n++, c.add(Calendar.DATE, -1)) if (active(c)) return n;
         return -1;
