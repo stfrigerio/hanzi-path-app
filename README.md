@@ -64,6 +64,14 @@ Set up once:
   seconds is knew, right but slower unsure, wrong again (it comes back at the
   end of the round). Then the answer in full, and Next. *Undo* takes back the
   last grade.
+- **Sentences**: a card (learning it, looking it up, a question's answer) shows a
+  real sentence it's in that you can read, every character in it met: the
+  sentence with it on the highlighter, its pinyin, the English, a speaker for
+  all of it. Once five are made only of characters you know, the Today card
+  offers *Read 10 sentences*: one at a time, the Chinese alone, *Show* for the
+  pinyin and English (said aloud with *Say it aloud* on), *Next*. Not graded;
+  each one read goes in the log (mode `read`), and a round takes the ones not
+  read for longest first.
 - **Home**: today in four lines (due now, new left, days in a row, known of
   met) with Review and Learn, the week's reviews as a bar per day, and the
   path as a garden: yellow next, pink learning, blue known, outlined pink
@@ -83,6 +91,7 @@ puts all of it on the clipboard as text; *Load from clipboard* takes it back.
 |---|---|
 | `android/src/…/Main.java` | the activity: screens, back, the bars |
 | `Home`, `Learn`, `Quiz`, `Settings`, `Cards` | the screens, built in code |
+| `Sentences`, `Read` | sentences on the cards, and the Read round |
 | `HanziView` | the practice square: strokes and their animation |
 | `GardenView` | the path on the home screen |
 | `Progress` | FSRS and the database |
@@ -94,7 +103,7 @@ puts all of it on the clipboard as text; *Load from clipboard* takes it back.
 
 ## The path
 
-`tools/build.py` makes `data/path.json` and `data/strokes-*.json`:
+`tools/build.py` makes `data/path.json`, `data/strokes-*.json` and `data/sentences.json`:
 
 1. A few pictures first, taught whole (一 二 三 十 人 口 日 月 山 水 火 木 大
    小 中 女 子), then the 1000 most common characters (Jun Da's frequency list).
@@ -113,8 +122,15 @@ puts all of it on the clipboard as text; *Load from clipboard* takes it back.
    two characters first, the ones longer entries are most built on (a common
    word's sign), shown without a level.
 
+5. Sentences: Tatoeba's Mandarin sentences with an English translation, 4 to
+   20 characters, in simplified characters all on the path (a traditional-only
+   character drops one); each readable from its last character's place, and at
+   most three per place (the shortest, unlike each other). Their pinyin a
+   syllable per character, read from the HSK and CC-CEDICT words in them (了解
+   liǎo, 睡觉 jiào), else each character's main reading.
+
 Result: 1251 items, 1041 characters and 210 parts; 1908 HSK words and 226
-from CC-CEDICT.
+from CC-CEDICT; 2461 sentences (226 KB).
 
 ```
 python3 tools/build.py [--chars 1000] [--sample 60]   # sources fetched once into ~/.cache/hanzi-path
@@ -139,3 +155,4 @@ python3 tools/build.py [--chars 1000] [--sample 60]   # sources fetched once int
 | meanings of characters, words beyond HSK | [CC-CEDICT](https://cc-cedict.org/) via [MDBG](https://www.mdbg.net/chinese/dictionary?page=cc-cedict) | CC BY-SA 4.0 |
 | HSK words (`sources/hsk.json`) | [hskhsk.com](https://github.com/glxxyz/hskhsk.com) | MIT (`sources/hsk-LICENSE.txt`) |
 | part meanings (`sources/parts.json`) | by hand | ours |
+| sentences and their English (`data/sentences.json`) | [Tatoeba](https://tatoeba.org) (cmn, eng and links exports) | CC BY 2.0 FR |

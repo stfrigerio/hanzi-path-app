@@ -42,6 +42,7 @@ class Learn {
         Cards.parts(m, card, it);
         Cards.add(card, Cards.why(m, it));
         Cards.add(card, Cards.words(m, it));
+        Cards.add(card, Sentences.view(m, h));
         col.addView(card);
 
         col.addView(Ui.pill(m, lookup ? "Done" : i + 1 < items.size() ? "Next" : "Check yourself", Ui.SOLID, v -> next()),
@@ -64,6 +65,7 @@ class Learn {
         card.addView(Cards.word(m, h));
         card.addView(Cards.wordReading(m, w));
         card.addView(Cards.chips(m, "Its characters", Words.chars(h)));
+        Cards.add(card, Sentences.view(m, h));
         col.addView(card);
         col.addView(Ui.pill(m, lookup ? "Done" : i + 1 < items.size() ? "Next" : "Check yourself", Ui.SOLID, v -> next()),
                 new LinearLayout.LayoutParams(-1, -2));

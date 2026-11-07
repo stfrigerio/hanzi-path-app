@@ -98,7 +98,7 @@ class Settings {
         col.addView(up);
 
         TextView credits = small("Characters, strokes and etymology: Make Me a Hanzi. Order: Jun Da's character frequencies. "
-                + "Meanings, and words beyond HSK: CC-CEDICT (CC BY-SA 4.0). Words: HSK 2.0. Meanings of parts: written for this app. Scheduling: FSRS-4.5.");
+                + "Meanings, and words beyond HSK: CC-CEDICT (CC BY-SA 4.0). Words: HSK 2.0. Meanings of parts: written for this app. Sentences: Tatoeba (CC BY 2.0 FR). Scheduling: FSRS-4.5.");
         credits.setPadding(0, Ink.dp(8), 0, 0);
         col.addView(credits);
         status();

@@ -74,6 +74,7 @@ final class Home {
             ledger.addView(line(m, "Words known", (wordsMet > 0 ? wordsKnown + " of " + wordsMet + " met" : "")
                     + (wordsMet > 0 && wordsReady > 0 ? " · " : "") + (wordsReady > 0 ? wordsReady + " ready" : ""), true));
         }
+        Cards.add(ledger, Read.line(m, now));
         card.addView(ledger);
         LinearLayout acts = Ui.row(m, 10);
         TextView rv = Ui.pill(m, due.isEmpty() ? "Nothing due" : "Review " + due.size(), Ui.SOLID, v -> m.startReview());

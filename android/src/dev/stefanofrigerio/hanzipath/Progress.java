@@ -151,7 +151,7 @@ final class Progress extends SQLiteOpenHelper {
     void ungrade(Undo u) {
         if (u.before != null) { cards.put(u.h, u.before); putCard(u.h, u.before); }
         else { cards.remove(u.h); getWritableDatabase().delete("cards", "h = ?", new String[]{u.h}); }
-        getWritableDatabase().execSQL("DELETE FROM reviews WHERE id = (SELECT MAX(id) FROM reviews)");
+        getWritableDatabase().execSQL("DELETE FROM reviews WHERE id = (SELECT MAX(id) FROM reviews WHERE mode IS NOT 'read')");
         bumpDay("reviews", -1);
     }
 
@@ -268,6 +268,25 @@ final class Progress extends SQLiteOpenHelper {
         db.insertWithOnConflict("stories", null, v, SQLiteDatabase.CONFLICT_REPLACE);
     }
 
+    // ── sentences read (Read): in the log beside the grades, mode "read", no grade ──
+    /** A sentence read in a Read round, and how long it was looked at before Show (ms). */
+    void read(String sentence, long ms) {
+        ContentValues v = new ContentValues();
+        v.put("at", System.currentTimeMillis()); v.put("h", sentence); v.put("grade", 0); v.put("mode", "read"); v.put("ms", ms);
+        v.put("r", 0); v.put("s", 0); v.put("d", 0);
+        getWritableDatabase().insert("reviews", null, v);
+        bumpDay("read", 1);
+    }
+
+    /** When each sentence was last read. */
+    Map<String, Long> lastRead() {
+        Map<String, Long> out = new HashMap<>();
+        try (Cursor c = getReadableDatabase().rawQuery("SELECT h, MAX(at) FROM reviews WHERE mode = 'read' GROUP BY h", null)) {
+            while (c.moveToNext()) out.put(c.getString(0), c.getLong(1));
+        }
+        return out;
+    }
+
     // ── the review log, read back (Stats) ──
     /** One grade as it was logged. */
     static final class Logged {
@@ -279,7 +298,7 @@ final class Progress extends SQLiteOpenHelper {
     /** Every grade given since a time, oldest first. */
     List<Logged> reviewsSince(long since) {
         List<Logged> out = new ArrayList<>();
-        try (Cursor c = getReadableDatabase().rawQuery("SELECT at, h, grade, mode, ms FROM reviews WHERE at >= ? ORDER BY at, id",
+        try (Cursor c = getReadableDatabase().rawQuery("SELECT at, h, grade, mode, ms FROM reviews WHERE at >= ? AND mode IS NOT 'read' ORDER BY at, id",
                 new String[]{String.valueOf(since)})) {
             while (c.moveToNext()) {
                 Logged l = new Logged();
@@ -292,7 +311,7 @@ final class Progress extends SQLiteOpenHelper {
 
     /** How many grades the log holds, and how many of them were right (2 or 3). */
     long[] reviewTotals() {
-        try (Cursor c = getReadableDatabase().rawQuery("SELECT COUNT(*), SUM(grade >= 2) FROM reviews", null)) {
+        try (Cursor c = getReadableDatabase().rawQuery("SELECT COUNT(*), SUM(grade >= 2) FROM reviews WHERE mode IS NOT 'read'", null)) {
             return c.moveToNext() ? new long[]{c.getLong(0), c.getLong(1)} : new long[2];
         }
     }

@@ -17,7 +17,7 @@ import android.widget.ScrollView;
 import java.util.List;
 
 /**
- * The app: one activity, its screens built in code (Home, Search, Learn, Quiz, Done, Settings, Stats), each
+ * The app: one activity, its screens built in code (Home, Search, Learn, Quiz, Done, Read, Settings, Stats), each
  * a column on the paper, at most 520 dp wide, 16 dp from the sides. Back goes to the path;
  * from the path, out. The system bars are the paper's colour.
  */
@@ -31,6 +31,7 @@ public class Main extends Activity {
     Settings settings;
     Search search;
     Stats stats;
+    Read read;
     boolean gardenOpen;       // the whole path shown on home, not just the rows around you
     Object shownKey;          // what the screen shows (page's key): a new one comes in
     android.animation.ValueAnimator motion;   // the screen's motion while it runs (Motion)
@@ -129,6 +130,7 @@ public class Main extends Activity {
         quiz = null;
         settings = null;
         stats = null;
+        read = null;
         Home.build(this, page("home", this::home));
         Widget.refresh(this);   // back from a round: the widget counts what's due now
     }
@@ -163,6 +165,13 @@ public class Main extends Activity {
     void startCheck(List<String> items) {
         quiz = new Quiz(this, items, "check");
         quiz.show();
+    }
+
+    /** A Read round: sentences made of what you know, read one at a time. */
+    void startRead() {
+        read = new Read(this);
+        if (read.queue.isEmpty()) return;
+        read.show();
     }
 
     void openSettings() {

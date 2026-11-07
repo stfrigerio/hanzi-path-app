@@ -131,6 +131,7 @@ class Quiz {
                 Cards.parts(m, answer, it);
                 Cards.add(answer, Cards.why(m, it));
             }
+            Cards.add(answer, Sentences.view(m, h));
             if (answer.getChildCount() > 0) card.addView(answer);
             if (fresh) reveal(answer);
         }
