@@ -348,7 +348,7 @@ class Search {
         r.setMinimumHeight(Ink.dp(44));
         r.setPadding(Ink.dp(16), 0, Ink.dp(18), 0);
         r.setBackground(Ui.shape(Ink.paper2, Ink.rule, 999, false));
-        Ui.press(r, Ui.shape(Ink.paper2, Ink.rule, 999, false));
+        Ui.touch(r, Ink.paper2, Ink.rule, 999);
         r.addView(lens(m));
         r.addView(Ui.text(m, "Look it up: 水, shui, water", 15, Ink.sans, Ink.ink2), Ui.weight(1));
         r.setContentDescription("Search the path");

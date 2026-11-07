@@ -29,7 +29,7 @@ class Learn {
     void show(boolean speak) {
         String h = items.get(i);
         Item it = PathData.get(h);
-        LinearLayout col = m.page("learn", () -> show(false));
+        LinearLayout col = m.page("learn", java.util.Arrays.asList(this, i), () -> show(false));
         String count = lookup ? (m.prog.cards.containsKey(h) ? "known " + Math.round(m.prog.strength(h, System.currentTimeMillis()) * 100) + "%" : "not met yet")
                 : "new " + (i + 1) + " / " + items.size();
         col.addView(Cards.bar(m, count, Ui.close(m, v -> m.back())));

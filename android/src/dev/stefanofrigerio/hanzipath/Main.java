@@ -31,6 +31,8 @@ public class Main extends Activity {
     Settings settings;
     Search search;
     boolean gardenOpen;       // the whole path shown on home, not just the rows around you
+    Object shownKey;          // what the screen shows (page's key): a new one comes in
+    android.animation.ValueAnimator motion;   // the screen's motion while it runs (Motion)
 
     @Override
     protected void onCreate(Bundle saved) {
@@ -85,9 +87,18 @@ public class Main extends Activity {
     }
 
     /** A screen: its column in a scroll, centred, 16 dp from the sides. */
-    LinearLayout page(String name, Runnable redraw) {
+    LinearLayout page(String name, Runnable redraw) { return page(name, null, redraw); }
+
+    /** A screen, and what it shows (key: Learn's item, Quiz's question). A new screen, or a new
+     *  key on the same one, comes in (Motion.enter: rising, or only fading when it's home); the
+     *  same one built again (a tap's answer, a theme change, a setting) just is. */
+    LinearLayout page(String name, Object key, Runnable redraw) {
+        boolean moved = !name.equals(screen) || !java.util.Objects.equals(key, shownKey);
         screen = name;
+        shownKey = key;
         this.redraw = redraw;
+        if (motion != null) motion.cancel();       // ends at once: the old screen is going anyway
+        motion = null;
         root.removeAllViews();
         ScrollView sv = new ScrollView(this);
         sv.setFillViewport(true);
@@ -97,6 +108,7 @@ public class Main extends Activity {
         col.setPadding(side, Ink.dp(20), side, Ink.dp(48));
         sv.addView(col, new FrameLayout.LayoutParams(-1, -2));
         root.addView(sv, new FrameLayout.LayoutParams(-1, -1));
+        if (moved) motion = Motion.enter(sv, !name.equals("home"));
         return col;
     }
 

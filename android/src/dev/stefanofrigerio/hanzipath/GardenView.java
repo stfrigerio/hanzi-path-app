@@ -13,7 +13,8 @@ import android.view.View;
  * you know. Folded, it shows only its first {@code shown} cells (what's met and the rows
  * ahead); open, all of them. Next is the highlighter, learning pink, known blue, a wilting one (due and
  * slipping) outlined in pink; the next forty ahead outlined, the rest faint. A part has a
- * dot in its corner. A tap opens the item.
+ * dot in its corner. A tap opens the item; the cell under the finger takes the press (its fill
+ * as a pill's turns, Ink.pressed, and a ring of ink) once it's a tap, not a scroll.
  */
 class GardenView extends View {
     static final int FAR = 0, NEAR = 1, NEXT = 2, YOUNG = 3, KNOWN = 4, WILT = 5;
@@ -23,6 +24,8 @@ class GardenView extends View {
     int cols = 10, shown = Integer.MAX_VALUE;
     float cell, gap;
     Tap tap;
+    int pressed = -1;      // the cell under the finger
+    final Runnable unpress = () -> press(-1);
     final Paint fillP = new Paint(Paint.ANTI_ALIAS_FLAG), lineP = new Paint(Paint.ANTI_ALIAS_FLAG),
             textP = new Paint(Paint.ANTI_ALIAS_FLAG);
     final RectF r = new RectF();
@@ -40,10 +43,13 @@ class GardenView extends View {
             public boolean onDown(MotionEvent e) { return true; }
 
             @Override
+            public void onShowPress(MotionEvent e) { press(at(e)); }   // held still: a tap, not a scroll
+
+            @Override
             public boolean onSingleTapUp(MotionEvent e) {
-                int col = (int) (e.getX() / (cell + gap)), row = (int) (e.getY() / (cell + gap));
-                int i = row * cols + col;
-                if (col < cols && i < count() && tap != null) { playSoundEffect(android.view.SoundEffectConstants.CLICK); tap.open(i); }
+                int i = at(e);
+                press(i);
+                if (i >= 0 && tap != null) { playSoundEffect(android.view.SoundEffectConstants.CLICK); tap.open(i); }
                 return true;
             }
         });
@@ -64,6 +70,20 @@ class GardenView extends View {
     }
 
     int count() { return Math.min(shown, state.length); }
+
+    /** The cell under a touch, or -1. */
+    int at(MotionEvent e) {
+        int col = (int) (e.getX() / (cell + gap)), row = (int) (e.getY() / (cell + gap));
+        int i = row * cols + col;
+        return e.getX() >= 0 && e.getY() >= 0 && col < cols && i < count() ? i : -1;
+    }
+
+    void press(int i) {
+        removeCallbacks(unpress);
+        if (i == pressed) return;
+        pressed = i;
+        invalidate();
+    }
 
     /** How many cells fit in a row this wide: as many as stay at least 32 dp. */
     static int columns(int widthPx) {
@@ -97,6 +117,7 @@ class GardenView extends View {
                 case NEAR: line = Ink.rule; fg = Ink.ink2; break;
                 default: fg = Ink.rule;
             }
+            if (i == pressed) { bg = Ink.pressed(bg); line = Ink.ink; }
             if (bg != 0) { fillP.setColor(bg); c.drawRect(r, fillP); }
             if (line != 0) {
                 lineP.setColor(line);
@@ -114,5 +135,12 @@ class GardenView extends View {
     }
 
     @Override
-    public boolean onTouchEvent(MotionEvent e) { return taps.onTouchEvent(e) || super.onTouchEvent(e); }
+    public boolean onTouchEvent(MotionEvent e) {
+        boolean used = taps.onTouchEvent(e);
+        int a = e.getActionMasked();
+        if (a == MotionEvent.ACTION_CANCEL) press(-1);
+        else if (a == MotionEvent.ACTION_UP && pressed >= 0) postDelayed(unpress, 120);   // seen, then gone
+        else if (a == MotionEvent.ACTION_MOVE && pressed >= 0 && at(e) != pressed) press(-1);
+        return used || super.onTouchEvent(e);
+    }
 }
