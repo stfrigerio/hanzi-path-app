@@ -29,6 +29,7 @@ public class Main extends Activity {
     Learn learn;
     Quiz quiz;
     Settings settings;
+    boolean gardenOpen;       // the whole path shown on home, not just the rows around you
 
     @Override
     protected void onCreate(Bundle saved) {
@@ -91,13 +92,21 @@ public class Main extends Activity {
         sv.setFillViewport(true);
         sv.setOverScrollMode(View.OVER_SCROLL_NEVER);
         LinearLayout col = Ui.column(this, 16);
-        int w = getResources().getDisplayMetrics().widthPixels;
-        int side = Math.max(Ink.dp(16), (w - Ink.dp(520)) / 2);
+        int side = side();
         col.setPadding(side, Ink.dp(20), side, Ink.dp(48));
         sv.addView(col, new FrameLayout.LayoutParams(-1, -2));
         root.addView(sv, new FrameLayout.LayoutParams(-1, -1));
         return col;
     }
+
+    /** A page's margin: 16 dp, or more to keep the column 520 dp at most. */
+    int side() {
+        int w = getResources().getDisplayMetrics().widthPixels;
+        return Math.max(Ink.dp(16), (w - Ink.dp(520)) / 2);
+    }
+
+    /** How wide a page's column is. */
+    int contentWidth() { return getResources().getDisplayMetrics().widthPixels - 2 * side(); }
 
     void home() {
         learn = null;
