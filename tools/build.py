@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Builds the path: data/path.json and data/strokes-N.json, from the sources.
+"""Builds the path: data/path.json, data/strokes-N.json and data/sentences.json.
 
 The path is the order things are taught in. Take the most common characters
 (Jun Da's frequency list), and before each one, teach every part it is made of
@@ -29,14 +29,21 @@ Words: HSK words made only of what's been taught by then, the lowest level
 first; a character with none gets CC-CEDICT's commonest words instead
 (level 0, which the app shows without a level).
 
-Usage: tools/build.py [--chars 1000] [--src DIR] [--sample N] [--why N]
+Sentences (data/sentences.json): Tatoeba's Mandarin sentences with an English
+translation (CC BY 2.0 FR, fetched into the cache too), only those in simplified
+characters that are all on the path; a few for each place on the path, from where
+they become readable. Their pinyin from the words in them (HSK's, CC-CEDICT's).
+
+Usage: tools/build.py [--chars 1000] [--src DIR] [--sample N] [--why N] [--sentences N]
 """
 import argparse
+import bz2
 import gzip
 import json
 import os
 import random
 import re
+import tarfile
 import unicodedata
 import urllib.request
 
@@ -567,6 +574,167 @@ def short(definition, senses=2):
     return "; ".join(parts[:senses])
 
 
+# ── sentences: reading practice (Tatoeba, CC BY 2.0 FR) ──
+TATOEBA = "https://downloads.tatoeba.org/exports/"
+SENTENCES_PER_ITEM = 3
+SHORTEST, LONGEST = 4, 20        # characters in a sentence, punctuation not counted
+# punctuation a sentence may have, as its pinyin writes it: closing marks stick to the
+# syllable before them, opening ones to the one after
+CLOSE = {"，": ",", "。": ".", "？": "?", "！": "!", "、": ",", "：": ":", "；": ";", "”": "\"", "’": "'",
+         "…": "…", "》": "\"", "）": ")", "」": "\"", "—": "—", "·": "·"}
+OPEN = {"“": "\"", "‘": "'", "《": "\"", "（": "(", "「": "\""}
+ASCII = {",": "，", ".": "。", "?": "？", "!": "！", ":": "：", ";": "；", "(": "（", ")": "）"}
+# sentences not for a first reader, whatever their characters
+HARSH = re.compile(r"\b(sex\w*|naked|kill\w*|murder\w*|suicide|rap(e|ed|ist)|corpse|penis|vagina|"
+                   r"prostitut\w*|fuck\w*|shit|damn|bitch|whore|guns?|drugs?|drunk)\b", re.I)
+SYLLABLE = re.compile("^[a-zü" + "".join(v for vs in TONES.values() for v in vs) + "]+$")
+
+
+def tsv(path):
+    """Tatoeba's export of a language: {id: text}."""
+    out = {}
+    with bz2.open(path, "rt", encoding="utf-8") as f:
+        for line in f:
+            p = line.rstrip("\n").split("\t")
+            if len(p) == 3:
+                out[int(p[0])] = p[2].strip()
+    return out
+
+
+def links(path, wanted):
+    """{Mandarin id: [ids of its translations]}, from links.csv (every pair, both ways)."""
+    out = {}
+    with tarfile.open(path, "r:bz2") as t:
+        for m in t:
+            if not m.name.endswith("links.csv"):
+                continue
+            for line in t.extractfile(m):
+                a, _, b = line.partition(b"\t")
+                if int(a) in wanted:
+                    out.setdefault(int(a), []).append(int(b))
+    return out
+
+
+def lexicon(ced, hsk, onpath):
+    """{word: (its syllables, an HSK word)}: HSK's words with their own pinyin, then
+    CC-CEDICT's (not names), two to four characters of the path: a sentence's pinyin is
+    read from the words in it."""
+    lex = {}
+    for lvl in sorted(hsk, key=int):
+        for w, py, en in hsk[lvl]:
+            syl = [tone(s) for s in py.replace("'", " ").split()]
+            if 2 <= len(w) <= 4 and len(syl) == len(w) and w not in lex and all(c in onpath for c in w):
+                lex[w] = (syl, True)
+    for w, es in ced.items():
+        if not 2 <= len(w) <= 4 or w in lex or not all(c in onpath for c in w):
+            continue
+        es = [e for e in es if e[0][:1].islower() and senses([e])]
+        if es:
+            syl = [tone(s) for s in es[0][0].split()]
+            if len(syl) == len(w) and all(SYLLABLE.match(s) for s in syl):
+                lex[w] = (syl, False)
+    return lex
+
+
+def said(han, lex, main):
+    """A sentence's syllables, one per character: split into the fewest words the lexicon
+    knows (more of HSK's on a tie), each read as it's said in that word (了解 liǎo, 睡觉
+    jiào); a character alone by its main reading, but de for 地 after a doubled word (慢慢地)
+    and for 得 before how something's done (说得很好)."""
+    n = len(han)
+    best = [(0, 0, None)] + [None] * n      # (words, -characters in HSK words, (start, syllables))
+    for i in range(1, n + 1):
+        for j in range(max(0, i - 4), i):
+            w = han[j:i]
+            if best[j] is None:
+                continue
+            if len(w) == 1:
+                syl, inhsk = [main[w]], False
+            elif w in lex:
+                syl, inhsk = lex[w]
+            else:
+                continue
+            cand = (best[j][0] + 1, best[j][1] - (len(w) if inhsk else 0), (j, syl))
+            if best[i] is None or cand[:2] < best[i][:2]:
+                best[i] = cand
+    words, i = [], n
+    while i > 0:
+        j, syl = best[i][2]
+        words.insert(0, (han[j:i], syl))
+        i = j
+    out = []
+    for w, syl in words:
+        k = len(out)
+        if w == "地" and k >= 2 and han[k - 1] == han[k - 2]:
+            syl = ["de"]
+        elif w == "得" and 0 < k < n - 1 and han[k + 1] in "很太非真好快慢多少清越更最不":
+            syl = ["de"]
+        out += syl
+    return out
+
+
+def sentences(src, items, ced, hsk):
+    """[[sentence, pinyin, English, the path index it's readable from]]: Tatoeba's Mandarin
+    sentences in simplified characters, every one of them on the path, with an English
+    translation; at each place on the path the few that become readable there (the
+    shortest, unlike each other and every English already taken). The pinyin is a syllable
+    per character, in order, with the sentence's punctuation stuck to them, so the app can
+    find a character's."""
+    cmn = tsv(fetch(src, "cmn_sentences.tsv.bz2", TATOEBA + "per_language/cmn/cmn_sentences.tsv.bz2"))
+    pos = {it["h"]: i for i, it in enumerate(items)}
+    main = {it["h"]: it["py"][0] for it in items if it["py"]}
+    # characters only a traditional text writes (們, 試): a sentence with one is traditional
+    trad = {e[2] for w, es in ced.items() if len(w) == 1 for e in es if e[2] != w} - set(ced) - set(pos)
+
+    cand, seen = {}, set()
+    for i, text in sorted(cmn.items()):
+        s = "".join(ASCII.get(c, c) for c in text.replace(" ", "").replace("　", ""))
+        if s in seen:
+            continue
+        seen.add(s)
+        han = [c for c in s if c not in CLOSE and c not in OPEN]
+        if SHORTEST <= len(han) <= LONGEST and all(c in main and c not in trad for c in han):
+            cand[i] = s
+    eng = tsv(fetch(src, "eng_sentences.tsv.bz2", TATOEBA + "per_language/eng/eng_sentences.tsv.bz2"))
+    tr = links(fetch(src, "links.tar.bz2", TATOEBA + "links.tar.bz2"), set(cand))
+
+    lex = lexicon(ced, hsk, set(main))
+    at = {}
+    for i, s in cand.items():
+        en = [eng[j] for j in sorted(tr.get(i, [])) if j in eng]
+        if not en or any(HARSH.search(e) for e in en) or len(en[0]) > 90:
+            continue
+        han = "".join(c for c in s if c not in CLOSE and c not in OPEN)
+        at.setdefault(max(pos[c] for c in han), []).append((len(han), i, s, han, en[0]))
+
+    out, taken = [], set()
+    for p in sorted(at):
+        picked = []
+        for n, i, s, han, en in sorted(at[p]):
+            key = en.lower().strip(" .!?")
+            if key in taken or any(han[:2] == h[:2] or len(set(han) & set(h)) > .6 * len(set(han) | set(h))
+                                   for _, h, _ in picked):
+                continue
+            picked.append((s, han, en))
+            taken.add(key)
+            if len(picked) == SENTENCES_PER_ITEM:
+                break
+        for s, han, en in picked:
+            syl = said(han, lex, main)
+            toks, k, pre = [], 0, ""
+            for c in s:
+                if c in OPEN:
+                    pre += OPEN[c]
+                elif c in CLOSE:
+                    if toks:
+                        toks[-1] += CLOSE[c]
+                else:
+                    toks.append(pre + syl[k])
+                    pre, k = "", k + 1
+            out.append([s, " ".join(toks), en, p])
+    return out
+
+
 def components(entry):
     return [c for c in entry.get("decomposition", "") if c not in IDC and c not in "？"]
 
@@ -576,6 +744,7 @@ def main():
     ap.add_argument("--chars", type=int, default=1000)
     ap.add_argument("--src", default=CACHE)
     ap.add_argument("--sample", type=int, default=0, help="print N meanings, before and after")
+    ap.add_argument("--sentences", type=int, default=0, help="print N sentences with their pinyin")
     ap.add_argument("--why", type=int, default=0, help="print the first N items' etymology lines, before and after")
     a = ap.parse_args()
 
@@ -735,11 +904,20 @@ def main():
         with open(os.path.join(out, f"strokes-{i // CHUNK}.json"), "w", encoding="utf-8") as f:
             json.dump(chunk, f, ensure_ascii=False, separators=(",", ":"))
 
+    sents = sentences(a.src, items, ced, hsk)
+    with open(os.path.join(out, "sentences.json"), "w", encoding="utf-8") as f:
+        json.dump({"source": "Tatoeba (tatoeba.org), CC BY 2.0 FR; pinyin by tools/build.py", "s": sents},
+                  f, ensure_ascii=False, separators=(",", ":"))
+    if a.sentences:
+        for s in random.Random(3).sample(sents, min(a.sentences, len(sents))):
+            print(f"{s[3]:4} {s[0]}  {s[1]}  {s[2]}")
+
     parts = sum(1 for it in items if it["k"] == "part")
     hskw = sum(1 for it in items for w in it.get("w", []) if w[3])
     cedw = sum(1 for it in items for w in it.get("w", []) if not w[3])
     print(f"{len(items)} on the path: {len(items) - parts} characters, {parts} parts; "
-          f"words: {hskw} HSK, {cedw} from CC-CEDICT; {(len(items) + CHUNK - 1) // CHUNK} stroke files")
+          f"words: {hskw} HSK, {cedw} from CC-CEDICT; {(len(items) + CHUNK - 1) // CHUNK} stroke files; "
+          f"{len(sents)} sentences, {sum(1 for s in sents if s[3] < 300)} readable by no. 300")
 
 
 if __name__ == "__main__":
