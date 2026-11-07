@@ -268,7 +268,80 @@ public class AccessTest {
         batch.performClick(); batch.performClick(); batch.performClick();   // back to 5
     }
 
-    /** The garden for TalkBack: a virtual view for each cell shown, in path order, that says
+    // ── the voice ──
+
+    /** Kinds drawn for a character seen three times, in a review, 300 times over. */
+    static java.util.Set<String> kinds(Main m) {
+        String h = PickTest.some(120, 1).get(0);
+        Progress.Card c = new Progress.Card();
+        c.s = 4; c.d = 5; c.reps = 3; c.grade = 3; c.due = System.currentTimeMillis() - 60_000;
+        m.prog.cards.put(h, c);
+        Quiz q = new Quiz(m, java.util.Collections.singletonList(h), "review");
+        java.util.Set<String> out = new java.util.HashSet<>();
+        for (int i = 0; i < 300; i++) out.add(q.kindFor(h));
+        return out;
+    }
+
+    /** A phone without a Chinese voice: Settings says so, with the way to Android's
+     *  text-to-speech settings, and no listen question is drawn; with one, both go. */
+    void noVoice(String tag) throws Exception {
+        Main m = Robolectric.buildActivity(Main.class).setup().visible().get();
+        try {
+            assertTrue(m.prog.say);
+            ShadowLooper.idleMainLooper();
+            Speech.close();   // the engine the app started: its answer is played by hand below
+            Speech.heard(m, android.speech.tts.TextToSpeech.SUCCESS, android.speech.tts.TextToSpeech.LANG_AVAILABLE);
+            assertTrue("a voice: listen is drawn", kinds(m).contains("listen"));
+            m.openSettings();
+            assertFalse("a voice: no line", WalkTest.find(m.root, "No Chinese voice").isShown());
+
+            // the engine says there's no Chinese: the open Settings shows the line at once
+            Speech.heard(m, android.speech.tts.TextToSpeech.SUCCESS, android.speech.tts.TextToSpeech.LANG_MISSING_DATA);
+            ShadowLooper.idleMainLooper();
+            assertFalse(Speech.voice());
+            TextView line = WalkTest.find(m.root, "No Chinese voice on this phone");
+            assertNotNull(line);
+            assertEquals("No Chinese voice on this phone: install one in Android's text-to-speech settings.", line.getText().toString());
+            assertTrue(line.isShown());
+            look(m, "v" + tag + "-settings-no-voice");
+            WalkTest.tap(m, "Text-to-speech settings");
+            android.content.Intent go = org.robolectric.Shadows.shadowOf(m).getNextStartedActivity();
+            assertEquals("com.android.settings.TTS_SETTINGS", go.getAction());
+            assertFalse("no voice: no listen", kinds(m).contains("listen"));
+            assertTrue(kinds(m).contains("pick"));
+            // remembered for the next start
+            assertFalse(m.getSharedPreferences("hanzi", 0).getBoolean("voice", true));
+
+            // Say it aloud off: the line goes (nothing's meant to be said)
+            View say = byDescription(m.root, "Say it aloud: on. Tap to change.");
+            say.performClick();
+            assertFalse(WalkTest.find(m.root, "No Chinese voice on this phone").isShown());
+            say.performClick();
+            assertTrue(WalkTest.find(m.root, "No Chinese voice on this phone").isShown());
+            Speech.close();   // turning it on asked the engine again: answered by hand
+
+            // the engine failing to start counts as no voice too; then a voice installed
+            Speech.heard(m, android.speech.tts.TextToSpeech.ERROR, android.speech.tts.TextToSpeech.LANG_AVAILABLE);
+            assertFalse(Speech.voice());
+            Speech.heard(m, android.speech.tts.TextToSpeech.SUCCESS, android.speech.tts.TextToSpeech.LANG_COUNTRY_AVAILABLE);
+            ShadowLooper.idleMainLooper();
+            assertTrue(Speech.voice());
+            assertFalse("the line gone once there's a voice", WalkTest.find(m.root, "No Chinese voice on this phone").isShown());
+            assertTrue(kinds(m).contains("listen"));
+        } finally {
+            Speech.close();
+            Speech.voice = null;
+            Speech.asked = false;
+        }
+    }
+
+    @Test @Config(fontScale = 1.5f)
+    public void voice15() throws Exception { noVoice("15"); }
+
+    @Test @Config(qualifiers = "w412dp-h915dp-night-xxhdpi")
+    public void voiceNight() throws Exception { noVoice("n"); }
+
+    /** The garden for TalkBack:a virtual view for each cell shown, in path order, that says
      *  what it is and where it stands, and opens it when TalkBack clicks it. */
     @Test
     public void garden() throws Exception {

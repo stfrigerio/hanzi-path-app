@@ -56,6 +56,8 @@ public class Main extends Activity {
         paint();
         home();
         Reminder.arm(this);
+        Speech.changed = () -> runOnUiThread(this::voiceChanged);
+        if (prog.say) Speech.check(this);   // known before the first review whether listen can be asked
     }
 
     static final int ASK_NOTIFY = 1;
@@ -207,6 +209,7 @@ public class Main extends Activity {
     protected void onResume() {
         super.onResume();
         Updater.maybe(this, false);
+        Speech.recheck(this);   // back from installing a voice, maybe
         if (screen.equals("home")) home();
     }
 
@@ -224,12 +227,29 @@ public class Main extends Activity {
         if (redraw != null) redraw.run();
     }
 
+    /** It turned out whether the phone has a Chinese voice: Settings' line under Say it aloud. */
+    void voiceChanged() {
+        if (settings != null && screen.equals("settings")) settings.show();
+    }
+
+    /** Android's text-to-speech settings, where a Chinese voice is installed (or its settings
+     *  at all, on a phone that names the page otherwise). */
+    void openVoiceSettings() {
+        try {
+            startActivity(new android.content.Intent("com.android.settings.TTS_SETTINGS"));
+        } catch (android.content.ActivityNotFoundException e) {
+            try { startActivity(new android.content.Intent(android.provider.Settings.ACTION_SETTINGS)); }
+            catch (android.content.ActivityNotFoundException x) { /* no settings app: nothing to open */ }
+        }
+    }
+
     void updateStatus() {
         runOnUiThread(() -> { if (settings != null && screen.equals("settings")) settings.status(); });
     }
 
     @Override
     protected void onDestroy() {
+        Speech.changed = null;
         Speech.close();
         prog.close();
         super.onDestroy();

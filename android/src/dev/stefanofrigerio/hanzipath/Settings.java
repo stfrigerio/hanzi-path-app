@@ -20,6 +20,7 @@ import java.util.Date;
 class Settings {
     final Main m;
     TextView status, version, io, note;
+    View voice;
     boolean armed;
 
     static final String[] ROUNDS = {"20", "40", "60", "all"};
@@ -39,7 +40,15 @@ class Settings {
         rows.addView(choice("Reviews per round", ROUNDS, p.round <= 0 ? "all" : String.valueOf(p.round),
                 v -> { p.round = v.equals("all") ? 0 : Integer.parseInt(v); p.saveOpts(); }));
         rows.addView(choice("Say it aloud", new String[]{"on", "off"}, p.say ? "on" : "off",
-                v -> { p.say = v.equals("on"); p.saveOpts(); }));
+                v -> {
+                    p.say = v.equals("on");
+                    p.saveOpts();
+                    if (p.say) Speech.check(m);
+                    voice.setVisibility(p.say && !Speech.voice() ? View.VISIBLE : View.GONE);
+                }));
+        voice = noVoice();
+        voice.setVisibility(p.say && !Speech.voice() ? View.VISIBLE : View.GONE);
+        rows.addView(voice);
         rows.addView(choice("Reminder", Reminder.TIMES, Reminder.label(p.remind), v -> {
             p.remind = Reminder.minutes(v);
             p.saveOpts();
@@ -104,6 +113,7 @@ class Settings {
         credits.setPadding(0, Ink.dp(8), 0, 0);
         col.addView(credits);
         status();
+        if (p.say) Speech.check(m);   // whether there's a voice, for the line under Say it aloud
     }
 
     SharedPreferences prefs() { return m.getSharedPreferences("hanzi", Context.MODE_PRIVATE); }
@@ -149,6 +159,20 @@ class Settings {
     }
 
     TextView small(String s) { return Ui.text(m, s, 13, Ink.sans, Ink.ink2); }
+
+    /** Under Say it aloud, on a phone without a Chinese voice (Speech): why it's silent, and a
+     *  pill to Android's text-to-speech settings to install one. */
+    View noVoice() {
+        LinearLayout c = Ui.column(m, 8);
+        c.addView(small("No Chinese voice on this phone: install one in Android's text-to-speech settings."));
+        TextView go = Ui.pill(m, "Text-to-speech settings", Ui.OUTLINE, v -> m.openVoiceSettings());
+        go.setMinHeight(Ink.dp(36));
+        go.setTextSize(14);
+        go.setPadding(Ink.dp(14), Ink.dp(4), Ink.dp(14), Ink.dp(4));
+        go.setContentDescription("Open Android's text-to-speech settings");
+        c.addView(go, new LinearLayout.LayoutParams(-2, -2));
+        return c;
+    }
 
     /** The line under the reminder: why it went back to off. */
     void remindNote(String s) {

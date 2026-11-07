@@ -162,7 +162,7 @@ class Quiz {
         String w = Words.is(h) ? "word-" : "";
         if (kind.equals("check") || c == null || c.reps < 2) return w + "choose";
         List<String> k = new ArrayList<>(Arrays.asList("choose", "pick"));
-        if (m.prog.say && !py(h).isEmpty()) k.add("listen");
+        if (m.prog.say && Speech.voice() && !py(h).isEmpty()) k.add("listen");   // no Chinese voice: nothing to hear
         return w + k.get(rnd.nextInt(k.size()));
     }
 
