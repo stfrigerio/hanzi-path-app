@@ -228,11 +228,14 @@ final class Cards {
         return c;
     }
 
-    /** The bar over a card: a count on the left; Undo and × on the right. */
+    /** The bar over a screen: its name or the round's count on the left, as a section's label
+     *  (shown in capitals, its text as given); Undo and × on the right. */
     static LinearLayout bar(Main m, String count, View... right) {
         LinearLayout r = Ui.row(m, 8);
-        TextView t = Ui.text(m, count, 13, Ink.mono, Ink.ink2);
-        t.setLetterSpacing(0.06f);
+        r.setMinimumHeight(Ink.dp(40));
+        TextView t = Ui.label(m, "");
+        t.setAllCaps(true);
+        t.setText(count);
         r.addView(t, Ui.weight(1));
         for (View v : right) if (v != null) r.addView(v);
         return r;
