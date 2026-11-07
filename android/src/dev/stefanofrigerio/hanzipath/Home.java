@@ -198,10 +198,10 @@ final class Home {
             gs.addView(t, tp);
         }
         col.addView(gs);
-        col.addView(Parts.entry(m));
 
         // the ways into the other screens, one under the other as a list
         LinearLayout ways = Ui.column(m, 0);
+        ways.addView(Parts.entry(m));
         ways.addView(Stats.entry(m));
         ways.addView(Ui.entry(m, "Settings and progress", null, v -> m.openSettings()));
         col.addView(ways);

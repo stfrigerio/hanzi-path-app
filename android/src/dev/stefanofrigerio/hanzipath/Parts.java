@@ -289,14 +289,8 @@ final class Parts {
 
     /** Home's way in, under the path: a row like Stats' and Settings'. */
     static View entry(Main m) {
-        LinearLayout s = Ui.row(m, 8);
-        s.setPadding(0, Ink.dp(16), 0, Ink.dp(8));
-        s.setBackground(Home.topRule(Ink.rule));
-        s.addView(Ui.label(m, "The parts"), Ui.weight(1));
-        s.addView(Ui.text(m, "›", 20, Ink.sans, Ink.ink));
-        s.setMinimumHeight(Ink.dp(48));
-        s.setOnClickListener(v -> m.openParts());
-        s.setContentDescription("The parts: what characters are built from, and how many each builds");
-        return s;
+        View e = Ui.entry(m, "The parts", null, v -> m.openParts());
+        e.setContentDescription("The parts: what characters are built from, and how many each builds");
+        return e;
     }
 }
