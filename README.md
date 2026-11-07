@@ -106,7 +106,12 @@ puts all of it on the clipboard as text; *Load from clipboard* takes it back.
 `tools/build.py` makes `data/path.json`, `data/strokes-*.json` and `data/sentences.json`:
 
 1. A few pictures first, taught whole (一 二 三 十 人 口 日 月 山 水 火 木 大
-   小 中 女 子), then the 1000 most common characters (Jun Da's frequency list).
+   小 中 女 子), then the 1000 most common characters (Jun Da's frequency list),
+   then on to the 2000 most common (HSK 4–6's). The second thousand is
+   built as a second pass after the first path's 1251 items, which stay
+   exactly as they were (progress is kept by them): the same rules, parts
+   before characters, but no early item gains a word, a use or a part; words
+   and sentences that need a new character go to that character's place.
 2. Each one's decomposition (Make Me a Hanzi). Before a character, every part
    of it not yet taught, recursively. A part that is a common character comes
    as a character; one that isn't (氵 亻 扌 讠) comes as a *part*, with what it
@@ -137,11 +142,12 @@ puts all of it on the clipboard as text; *Load from clipboard* takes it back.
    in build.py) and of directional complements (起来 qǐ lai). The 3rd-tone
    change isn't marked: 你好 is written nǐ hǎo and said ní hǎo.
 
-Result: 1251 items, 1041 characters and 210 parts; 1908 HSK words and 226
-from CC-CEDICT; 2461 sentences (226 KB).
+Result: 2288 items, 1970 characters and 318 parts (the first 1251: 1041 and
+210); 3020 HSK words and 351 from CC-CEDICT; 4781 sentences (468 KB); 39
+stroke files.
 
 ```
-python3 tools/build.py [--chars 1000] [--sample 60]   # sources fetched once into ~/.cache/hanzi-path
+python3 tools/build.py [--chars 1000] [--more 2000] [--sample 60]   # sources fetched once into ~/.cache/hanzi-path
 ```
 
 ## Next
