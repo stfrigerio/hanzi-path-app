@@ -231,7 +231,7 @@ final class Progress extends SQLiteOpenHelper {
 
     boolean active(Calendar c) {
         JSONObject d = days.optJSONObject(date(c));
-        return d != null && (d.optInt("reviews") > 0 || d.optInt("learnt") > 0);
+        return d != null && (d.optInt("reviews") > 0 || d.optInt("learnt") > 0 || d.optInt("practice") > 0);
     }
 
     // ── settings and stories ──
