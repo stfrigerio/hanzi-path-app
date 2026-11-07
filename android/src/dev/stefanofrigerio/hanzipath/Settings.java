@@ -20,6 +20,7 @@ import java.util.Date;
 class Settings {
     final Main m;
     TextView status, version, io, note;
+    View voice;
     boolean armed;
 
     static final String[] ROUNDS = {"20", "40", "60", "all"};
@@ -39,7 +40,15 @@ class Settings {
         rows.addView(choice("Reviews per round", ROUNDS, p.round <= 0 ? "all" : String.valueOf(p.round),
                 v -> { p.round = v.equals("all") ? 0 : Integer.parseInt(v); p.saveOpts(); }));
         rows.addView(choice("Say it aloud", new String[]{"on", "off"}, p.say ? "on" : "off",
-                v -> { p.say = v.equals("on"); p.saveOpts(); }));
+                v -> {
+                    p.say = v.equals("on");
+                    p.saveOpts();
+                    if (p.say) Speech.check(m);
+                    voice.setVisibility(p.say && !Speech.voice() ? View.VISIBLE : View.GONE);
+                }));
+        voice = noVoice();
+        voice.setVisibility(p.say && !Speech.voice() ? View.VISIBLE : View.GONE);
+        rows.addView(voice);
         rows.addView(choice("Voice speed", new String[]{"normal", "slower"}, p.speed, v -> { p.speed = v; p.saveOpts(); }));
         rows.addView(choice("Reminder", Reminder.TIMES, Reminder.label(p.remind), v -> {
             p.remind = Reminder.minutes(v);
@@ -56,7 +65,7 @@ class Settings {
         // progress
         LinearLayout pr = section("Progress");
         pr.addView(small("Kept in the app's database, and in Android's backup. Copy it out to keep a copy or move it to another phone."));
-        LinearLayout acts = Ui.row(m, 8);
+        Flow acts = new Flow(m, 8);   // wraps once the text is large
         acts.addView(Ui.pill(m, "Copy progress", Ui.OUTLINE, v -> copyOut()));
         final TextView load = Ui.pill(m, "Load from clipboard", Ui.OUTLINE, null);
         load.setOnClickListener(v -> loadIn(load));
@@ -82,8 +91,10 @@ class Settings {
         token.setBackground(Ui.shape(Ink.paper2, Ink.rule, 999, false));
         token.setPadding(Ink.dp(14), Ink.dp(10), Ink.dp(14), Ink.dp(10));
         token.setHint(prefs().getString("token", "").isEmpty() ? "GitHub token" : "Token saved. Paste a new one to replace it.");
-        up.addView(token, new LinearLayout.LayoutParams(-1, Ink.dp(44)));
-        LinearLayout ua = Ui.row(m, 8);
+        token.setMinHeight(Ink.dp(44));   // as tall as large text needs, 44 dp at least
+        token.setContentDescription("GitHub token");
+        up.addView(token, new LinearLayout.LayoutParams(-1, -2));
+        Flow ua = new Flow(m, 8);
         ua.addView(Ui.pill(m, "Save token", Ui.OUTLINE, v -> {
             String t = token.getText().toString().trim();
             if (t.isEmpty()) { status.setText("Paste the token first."); return; }
@@ -103,6 +114,7 @@ class Settings {
         credits.setPadding(0, Ink.dp(8), 0, 0);
         col.addView(credits);
         status();
+        if (p.say) Speech.check(m);   // whether there's a voice, for the line under Say it aloud
     }
 
     SharedPreferences prefs() { return m.getSharedPreferences("hanzi", Context.MODE_PRIVATE); }
@@ -119,10 +131,9 @@ class Settings {
 
     interface Pick { void set(String v); }
 
-    /** A setting: its name, and a pill that steps through the values. */
+    /** A setting: its name, and a pill that steps through the values (under the name, at the
+     *  end, when large text won't fit both on a line). */
     View choice(String name, String[] values, String current, Pick pick) {
-        LinearLayout r = Ui.row(m, 12);
-        r.addView(Ui.text(m, name, 15, Ink.sans, Ink.ink), Ui.weight(1));
         final int[] at = {java.util.Arrays.asList(values).indexOf(current)};
         if (at[0] < 0) at[0] = 0;
         final TextView b = Ui.pill(m, values[at[0]] + "  ›", Ui.OUTLINE, null);
@@ -133,11 +144,11 @@ class Settings {
         b.setOnClickListener(v -> {
             at[0] = (at[0] + 1) % values.length;
             b.setText(values[at[0]] + "  ›");
+            b.setContentDescription(name + ": " + values[at[0]] + ". Tap to change.");
             pick.set(values[at[0]]);
         });
         b.setContentDescription(name + ": " + values[at[0]] + ". Tap to change.");
-        r.addView(b);
-        return r;
+        return Ui.pair(m, 12, Ui.text(m, name, 15, Ink.sans, Ink.ink), b);
     }
 
     LinearLayout section(String title) {
@@ -149,6 +160,20 @@ class Settings {
     }
 
     TextView small(String s) { return Ui.text(m, s, 13, Ink.sans, Ink.ink2); }
+
+    /** Under Say it aloud, on a phone without a Chinese voice (Speech): why it's silent, and a
+     *  pill to Android's text-to-speech settings to install one. */
+    View noVoice() {
+        LinearLayout c = Ui.column(m, 8);
+        c.addView(small("No Chinese voice on this phone: install one in Android's text-to-speech settings."));
+        TextView go = Ui.pill(m, "Text-to-speech settings", Ui.OUTLINE, v -> m.openVoiceSettings());
+        go.setMinHeight(Ink.dp(36));
+        go.setTextSize(14);
+        go.setPadding(Ink.dp(14), Ink.dp(4), Ink.dp(14), Ink.dp(4));
+        go.setContentDescription("Open Android's text-to-speech settings");
+        c.addView(go, new LinearLayout.LayoutParams(-2, -2));
+        return c;
+    }
 
     /** The line under the reminder: why it went back to off. */
     void remindNote(String s) {

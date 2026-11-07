@@ -67,7 +67,7 @@ public class WordsTest {
     }
 
     static View byDesc(View v, String d) {
-        if (v.hasOnClickListeners() && v.getContentDescription() != null && v.getContentDescription().toString().equals(d)) return v;
+        if (v.hasOnClickListeners() && d.equals(v.getTag())) return v;   // an answer: tagged with what it is
         if (v instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) v).getChildCount(); i++) {
             View x = byDesc(((ViewGroup) v).getChildAt(i), d);
             if (x != null) return x;
@@ -75,9 +75,9 @@ public class WordsTest {
         return null;
     }
 
-    /** The name an answer goes by: a cell's is the word, an option row's its reading and meaning. */
+    /** The name an answer goes by: its tag, the word (its spoken label says its place or its reading). */
     static String name(Quiz q, String o) {
-        return q.mode.equals("word-choose") ? Quiz.py(o) + ", " + Quiz.en(o) : o;
+        return o;
     }
 
     static void tapAnswer(Main m, Quiz q, String o) {

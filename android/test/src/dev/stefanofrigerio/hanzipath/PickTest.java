@@ -66,12 +66,12 @@ public class PickTest {
 
     static List<String> names(Main m) {
         List<String> out = new ArrayList<>();
-        for (HanziView c : cells(m.root)) out.add(c.getContentDescription().toString());
+        for (HanziView c : cells(m.root)) out.add((String) c.getTag());
         return out;
     }
 
     static void tapCell(Main m, String h) {
-        for (HanziView c : cells(m.root)) if (c.getContentDescription().toString().equals(h)) {
+        for (HanziView c : cells(m.root)) if (h.equals(c.getTag())) {
             assertTrue("cell " + h + " can't be tapped", c.hasOnClickListeners());
             c.performClick();
             ShadowLooper.idleMainLooper();

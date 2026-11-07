@@ -44,21 +44,22 @@ final class Home {
         int reviewed = p.todayCount("reviews");
 
         // masthead
-        LinearLayout name = Ui.row(m, 12);
-        name.setGravity(Gravity.BOTTOM);
-        name.addView(Ui.text(m, "汉字之路", 44, Ink.brush, Ink.ink));
+        TextView logo = Ui.text(m, "汉字之路", 44, Ink.brush, Ink.ink);
         TextView en = Ui.text(m, "HANZI PATH", 13, Ink.monoMedium, Ink.ink2);
         en.setLetterSpacing(0.12f);
         en.setPadding(0, 0, 0, Ink.dp(10));
+        Ui.Pair name = new Ui.Pair(m, 12, false);   // large text: the English goes under the brush
+        name.bottom = true;
+        name.start = true;
+        name.addView(logo);
         name.addView(en);
+        name.setContentDescription("汉字之路, Hanzi Path");
+        name.setScreenReaderFocusable(true);
         col.addView(name);
 
         // today: a short ledger, then what to do
         LinearLayout card = Ui.card(m);
-        LinearLayout th = Ui.row(m, 12);
-        th.addView(Ui.label(m, "Today"), Ui.weight(1));
-        th.addView(Ui.label(m, new SimpleDateFormat("EEE d MMM", Locale.ENGLISH).format(new Date(now))));
-        card.addView(th);
+        card.addView(Ui.pair(m, 12, Ui.label(m, "Today"), Ui.label(m, new SimpleDateFormat("EEE d MMM", Locale.ENGLISH).format(new Date(now)))));
         if (!p.introDone && !p.cards.isEmpty()) { p.introDone = true; p.saveOpts(); }   // the first batch learnt: put away
         boolean intro = !p.introDone;
         if (intro) card.addView(intro(m));
@@ -76,7 +77,6 @@ final class Home {
         }
         Cards.add(ledger, Read.line(m, now));
         card.addView(ledger);
-        LinearLayout acts = Ui.row(m, 10);
         // nothing due: practise the weakest met instead (outlined: nothing asks for it)
         int practise = due.isEmpty() ? p.weakest(Progress.PRACTICE, now).size() : 0;
         TextView rv;
@@ -86,13 +86,11 @@ final class Home {
             rv = Ui.pill(m, due.isEmpty() ? "Nothing due" : "Review " + due.size(), Ui.SOLID, v -> m.startReview());
             Ui.enable(rv, !due.isEmpty(), Ui.SOLID);
         }
-        acts.addView(rv, Ui.weight(1));
         int nb = Math.min(batch, next.size());
         String ln = next.isEmpty() ? "Path walked" : batch > 0 ? (words ? "Learn " + nb + (nb == 1 ? " word" : " words") : "Learn next " + nb) : "Enough new for today";
         TextView lb = Ui.pill(m, ln, Ui.OUTLINE, v -> m.startLearn());
         Ui.enable(lb, batch > 0 && !next.isEmpty(), Ui.OUTLINE);
-        acts.addView(lb, Ui.weight(1));
-        card.addView(acts);
+        card.addView(Ui.even(m, 10, rv, lb));
         if (!next.isEmpty()) {
             SpannableStringBuilder b = new SpannableStringBuilder(words ? "Next, words   " : "Next on the path   ");
             int at = b.length();
@@ -114,10 +112,7 @@ final class Home {
         for (int n : week) sum += n;
         LinearLayout ws = Ui.column(m, 6);
         ws.setPadding(0, Ink.dp(8), 0, 0);
-        LinearLayout wh = Ui.row(m, 12);
-        wh.addView(Ui.label(m, "The week"), Ui.weight(1));
-        wh.addView(small(m, sum + " due in 7 days"));
-        ws.addView(wh);
+        ws.addView(Ui.pair(m, 12, Ui.label(m, "The week"), small(m, sum + " due in 7 days")));
         if (sum == 0) {
             ws.addView(Ui.text(m, p.cards.isEmpty() ? "Nothing to review yet: what you learn comes back here, day by day."
                     : "Nothing falls due this week.", 14, Ink.sans, Ink.ink2));
@@ -166,12 +161,9 @@ final class Home {
         }
         LinearLayout gs = Ui.column(m, 10);
         gs.setPadding(0, Ink.dp(8), 0, 0);
-        LinearLayout gh = Ui.row(m, 12);
-        gh.addView(Ui.label(m, "The path"), Ui.weight(1));
-        gh.addView(small(m, met + " of " + st.length + " met"));
-        gs.addView(gh);
+        gs.addView(Ui.pair(m, 12, Ui.label(m, "The path"), small(m, met + " of " + st.length + " met")));
         gs.addView(Search.entry(m));
-        LinearLayout lg = Ui.row(m, 12);
+        Flow lg = new Flow(m, 12);   // large text: the legend wraps onto a second line
         lg.addView(legend(m, Ink.hl, Ink.hl, "next"));
         lg.addView(legend(m, Ink.young, Ink.young, "learning"));
         if (wilting > 0) lg.addView(legend(m, Ink.paper2, Ink.young, "wilting"));
@@ -217,6 +209,7 @@ final class Home {
         s.addView(Ui.text(m, "›", 20, Ink.sans, Ink.ink));
         s.setMinimumHeight(Ink.dp(48));
         s.setOnClickListener(v -> m.openSettings());
+        s.setContentDescription("Settings and progress");
         col.addView(s);
     }
 
@@ -272,11 +265,11 @@ final class Home {
 
     /** A ledger line: what on the left, the figure on the right, a faint rule above. */
     static View line(Main m, String what, String value, boolean rule) {
-        LinearLayout r = Ui.row(m, 12);
+        Ui.Pair r = Ui.pair(m, 12, Ui.text(m, what, 15, Ink.sans, Ink.ink), stat(m, value));
         r.setMinimumHeight(Ink.dp(38));
         if (rule) r.setBackground(topRule(Ink.grid));
-        r.addView(Ui.text(m, what, 15, Ink.sans, Ink.ink), Ui.weight(1));
-        r.addView(stat(m, value));
+        r.setContentDescription(what + ": " + value);   // one line for TalkBack, not two
+        r.setScreenReaderFocusable(true);
         return r;
     }
 
