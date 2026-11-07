@@ -18,10 +18,10 @@ import static org.junit.Assert.*;
 
 /**
  * Practice anytime: with cards met and none due, home's left button is "Practice N"
- * (outlined); the round asks the weakest first; its answers are logged as practice-* and
- * move no card (stability, due, reps), nor Stats' counts, due() or the day's reviews; Undo
- * takes a practice answer back without touching a card, and a review's Undo skips practice
- * rows; with something due the button is Review again. Light and dark; renders are p*.png.
+ * (outlined); the round draws from the weakest, in a random order; its answers are graded
+ * as reviews are (FSRS: a miss lapses the card), logged as practice-*, and counted in
+ * Stats and the day's reviews; Undo takes a practice grade back, the card as it was; with
+ * something due the button is Review again. Light and dark; renders are p*.png.
  */
 @RunWith(RobolectricTestRunner.class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -107,21 +107,22 @@ public class PracticeTest {
         assertEquals("quiz", m.screen);
         Quiz q = m.quiz;
         assertEquals("practice", q.kind);
-        assertEquals(weak, q.queue);
+        assertEquals(20, q.queue.size());
+        assertTrue("drawn from the weakest", m.prog.weakest(Progress.PRACTICE_POOL, now).containsAll(q.queue));
         assertNotNull(WalkTest.find(m.root, "practice 1 / 20"));
         String first = q.queue.get(0);
-        assertEquals("choose", q.mode);
         shots.shot(m, prefix + "2-question");
 
-        // a miss: logged as practice-choose, grade 1, the card as it was
+        // a miss: logged as practice-<kind>, grade 1, the card lapsed
+        long lapses = m.prog.cards.get(first).lapses;
         q.pick(wrong(q));
         ShadowLooper.idleMainLooper();
-        assertEquals(1, logged(m, "mode = 'practice-choose' AND grade = 1 AND h = '" + first + "'"));
-        assertEquals(before, snapshot(m.prog));
+        assertEquals(1, logged(m, "mode = 'practice-" + q.mode + "' AND grade = 1 AND h = '" + first + "'"));
+        assertEquals(lapses + 1, m.prog.cards.get(first).lapses);
         assertNotNull(WalkTest.find(m.root, "NOT THAT ONE"));
         shots.shot(m, prefix + "3-answered");
 
-        // Undo: the row gone, the card untouched, the question open again
+        // Undo: the row gone, the card as it was, the question open again
         WalkTest.tap(m, "Undo");
         assertEquals(0, logged(m, "mode LIKE 'practice-%'"));
         assertEquals(before, snapshot(m.prog));
@@ -139,20 +140,21 @@ public class PracticeTest {
         assertEquals("21 answers, each in the log", 21, logged(m, "mode LIKE 'practice-%'"));
         assertEquals(1, logged(m, "mode LIKE 'practice-%' AND grade = 1"));
 
-        // nothing moved: the cards (in memory and in the database), due, Stats, the day's reviews
-        assertEquals(before, snapshot(m.prog));
-        assertEquals(before, snapshot(new Progress(m)));
-        assertTrue(m.prog.due(System.currentTimeMillis()).isEmpty());
-        assertArrayEquals("not in Stats' counts", totals, m.prog.reviewTotals());
-        assertEquals("not in Stats' days", 0, m.prog.reviewsSince(0).size());
-        assertEquals(reviewed, m.prog.todayCount("reviews"));
+        // graded: the cards moved (in memory and in the database), Stats and the day count them
+        assertNotEquals(before, snapshot(m.prog));
+        assertEquals(snapshot(m.prog), snapshot(new Progress(m)));
+        for (String h : q.tries.keySet()) assertEquals("each answered once more", Long.parseLong(before.get(h).split(" ")[2]) + q.tries.get(h), m.prog.cards.get(h).reps);
+        assertEquals("in Stats' counts", totals[0] + 21, m.prog.reviewTotals()[0]);
+        assertEquals("in Stats' days", 21, m.prog.reviewsSince(0).size());
+        assertEquals(reviewed + 21, m.prog.todayCount("reviews"));
         assertEquals(21, m.prog.todayCount("practice"));
         assertNotEquals(days, m.prog.days.toString());
 
         // the end: N practised, the seal, the way back and another round
         assertEquals("done", m.screen);
         assertNotNull(WalkTest.find(m.root, "20 practised, 1 missed."));
-        assertNotNull(WalkTest.find(m.root, "Practice leaves the schedule"));
+        assertNotNull(WalkTest.find(m.root, "Each answer counts toward when they come back."));
+        assertNull("a miss: no Learn next", WalkTest.find(m.root, "Learn next"));
         assertNotNull(WalkTest.find(m.root, "Back to the path"));
         assertNotNull(WalkTest.find(m.root, "行"));
         shots.shot(m, prefix + "4-done");
@@ -161,15 +163,6 @@ public class PracticeTest {
         assertEquals("practice", m.quiz.kind);
         assertNotNull(WalkTest.find(m.root, "practice 1 / 20"));
         assertTrue(m.back());
-
-        // a review's Undo takes its own grade back, not a practice answer after it
-        String h = PathData.items.get(0).h;
-        Progress.Undo u = m.prog.grade(h, 3, "choose", 1000);
-        m.prog.practised(h, 1, "pick", 1000);
-        m.prog.ungrade(u);
-        assertEquals(before, snapshot(m.prog));
-        assertEquals(0, m.prog.reviewsSince(0).size());
-        assertEquals(22, logged(m, "mode LIKE 'practice-%'"));
 
         // something due: Review, as before
         Progress.Card c = m.prog.cards.get(PathData.items.get(5).h);

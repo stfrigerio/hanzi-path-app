@@ -143,11 +143,14 @@ public class Main extends Activity {
         Widget.refresh(this);   // back from a round: the widget counts what's due now
     }
 
-    void startLearn() {
-        int n = Math.min(prog.batch, prog.newLeftToday());
-        List<String> items = Words.next(prog, n, System.currentTimeMillis());
-        if (items.isEmpty()) return;
-        learn = new Learn(this, items, false, null);
+    void startLearn() { startLearn(false); }
+
+    /** A batch to learn, as Home.learning decides; perfect: from a round with no misses,
+     *  which opens New per day as a good day does. Past it, it still counts toward today's. */
+    void startLearn(boolean perfect) {
+        Home.Learning l = Home.learning(prog, System.currentTimeMillis(), perfect);
+        if (!l.open) return;
+        learn = new Learn(this, l.items, false, null);
         learn.show();
     }
 
@@ -170,10 +173,10 @@ public class Main extends Activity {
         quiz.show();
     }
 
-    /** Practice, anytime: up to 20 items met, the weakest first, asked as a review asks them
-     *  but never graded (Quiz "practice"): the schedule stays as it was. */
+    /** Practice, anytime: up to 20 items met, drawn from the weakest 40, asked and graded as a
+     *  review is (Quiz "practice", logged as practice-<kind>). */
     void startPractice() {
-        List<String> items = prog.weakest(Progress.PRACTICE, System.currentTimeMillis());
+        List<String> items = prog.practiceSet(System.currentTimeMillis(), new java.util.Random());
         if (items.isEmpty()) return;
         quiz = new Quiz(this, items, "practice");
         quiz.show();

@@ -51,8 +51,11 @@ Set up once:
   grade, so a new item starts on what you showed you know.
 - **Review**: FSRS-4.5, a small scheduler with three grades (again, unsure, knew). A round takes
   the most overdue first, 40 at most (Settings → *Reviews per round*: 20, 40,
-  60, all); its end says how many are still due, with *Another round*, or when
-  the next fall due.
+  60, all), asked in a random order; its end says how many are still due, with
+  *Another round*, or when the next fall due.
+- **Practice** (nothing due): twenty drawn from the weakest forty, graded as
+  reviews are. A round with no misses ends on *Learn next N*; past New per day,
+  a good day (ten answers, nine in ten right) offers *Learn 5 more*.
 - **First run**: home's Today card says in three lines how the path goes, until
   *Got it* or the first batch learnt.
 - **Questions** (the check and reviews): the character and four answers, each
