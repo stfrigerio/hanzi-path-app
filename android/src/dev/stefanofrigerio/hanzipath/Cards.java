@@ -9,6 +9,9 @@ import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 /** The pieces of an item's card, shared by Learn (all of them) and Quiz (the answer). */
 final class Cards {
     private Cards() {}
@@ -90,39 +93,43 @@ final class Cards {
         if (it.used.length > 0) into.addView(chips(m, "Leads to", it.used));
     }
 
-    /** Make Me a Hanzi's etymology: which part gives the meaning, which the sound. */
+    /** Make Me a Hanzi's etymology, as tools/build.py words it: what the picture shows, which
+     *  part gives the meaning, which the sound. */
     static View why(Main m, Item it) {
-        SpannableStringBuilder b = new SpannableStringBuilder();
-        if ("pictophonetic".equals(it.etType) && (it.etSemantic != null || it.etPhonetic != null)) {
-            if (it.etSemantic != null) {
-                han(b, it.etSemantic);
-                Item s = PathData.get(it.etSemantic);
-                if (s != null) b.append(" ").append(s.en);
-                b.append(" gives the meaning");
-            }
-            if (it.etPhonetic != null) {
-                if (b.length() > 0) b.append(", ");
-                han(b, it.etPhonetic);
-                Item p = PathData.get(it.etPhonetic);
-                if (p != null && p.py.length > 0) b.append(" (").append(Ui.pinyin(p.py[0])).append(")");
-                b.append(" the sound");
-            }
-            b.append(".");
-            if (it.etHint != null && !it.etHint.isEmpty()) b.append(" ").append(it.etHint).append(".");
-        } else if (it.etHint != null && !it.etHint.isEmpty()) {
-            b.append(it.etHint).append(".");
-        }
-        if (b.length() == 0) return null;
+        if (it.why == null || it.why.isEmpty()) return null;
         LinearLayout c = Ui.column(m, 8);
         c.addView(Ui.label(m, "Why it looks like this"));
-        c.addView(Ui.text(m, b, 15, Ink.sans, Ink.ink));
+        c.addView(Ui.text(m, whyText(it.why), 15, Ink.sans, Ink.ink));
         return c;
     }
 
-    static void han(SpannableStringBuilder b, String h) {
-        int at = b.length();
-        b.append(h);
-        b.setSpan(new TypefaceSpan(Ink.han), at, b.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+    /** A reading in brackets right after a character: " (zhǐ)", with a tone mark. */
+    static final Pattern SOUND = Pattern.compile("^ \\(([a-zü]*[āáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜ][a-zü]*)\\)");
+
+    /** The line with every character in the hanzi face; a sound part and its reading
+     *  ("止 (zhǐ)") in its tone's ink, as pinyin is everywhere else. */
+    static SpannableStringBuilder whyText(String why) {
+        SpannableStringBuilder b = new SpannableStringBuilder();
+        int i = 0;
+        while (i < why.length()) {
+            int cp = why.codePointAt(i), n = Character.charCount(cp);
+            int at = b.length();
+            b.append(why, i, i + n);
+            i += n;
+            if (Character.UnicodeScript.of(cp) != Character.UnicodeScript.HAN) continue;
+            b.setSpan(new TypefaceSpan(Ink.han), at, b.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            Matcher s = SOUND.matcher(why.substring(i));
+            if (!s.find()) continue;
+            int tone = Ink.tone[Ink.toneOf(s.group(1))];
+            b.setSpan(new ForegroundColorSpan(tone), at, b.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            b.append(" (");   // the reading stays on the character's line
+            int py = b.length();
+            b.append(s.group(1));
+            b.setSpan(new ForegroundColorSpan(tone), py, b.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            b.append(")");
+            i += s.end();
+        }
+        return b;
     }
 
     static View words(Main m, Item it) {

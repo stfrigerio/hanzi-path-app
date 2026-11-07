@@ -6,7 +6,8 @@ class Item {
     String[] py, parts, used;
     String[][] words;     // [word, pinyin, meaning, HSK level]
     int strokes, at;
-    String etType, etHint, etSemantic, etPhonetic;
+    String etType, etSemantic, etPhonetic;
+    String why;           // "Why it looks like this", a plain line or two (tools/build.py)
 
     boolean isPart() { return "part".equals(kind); }
 

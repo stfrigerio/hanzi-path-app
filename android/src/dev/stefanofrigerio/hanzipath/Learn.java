@@ -31,8 +31,7 @@ class Learn {
         if (Words.is(h)) { word(h, speak); return; }
         Item it = PathData.get(h);
         LinearLayout col = m.page("learn", java.util.Arrays.asList(this, i), () -> show(false));
-        String count = lookup ? (m.prog.cards.containsKey(h) ? "known " + Math.round(m.prog.strength(h, System.currentTimeMillis()) * 100) + "%" : "not met yet")
-                : "new " + (i + 1) + " / " + items.size();
+        String count = lookup ? known(h) : "new " + (i + 1) + " / " + items.size();
         col.addView(Cards.bar(m, count, Ui.close(m, v -> m.back())));
 
         LinearLayout card = Ui.card(m);
@@ -59,16 +58,21 @@ class Learn {
         String[] w = Words.get(h);
         LinearLayout col = m.page("learn", java.util.Arrays.asList(this, i), () -> show(false));
         hv = null;
-        col.addView(Cards.bar(m, "new word " + (i + 1) + " / " + items.size(), Ui.close(m, v -> m.back())));
+        col.addView(Cards.bar(m, lookup ? known(h) : "new word " + (i + 1) + " / " + items.size(), Ui.close(m, v -> m.back())));
         LinearLayout card = Ui.card(m);
         card.addView(Cards.wordTag(m, w));
         card.addView(Cards.word(m, h));
         card.addView(Cards.wordReading(m, w));
         card.addView(Cards.chips(m, "Its characters", Words.chars(h)));
         col.addView(card);
-        col.addView(Ui.pill(m, i + 1 < items.size() ? "Next" : "Check yourself", Ui.SOLID, v -> next()),
+        col.addView(Ui.pill(m, lookup ? "Done" : i + 1 < items.size() ? "Next" : "Check yourself", Ui.SOLID, v -> next()),
                 new LinearLayout.LayoutParams(-1, -2));
-        if (speak && m.prog.say) m.say(h);
+        if (speak && !lookup && m.prog.say) m.say(h);
+    }
+
+    /** A card looked up: how well it's known, or that it's new. */
+    String known(String h) {
+        return m.prog.cards.containsKey(h) ? "known " + Math.round(m.prog.strength(h, System.currentTimeMillis()) * 100) + "%" : "not met yet";
     }
 
     void next() {

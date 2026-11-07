@@ -29,7 +29,7 @@ Words: HSK words made only of what's been taught by then, the lowest level
 first; a character with none gets CC-CEDICT's commonest words instead
 (level 0, which the app shows without a level).
 
-Usage: tools/build.py [--chars 1000] [--src DIR] [--sample N]
+Usage: tools/build.py [--chars 1000] [--src DIR] [--sample N] [--why N]
 """
 import argparse
 import gzip
@@ -161,6 +161,144 @@ MEANS = {
     "含": "to contain; to hold in mouth", "灭": "to put out; to destroy", "博": "broad; rich; learned",
     "中": "middle; center; in", "干": "dry; to concern", "切": "close to; eager; earnest",
 }
+
+
+# "Why it looks like this": Make Me a Hanzi's etymology, made into a line or two a learner
+# reads (why()). Their hints are notes, not sentences: a pictophonetic one is what the
+# meaning part means in this character ("sitting man" for 匕 in 此), the others a picture's
+# description with clauses after semicolons ("…; 乍 also provides the pronunciation").
+# Typos and run-together text in theirs:
+HINT_FIX = [("blanklets", "blankets"), ("pronuncation", "pronunciation"), ("couryard", "courtyard"),
+            ("eachother", "each other"), ("Th sun", "The sun"), (" ,", ","), ("side-by-side", "side by side")]
+# a meaning part's sense, by (part, hint), where theirs misleads: 攵 is a hand that strikes
+# (their "script" and "rap" are 攴's other names), 肖's 'flesh - "in the flesh"'
+GLOSS = {("攵", "script"): "strike", ("攵", "rap"): "strike", ("攵", "tap"): "strike",
+         ("⺼", 'flesh - "in the flesh"'): "flesh", ("冫", "water in a spirit level"): "water in a level",
+         ("非", "people back-to-back"): "two people back to back", ("毒", "a poisonous plant"): "a poisonous plant"}
+# whole lines by hand, where the hint can't be made to read well
+WHY = {
+    "声": "Simplified form of 聲, a stone chime 声 struck by a hand 殳 and heard by the ear 耳.",
+    "冏": "An old form of 炯 \"bright\": a window letting in the light.",
+    "曷": "A variant of 何 \"what\".",
+    "他": "One more person 亻, an \"also\" 也 person.",
+    "夭": "A person with the head tilted: leaning forward, running, full of energy.",
+    "北": "Two people 匕 sitting back to back. Borrowed for its sound to mean \"north\".",
+    "亻": "A short form of 人, written at a character's left.",
+    "亭": "亠, 口 and 冖 make a picture of a pavilion; 丁 (dīng) gives the sound.",
+    "少": "Grains of sand; 小 (xiǎo) gives both the sound and the meaning.",
+    "屋": "To stop 至 under a roof 尸 (here a form of 厂).",
+    "军": "Soldiers 冖 (a bent 力) in a cart 车.",
+    "率": "A string 幺 vibrating in an instrument 亠 十.",
+}
+# a sound part's reading where Make Me a Hanzi's has no tone (卜 "bo": bǔ, as in 补 bǔ)
+SOUND = {"卜": "bǔ"}
+HAN = r"[⺀-⿿㐀-鿿\U00020000-\U0002ffff]"
+
+
+def tidy(hint):
+    """Their hint with its spaces, typos and run-together characters put right."""
+    s = re.sub(r"\s+", " ", (hint or "").replace("\xa0", " ")).strip()
+    for a, b in HINT_FIX:
+        s = s.replace(a, b)
+    s = re.sub(rf"([A-Za-z])({HAN})", r"\1 \2", s)                 # "person卩" -> "person 卩"
+    s = re.sub(rf"({HAN})([A-Za-z])", r"\1 \2", s)                 # "阝of" -> "阝 of"
+    return s
+
+
+def sentence(s):
+    s = s.strip().rstrip(";,")
+    if not s:
+        return ""
+    s = s[0].upper() + s[1:]
+    return s if s[-1] in ".?!" else s + "."
+
+
+def why(c, e, items, dic):
+    """A plain line or two: what the picture shows, which part gives the meaning, which the
+    sound (with its reading, as the app shows it). Empty when Make Me a Hanzi has nothing."""
+    if c in WHY:
+        return WHY[c]
+
+    def py(h):
+        # the reading the app shows first, unless it's toneless (了 le, 卜 bo): a part gives
+        # a sound with a tone (疗 liáo from 了 liǎo)
+        if h in SOUND:
+            return SOUND[h]
+        p = list((items.get(h) or {}).get("py") or []) + list((dic.get(h) or {}).get("pinyin") or [])
+        toned = [r for r in p if re.search("[āáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜ]", r)]
+        return (toned or p or [""])[0]
+
+    def said(h):
+        return f"{h} ({py(h)})" if py(h) else h
+
+    def first(h):
+        it = items.get(h)
+        return re.split(r"[;,]", it["en"])[0].strip() if it and it.get("en") else ""
+
+    kind, hint = e.get("type"), tidy(e.get("hint"))
+    if kind == "pictophonetic":
+        s, p = e.get("semantic"), e.get("phonetic")
+        if not s and not p:
+            return sentence(hint) if hint else ""
+        gloss, rest = hint, ""
+        if "; " in gloss:
+            gloss, rest = gloss.split("; ", 1)
+        gloss = GLOSS.get((s, gloss), gloss) or first(s) if s else ""
+        mean = f"{s} ({gloss})" if s and gloss else (s or "")
+        if s and p == s:
+            out = f"{mean} gives the meaning and the sound."
+        elif s and p:
+            out = f"{mean} gives the meaning and {said(p)} the sound."
+        elif s:
+            out = f"{mean} gives the meaning."
+        else:
+            out = f"{said(p)} gives the sound."
+        return out + (" " + sentence(rest) if rest else "")
+    if not hint:
+        return ""
+    out = []
+    for clause in hint.split("; "):
+        m = re.match(rf"^({HAN}) (also )?provides the (pronunciation|meaning)( and (meaning|pronunciation))?$", clause)
+        if m and out:
+            h, also, what = m.group(1), m.group(2), m.group(3)
+            if what == "meaning":
+                out.append(sentence(f"{h} ({first(h)}) gives the meaning" if first(h) else f"{h} gives the meaning"))
+            elif also and out[-1].rstrip(".").endswith(" " + h):
+                # the part named last: "…for the first time 乍 (zhà), which also gives the sound."
+                out[-1] = out[-1].rstrip(".") + (f" ({py(h)})" if py(h) else "") + ", which also gives the sound."
+            else:
+                out.append(sentence(f"{said(h)} {'also ' if also else ''}gives the sound"))
+            continue
+        m = re.match(r"^(compare|see|variant of|cursive version of|phonetic loan for) (.*)$", clause)
+        if m and out:
+            word = {"compare": "Compare", "see": "See", "variant of": "A variant of",
+                    "cursive version of": "A cursive form of", "phonetic loan for": "Borrowed for its sound to mean"}
+            out.append(sentence(f"{word[m.group(1)]} {m.group(2)}"))
+            continue
+        if out:
+            out[-1] = out[-1].rstrip(".") + "; " + clause + "."
+        else:
+            out.append(sentence(clause))
+    line = " ".join(out)
+    line = re.sub(r"^Visual abbreviation of", "A short form of", line)
+    return line
+
+
+def why_before(c, e, items):
+    """The line as the app built it before why(): for --why's before and after."""
+    s, p, hint = e.get("semantic"), e.get("phonetic"), e.get("hint")
+    b = ""
+    if e.get("type") == "pictophonetic" and (s or p):
+        if s:
+            b += s + (" " + items[s]["en"] if s in items else "") + " gives the meaning"
+        if p:
+            b += (", " if b else "") + p + (f" ({items[p]['py'][0]})" if p in items and items[p]["py"] else "") + " the sound"
+        b += "."
+        if hint:
+            b += " " + hint + "."
+    elif hint:
+        b = hint + "."
+    return b
 
 
 def fetch(src, name, url):
@@ -438,6 +576,7 @@ def main():
     ap.add_argument("--chars", type=int, default=1000)
     ap.add_argument("--src", default=CACHE)
     ap.add_argument("--sample", type=int, default=0, help="print N meanings, before and after")
+    ap.add_argument("--why", type=int, default=0, help="print the first N items' etymology lines, before and after")
     a = ap.parse_args()
 
     dic = jsonl(fetch(a.src, "dictionary.txt", MMH + "dictionary.txt"))
@@ -557,12 +696,24 @@ def main():
               "n": len(gfx[c]["strokes"])}
         e = d.get("etymology")
         if e:
-            it["et"] = {k: v for k, v in e.items() if k in ("type", "hint", "semantic", "phonetic")}
+            it["et"] = {k: v for k, v in e.items() if k in ("type", "semantic", "phonetic")}
         if c in words:
             it["w"] = words[c]
         if c in users:
             it["used"] = users[c][:6]
         items.append(it)
+
+    # why it looks like this: a plain line from the etymology, once every reading is known
+    at = {it["h"]: it for it in items}
+    for it in items:
+        e = dic[it["h"]].get("etymology") or {}
+        w = why(it["h"], e, at, dic)
+        if w:
+            it.setdefault("et", {})["why"] = w
+    if a.why:
+        for i, it in enumerate(items[:a.why]):
+            e = dic[it["h"]].get("etymology") or {}
+            print(f"{i} {it['h']}\n  before: {why_before(it['h'], e, at)}\n  after:  {it.get('et', {}).get('why', '')}")
 
     if a.sample:
         chars = [it for it in items if it["k"] == "char"]
