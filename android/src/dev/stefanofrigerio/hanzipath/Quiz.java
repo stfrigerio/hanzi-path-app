@@ -34,11 +34,15 @@ import java.util.Set;
  * (the word, four readings and meanings), word-pick (its reading and meaning, four words)
  * and word-listen (said aloud, four words). Its wrong answers are other words, ones sharing
  * a character with it first, ones you've met or could (their characters known) before the rest.
+ *
+ * Practice (from home, when nothing is due) asks met items the same way, the weakest first,
+ * but grades nothing: each answer goes in the log as "practice-<kind>" and the cards, the
+ * schedule and Stats stay as they were. A miss still comes back at the end of the round.
  */
 class Quiz {
     static final long SLOW = 8000;
     final Main m;
-    final String kind;     // check | review
+    final String kind;     // check | review | practice
     List<String> queue;
     int done, total, misses;
     Map<String, Integer> tries = new HashMap<>();
@@ -85,7 +89,7 @@ class Quiz {
         ringed.clear();
         faded.clear();
         TextView undo = last == null ? null : smallPill("Undo", v -> undo());
-        col.addView(Cards.bar(m, (kind.equals("check") ? "check " : "review ") + Math.min(done + 1, total) + " / " + total,
+        col.addView(Cards.bar(m, kind + " " + Math.min(done + 1, total) + " / " + total,
                 undo, Ui.close(m, v -> m.home())));
 
         LinearLayout card = Ui.card(m);
@@ -365,6 +369,8 @@ class Quiz {
         return t;
     }
 
+    boolean practice() { return kind.equals("practice"); }
+
     int tries(String h) { return tries.containsKey(h) ? tries.get(h) : 0; }
 
     /** A tap: the grade, from right or wrong and how long it took. */
@@ -374,7 +380,8 @@ class Quiz {
         long ms = System.currentTimeMillis() - shown;
         grade = !o.equals(h) ? 1 : ms <= SLOW ? 3 : 2;
         Last l = new Last();
-        l.undo = m.prog.grade(h, grade, mode, ms);
+        if (practice()) m.prog.practised(h, grade, mode, ms);   // logged, not graded: the card stays
+        else l.undo = m.prog.grade(h, grade, mode, ms);
         l.queue = new ArrayList<>(queue);
         l.done = done;
         l.misses = misses;
@@ -407,7 +414,8 @@ class Quiz {
     void undo() {
         if (last == null) return;
         Last l = last;
-        m.prog.ungrade(l.undo);
+        if (practice()) m.prog.unpractised();
+        else m.prog.ungrade(l.undo);
         queue = l.queue;
         done = l.done;
         misses = l.misses;
@@ -442,6 +450,7 @@ class Quiz {
         card.addView(seal, sp);
         String said = kind.equals("check")
                 ? total + " new on the path. They come back in a few days, or in minutes if you missed them."
+                : practice() ? total + " practised" + (misses > 0 ? ", " + misses + " missed." : ", all of them right.")
                 : total + " reviewed" + (misses > 0 ? ", " + misses + " to go over again." : ", all of them held.");
         TextView t = Ui.text(m, said, 16, Ink.sans, Ink.ink);
         t.setGravity(Gravity.CENTER);
@@ -457,12 +466,17 @@ class Quiz {
             rest.setGravity(Gravity.CENTER);
             card.addView(rest, new LinearLayout.LayoutParams(-1, -2));
         }
+        if (practice()) {
+            TextView rest = Ui.text(m, "Practice leaves the schedule as it was.", 14, Ink.sans, Ink.ink2);
+            rest.setGravity(Gravity.CENTER);
+            card.addView(rest, new LinearLayout.LayoutParams(-1, -2));
+        }
         LinearLayout acts = Ui.row(m, 10);
         acts.setGravity(Gravity.CENTER);
-        if (more > 0) {
+        if (more > 0 || practice()) {
             // a round with more behind it: the next round beside the way back, undo under them
             acts.addView(Ui.pill(m, "Back to the path", Ui.OUTLINE, v -> m.home()), Ui.weight(1));
-            acts.addView(Ui.pill(m, "Another round", Ui.SOLID, v -> m.startReview()), Ui.weight(1));
+            acts.addView(Ui.pill(m, "Another round", Ui.SOLID, v -> { if (practice()) m.startPractice(); else m.startReview(); }), Ui.weight(1));
             card.addView(acts);
             if (last != null) {
                 LinearLayout.LayoutParams up = new LinearLayout.LayoutParams(-2, -2);
