@@ -123,7 +123,9 @@ class HanziView extends View {
     void show() { stop(); unstep(); java.util.Arrays.fill(fill, 1); invalidate(); }
 
     /** A stroke's time on the square, by its length. */
-    long duration(int i) { return (long) (220 + (scale > 0 ? lengths[i] / scale : 400) * 0.75f); }
+    /** A stroke's time by its length (400 units while the square isn't laid out yet: the card
+     *  can be left in the frame it was built, before its strokes were measured). */
+    long duration(int i) { return (long) (220 + (scale > 0 && i < lengths.length ? lengths[i] / scale : 400) * 0.75f); }
 
     /** The next stroke: the ones before it in ink, it landing in the highlighter, the rest to
      *  come. After the last, the first again. */

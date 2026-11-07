@@ -114,7 +114,7 @@ final class Cards {
     }
 
     static void parts(Main m, LinearLayout into, Item it) {
-        if (it.parts.length > 0) into.addView(chips(m, "Made of", it.parts));
+        if (it.parts.length > 0) into.addView(Tree.madeOf(m, it, (LinearLayout) chips(m, "Made of", it.parts)));
         if (it.used.length > 0) into.addView(chips(m, "Leads to", it.used));
     }
 
