@@ -1,8 +1,11 @@
 package dev.stefanofrigerio.hanzipath;
 
+import android.Manifest;
 import android.app.Activity;
+import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.Insets;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.view.WindowInsets;
@@ -47,6 +50,28 @@ public class Main extends Activity {
         setContentView(root);
         paint();
         home();
+        Reminder.arm(this);
+    }
+
+    static final int ASK_NOTIFY = 1;
+
+    /** Android 13+ asks before an app may notify: asked when the reminder is turned on, not before. */
+    void askToNotify() {
+        if (Build.VERSION.SDK_INT < 33) return;
+        if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) return;
+        requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, ASK_NOTIFY);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int code, String[] perms, int[] res) {
+        if (code != ASK_NOTIFY || (res.length > 0 && res[0] == PackageManager.PERMISSION_GRANTED)) return;
+        prog.remind = -1;
+        prog.saveOpts();
+        Reminder.arm(this);
+        if (settings != null && screen.equals("settings")) {
+            settings.show();
+            settings.remindNote("Notifications aren't allowed, so the reminder is off. Allow them for 汉字之路 in Android's settings, then pick a time again.");
+        }
     }
 
     void paint() {

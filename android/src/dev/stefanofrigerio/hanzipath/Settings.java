@@ -14,12 +14,12 @@ import java.text.DateFormat;
 import java.util.Date;
 
 /**
- * Settings and progress: how much is new at a time and per day, the voice;
+ * Settings and progress: how much is new at a time and per day, the voice, the daily reminder;
  * the progress copied out to the clipboard and back in; the updates.
  */
 class Settings {
     final Main m;
-    TextView status, version, io;
+    TextView status, version, io, note;
     boolean armed;
 
     Settings(Main m) { this.m = m; }
@@ -36,6 +36,16 @@ class Settings {
                 v -> { p.perDay = Integer.parseInt(v); p.saveOpts(); }));
         rows.addView(choice("Say it aloud", new String[]{"on", "off"}, p.say ? "on" : "off",
                 v -> { p.say = v.equals("on"); p.saveOpts(); }));
+        rows.addView(choice("Reminder", Reminder.TIMES, Reminder.label(p.remind), v -> {
+            p.remind = Reminder.minutes(v);
+            p.saveOpts();
+            Reminder.arm(m);
+            note.setVisibility(View.GONE);
+            if (p.remind >= 0) m.askToNotify();
+        }));
+        note = small("");
+        note.setVisibility(View.GONE);
+        rows.addView(note);
         col.addView(rows);
 
         // progress
@@ -135,6 +145,12 @@ class Settings {
 
     TextView small(String s) { return Ui.text(m, s, 13, Ink.sans, Ink.ink2); }
 
+    /** The line under the reminder: why it went back to off. */
+    void remindNote(String s) {
+        note.setText(s);
+        note.setVisibility(View.VISIBLE);
+    }
+
     void say(String s) {
         io.setText(s);
         io.setVisibility(View.VISIBLE);
@@ -167,6 +183,7 @@ class Settings {
         btn.setText("Load from clipboard");
         try {
             m.prog.replace(text);
+            Reminder.arm(m);
             say("Loaded " + m.prog.cards.size() + " cards.");
         } catch (Exception e) {
             say("Couldn't load it. Nothing was changed.");
