@@ -120,15 +120,18 @@ class Quiz {
             LinearLayout answer = Ui.column(m, 16);
             answer.setPadding(0, Ink.dp(16), 0, 0);
             answer.setBackground(Home.topRule());
+            // pick asked by the reading and meaning: they're above already (with the speaker
+            // now), so the answer is what it's made of and why
+            boolean asked = mode.endsWith("pick");
             if (word != null) {
-                answer.addView(Cards.wordReading(m, word));
+                if (!asked) answer.addView(Cards.wordReading(m, word));
                 answer.addView(Cards.chips(m, "Its characters", Words.chars(h)));
             } else {
-                answer.addView(Cards.reading(m, it));
+                if (!asked) answer.addView(Cards.reading(m, it));
                 Cards.parts(m, answer, it);
                 Cards.add(answer, Cards.why(m, it));
             }
-            card.addView(answer);
+            if (answer.getChildCount() > 0) card.addView(answer);
             if (fresh) reveal(answer);
         }
         col.addView(card);
@@ -174,7 +177,9 @@ class Quiz {
         return w != null ? w[2] : PathData.get(h).en;
     }
 
-    /** Pick's question: the reading in the tones' inks, the meaning under it. */
+    /** Pick's question: the reading in the tones' inks, the meaning under it. Once answered,
+     *  the speaker beside the reading (and a character's other reading): the answer's
+     *  reading, said where it was asked. */
     View said(String h) {
         LinearLayout c = Ui.column(m, 4);
         c.setGravity(Gravity.CENTER_HORIZONTAL);
@@ -182,7 +187,16 @@ class Quiz {
         if (!py(h).isEmpty()) {
             TextView py = Ui.text(m, Ui.pinyin(py(h)), 30, Ink.monoMedium, Ink.ink);
             py.setGravity(Gravity.CENTER);
-            c.addView(py);
+            if (picked == null) c.addView(py);
+            else {
+                LinearLayout r = Ui.row(m, 10);
+                r.setGravity(Gravity.CENTER);
+                r.addView(py);
+                r.addView(Ui.speaker(m, v -> m.say(h)));
+                Item it = PathData.get(h);
+                if (it != null && it.py.length > 1) r.addView(Ui.text(m, "also " + it.py[1], 15, Ink.mono, Ink.ink2));
+                c.addView(r);
+            }
         }
         TextView en = Ui.text(m, en(h), 19, Ink.sans, Ink.ink);
         en.setGravity(Gravity.CENTER);
