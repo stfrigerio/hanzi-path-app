@@ -19,7 +19,7 @@ import static org.junit.Assert.*;
 
 /**
  * A gentle return: 300 due after 6 days away. Home says so in one calm line under Due now,
- * the Review button reads "Review 40 of 300", and Learn waits ("Learn later: reviews first",
+ * the Review button reads "Review 40 of 300", and Learn waits ("Reviews first",
  * disabled) until a round of reviews is done today. A round takes the learned items slipping
  * first (lowest recall first), the new-ish last; the reminder and the widget read the same
  * list. With 30 due nothing of it shows and the order is the one before. Renders: back*.png.
@@ -90,9 +90,9 @@ public class ReturnTest {
         TextView rv = WalkTest.find(m.root, "Review ");
         assertEquals("Review 40 of 300", rv.getText().toString());
         assertTrue(rv.isEnabled());
-        TextView lb = WalkTest.find(m.root, "Learn later");
+        TextView lb = WalkTest.find(m.root, "Reviews first");
         assertNotNull("new items wait", lb);
-        assertEquals("Learn later: reviews first", lb.getText().toString());
+        assertEquals("Reviews first", lb.getText().toString());
         assertFalse(lb.isEnabled());
         assertNull(WalkTest.find(m.root, "Learn next"));
         shots.shot(m, prefix + "1-home");
@@ -129,7 +129,7 @@ public class ReturnTest {
         assertEquals(0, m.prog.daysAway());
         assertNotNull(WalkTest.find(m.root, "260 due. Rounds of 40"));
         assertNotNull(WalkTest.find(m.root, "Review 40 of 260"));
-        assertNull(WalkTest.find(m.root, "Learn later"));
+        assertNull(WalkTest.find(m.root, "Reviews first"));
         TextView ln = WalkTest.find(m.root, "Learn ");
         assertNotNull(ln);
         assertTrue(ln.getText().toString(), ln.isEnabled());
@@ -151,7 +151,7 @@ public class ReturnTest {
         assertNull(WalkTest.find(m.root, "30 due after"));
         assertNull(WalkTest.find(m.root, "Rounds of"));
         assertEquals("Review 30", WalkTest.find(m.root, "Review ").getText().toString());
-        assertNull(WalkTest.find(m.root, "Learn later"));
+        assertNull(WalkTest.find(m.root, "Reviews first"));
         TextView ln = WalkTest.find(m.root, "Learn next");
         assertNotNull(ln);
         assertTrue(ln.isEnabled());
@@ -168,6 +168,6 @@ public class ReturnTest {
         assertTrue(m.prog.pauseNew(100));
         assertNull(WalkTest.find(m.root, "Rounds of"));
         assertEquals("Review 100", WalkTest.find(m.root, "Review ").getText().toString());
-        assertFalse(WalkTest.find(m.root, "Learn later").isEnabled());
+        assertFalse(WalkTest.find(m.root, "Reviews first").isEnabled());
     }
 }

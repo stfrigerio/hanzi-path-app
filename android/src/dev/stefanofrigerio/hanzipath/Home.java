@@ -92,7 +92,7 @@ final class Home {
         int nb = Math.min(batch, next.size());
         boolean canLearn = batch > 0 && !next.isEmpty();
         boolean wait = canLearn && p.pauseNew(due.size());   // a backlog: a round of reviews before anything new
-        String ln = next.isEmpty() ? "Path walked" : wait ? "Learn later: reviews first"
+        String ln = next.isEmpty() ? "Path walked" : wait ? "Reviews first"
                 : batch > 0 ? (words ? "Learn " + nb + (nb == 1 ? " word" : " words") : "Learn next " + nb) : "Enough new for today";
         TextView lb = Ui.pill(m, ln, Ui.OUTLINE, v -> m.startLearn());
         Ui.enable(lb, canLearn && !wait, Ui.OUTLINE);
