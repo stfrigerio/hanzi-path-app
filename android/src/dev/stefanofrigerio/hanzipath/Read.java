@@ -113,11 +113,16 @@ class Read {
         else finish();
     }
 
-    /** The round's end: how many were read, the way back, and another round if there's more. */
+    /** The round's end, laid out as the quiz's: the seal (好: nothing's graded, a round read is a
+     *  round done), how many were read, the way back, and another round if there's more. */
     void finish() {
         LinearLayout col = m.page("read-done", this::finish);
         LinearLayout card = Ui.card(m);
         card.setGravity(Gravity.CENTER_HORIZONTAL);
+        LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(-2, -2);
+        sp.gravity = Gravity.CENTER_HORIZONTAL;
+        sp.topMargin = Ink.dp(8);
+        card.addView(Ui.seal(m, "好"), sp);
         int n = queue.size();
         TextView t = Ui.text(m, n + (n == 1 ? " sentence" : " sentences") + " read, made of what you know.", 16, Ink.sans, Ink.ink);
         t.setGravity(Gravity.CENTER);

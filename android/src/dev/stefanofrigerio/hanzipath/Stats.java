@@ -23,7 +23,8 @@ import java.util.Map;
 /**
  * How it's going, from the review log and the cards: reviews a day for the last thirty days,
  * the share answered right week by week, how far along the path is, the items missed most,
- * and how long an answer takes this week against last. Read only: nothing here changes them.
+ * how long an answer takes this week against last, and how many sentences you've read.
+ * Read only: nothing here changes them.
  */
 class Stats {
     static final int DAYS = 30, WEEKS = 8, HARDEST = 10;
@@ -154,6 +155,18 @@ class Stats {
             ts.addView(note("The median: half the answers came quicker."));
         }
         col.addView(ts);
+
+        // 6. reading: sentences read in Read rounds (not grades: counted apart)
+        long[] read = p.readCounts(thisWeek);
+        LinearLayout rd = section("Reading", null);
+        if (read[0] == 0) {
+            rd.addView(empty("No sentences read yet: a Read round from home counts them here."));
+        } else {
+            LinearLayout ledger = Ui.column(m, 0);
+            ledger.addView(Home.line(m, "Sentences read", read[0] + " in all · " + read[1] + " this week", false));
+            rd.addView(ledger);
+        }
+        col.addView(rd);
     }
 
     /** A section as home's are: a label, its figure on the right, then what it shows. */

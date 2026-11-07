@@ -170,6 +170,17 @@ final class Ui {
         return v;
     }
 
+    /** The round's seal (好 clean, 行 fine, 练 practise): the brush in pink, ringed, a little askew. */
+    static TextView seal(Context c, String ch) {
+        TextView seal = text(c, ch, 60, Ink.brush, Ink.tone[4]);
+        GradientDrawable ring = shape(0, 0, 12, false);
+        ring.setStroke(Ink.dp(2), Ink.tone[4]);
+        seal.setBackground(ring);
+        seal.setPadding(Ink.dp(14), Ink.dp(4), Ink.dp(14), Ink.dp(4));
+        seal.setRotation(-4);
+        return seal;
+    }
+
     static LinearLayout card(Context c) {
         LinearLayout l = column(c, 16);
         l.setBackground(shape(Ink.paper, Ink.ink, 20, false));
