@@ -175,6 +175,15 @@ final class Ui {
 
     static LinearLayout.LayoutParams lp(int w, int h) { return new LinearLayout.LayoutParams(w, h); }
 
+    /** Space that takes the rest of a row. Zero high: a bare View asked to wrap takes all it's offered. */
+    static View spacer(Context c) {
+        View v = new View(c);
+        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, 0);
+        p.weight = 1;
+        v.setLayoutParams(p);
+        return v;
+    }
+
     static LinearLayout.LayoutParams weight(float w) {
         LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, -2);
         p.weight = w;

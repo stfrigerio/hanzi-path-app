@@ -24,8 +24,7 @@ final class Cards {
         kind.setPadding(Ink.dp(10), Ink.dp(2), Ink.dp(10), Ink.dp(2));
         kind.setBackground(Ui.shape(0, Ink.ink2, 999, it.isPart()));
         r.addView(kind);
-        View gap = new View(m);
-        r.addView(gap, Ui.weight(1));
+        r.addView(Ui.spacer(m));
         TextView pos = Ui.text(m, (it.strokes + (it.strokes == 1 ? " stroke" : " strokes") + " · no. " + (it.at + 1) + " of " + PathData.items.size()).toUpperCase(),
                 11, Ink.mono, Ink.ink2);
         pos.setLetterSpacing(0.08f);
