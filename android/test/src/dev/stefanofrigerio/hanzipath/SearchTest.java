@@ -124,7 +124,10 @@ public class SearchTest {
             assertEquals(q + ": " + l, "氵", l.get(1));
             assertFalse(q + " is not shuō", l.contains("说"));
         }
-        assertTrue("a wrong tone finds neither", Search.find("shui4").isEmpty());
+        // a stated tone must match: shui4 is shuì (税 睡 on the longer path), never shuǐ
+        List<String> four = Search.hs(Search.find("shui4"));
+        assertFalse("shui4 is not 水: " + four, four.contains("水") || four.contains("氵"));
+        for (String h : four) assertEquals(h, 4, Ink.toneOf(PathData.get(h).py[0]));
         assertTrue("shu starts shuǐ and shuō", Search.hs(Search.find("shu")).containsAll(java.util.Arrays.asList("水", "说")));
         type(m, "shui3");
         shot(m, "s2-shui3");
@@ -133,8 +136,12 @@ public class SearchTest {
         // a word of the meaning: whole words before what only starts that way
         type(m, "water");
         assertEquals(java.util.Arrays.asList("水", "氵"), shown(m).subList(0, 2));
+        // "sun" is also a syllable (sūn 孙): syllables first, then 日 the first by meaning
         type(m, "sun");
-        assertEquals("日", shown(m).get(0));
+        List<String> sun = shown(m);
+        assertTrue("sun: " + sun, sun.contains("日"));
+        for (String h : sun.subList(0, sun.indexOf("日")))
+            assertEquals(h + " before 日 is a sūn", "sun", Search.py(PathData.get(h).reading(), true).base);
         List<Item> mo = Search.find("mo");
         Item moon = PathData.get("月");
         assertTrue("moon by its meaning's start, after mo's syllables", mo.contains(moon));
