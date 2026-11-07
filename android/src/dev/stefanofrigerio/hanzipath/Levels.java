@@ -190,14 +190,6 @@ final class Levels {
 
     /** Stats' way in, at its top: a row like home's Stats and Settings rows. */
     static View entry(Main m) {
-        LinearLayout s = Ui.row(m, 8);
-        s.setPadding(0, Ink.dp(12), 0, Ink.dp(12));
-        s.addView(Ui.label(m, "HSK levels"), Ui.weight(1));
-        s.addView(Ui.text(m, "›", 20, Ink.sans, Ink.ink));
-        s.setMinimumHeight(Ink.dp(48));
-        Ui.press(s, Home.topRule(Ink.rule));
-        s.setContentDescription("HSK levels: each level's characters and words, how many known");
-        s.setOnClickListener(v -> m.openLevels());
-        return s;
+        return Ui.entry(m, "HSK levels", "HSK levels: each level's characters and words, how many known", v -> m.openLevels());
     }
 }

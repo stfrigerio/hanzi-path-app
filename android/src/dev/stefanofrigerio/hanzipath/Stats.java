@@ -255,16 +255,7 @@ class Stats {
     }
 
     /** The home screen's way in: a row like Settings', under the garden. */
-    static View entry(Main m) {
-        LinearLayout s = Ui.row(m, 8);
-        s.setPadding(0, Ink.dp(16), 0, Ink.dp(8));
-        s.setBackground(Home.topRule(Ink.rule));
-        s.addView(Ui.label(m, "Stats"), Ui.weight(1));
-        s.addView(Ui.text(m, "›", 20, Ink.sans, Ink.ink));
-        s.setMinimumHeight(Ink.dp(48));
-        s.setOnClickListener(v -> m.openStats());
-        return s;
-    }
+    static View entry(Main m) { return Ui.entry(m, "Stats", null, v -> m.openStats()); }
 
     // ---- the figures, from the log ----
 

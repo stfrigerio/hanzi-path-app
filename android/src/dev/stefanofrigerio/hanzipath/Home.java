@@ -199,18 +199,11 @@ final class Home {
         }
         col.addView(gs);
 
-        col.addView(Stats.entry(m));
-
-        // settings
-        LinearLayout s = Ui.row(m, 8);
-        s.setPadding(0, Ink.dp(16), 0, Ink.dp(8));
-        s.setBackground(topRule(Ink.rule));
-        s.addView(Ui.label(m, "Settings and progress"), Ui.weight(1));
-        s.addView(Ui.text(m, "›", 20, Ink.sans, Ink.ink));
-        s.setMinimumHeight(Ink.dp(48));
-        s.setOnClickListener(v -> m.openSettings());
-        s.setContentDescription("Settings and progress");
-        col.addView(s);
+        // the ways into the other screens, one under the other as a list
+        LinearLayout ways = Ui.column(m, 0);
+        ways.addView(Stats.entry(m));
+        ways.addView(Ui.entry(m, "Settings and progress", null, v -> m.openSettings()));
+        col.addView(ways);
     }
 
     /** What Learn would do now, decided in one place for home's button, Main.startLearn and a

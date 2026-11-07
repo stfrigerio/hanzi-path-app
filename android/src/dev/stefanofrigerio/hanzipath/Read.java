@@ -54,7 +54,7 @@ class Read {
         r.setMinimumHeight(Ink.dp(38));
         r.addView(Ui.text(m, "Read " + Math.min(ROUND, n) + " sentences", 15, Ink.sans, Ink.ink), Ui.weight(1));
         r.addView(Home.stat(m, n + " you can read"));
-        r.addView(Ui.text(m, "›", 18, Ink.sans, Ink.ink));
+        r.addView(Ui.text(m, "›", 20, Ink.sans, Ink.ink));   // the › as on every way in
         Ui.press(r, Home.topRule(Ink.grid));
         r.setOnClickListener(v -> m.startRead());
         r.setContentDescription("Read " + Math.min(ROUND, n) + " sentences, of " + n + " you can read");
