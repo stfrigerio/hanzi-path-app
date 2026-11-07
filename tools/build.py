@@ -16,6 +16,10 @@ Sources (fetched once into ~/.cache/hanzi-path, or --src DIR):
 In the repo (sources/): sources/parts.json (hand-written meanings of
 parts, by hand) and hsk.json (HSK 2.0 words, MIT, see hsk-LICENSE.txt).
 
+A character's readings: the commonest first, by how many words say it so (HSK's the
+most, then CC-CEDICT's, weighted by how common their characters are), READ where
+the count is wrong (了 le); the second shown as "also" when it's said fairly often.
+
 What a character's card says it means: MEANS below if it's there, else
 CC-CEDICT's senses for its main reading, cleaned and cut short (plain()),
 else Make Me a Hanzi's definition cut to its first senses. A part's is OWN's,
@@ -33,6 +37,7 @@ import json
 import os
 import random
 import re
+import unicodedata
 import urllib.request
 
 ROOT = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
@@ -68,12 +73,12 @@ MEANS = {
     "之": "of (literary); him; it", "乎": "(literary) at; in; from", "地": "earth; ground; (-ly)",
     "第": "(ordinal: -th); order", "被": "by (passive); quilt", "次": "time (once, twice); next",
     # the sense a learner meets first, where the dictionary's first ones are rarer
-    "二": "two", "中": "middle; centre; in", "子": "child; son; seed", "白": "white; plain; in vain",
+    "二": "two", "子": "child; son; seed", "白": "white; plain; in vain",
     "不": "not; no", "才": "only then; just; talent", "在": "at; in; to be at", "这": "this; these",
     "来": "to come", "王": "king; monarch", "京": "capital city", "尤": "especially; outstanding",
     "就": "then; at once; just", "会": "can; to meet; meeting", "丁": "adult man; fourth",
     "可": "can; may; but", "对": "right; correct; towards", "生": "to be born; life; raw",
-    "目": "eye; item", "干": "to do; to work; trunk", "年": "year", "里": "inside; in",
+    "目": "eye; item", "年": "year", "里": "inside; in",
     "所": "place; that which", "然": "so; like that; right", "方": "square; direction; side",
     "经": "to pass through; classic", "者": "one who; -er", "现": "now; to appear",
     "没": "not; have not; none", "动": "to move; to act", "还": "still; also; yet",
@@ -85,7 +90,7 @@ MEANS = {
     "题": "topic; problem; title", "故": "reason; old; on purpose", "辛": "hot (spicy); hard",
     "期": "period; time; phase", "午": "noon", "便": "convenient; then", "元": "first; yuan (money)",
     "死": "to die; dead", "规": "rule; compass", "望": "to hope; to gaze", "确": "true; certain",
-    "专": "special; focused", "切": "definitely; close to", "候": "to wait; time; season",
+    "专": "special; focused", "候": "to wait; time; season",
     "济": "to help; to cross a river", "央": "center; middle", "单": "single; bill; list",
     "字": "character; word", "周": "week; circle; all around", "团": "group; round; lump",
     "况": "situation; moreover", "亚": "Asia; second", "约": "to arrange; approximately",
@@ -127,6 +132,34 @@ MEANS = {
     "样": "kind; manner; pattern", "等": "to wait; class; etc.", "或": "or; maybe; perhaps",
     "河": "river", "米": "rice; meter", "细": "thin; fine; detailed", "影": "shadow; image; film",
     "严": "strict; stern", "致": "to cause; to send",
+    # the second reading of all of them (2026-11-07): the dictionary's phrasing ("to fall
+    # or drop"), a first sense few meet (带 girdle, 穿 to bore through), and the meaning
+    # of the main reading where counting words changed it (干 gān, 甚 shèn)
+    "甚": "very; extremely; even", "罗": "net; gauze; to spread out", "差": "difference; gap; error",
+    "户": "household; door", "家": "home; family; expert", "种": "kind; type; seed; to plant",
+    "同": "same; together; with", "当": "to act as; ought; when", "井": "a well",
+    "部": "part; section; department", "巴": "to cling to; to long for", "弟": "younger brother",
+    "公": "public; common; male", "丈": "husband; zhang (3.3 m)", "青": "green; blue; young",
+    "占": "to occupy; to take up", "业": "business; industry; studies", "应": "should; ought to",
+    "亲": "relative; dear; to kiss", "化": "to change; to melt; -ize", "论": "theory; to discuss",
+    "队": "team; group; line", "非": "not; wrong; non-", "居": "to live; residence",
+    "带": "belt; to carry; to bring", "联": "to unite; to join; to link", "办": "to do; to handle",
+    "调": "to transfer; tune; tone", "华": "China; Chinese; splendid", "城": "city; city wall",
+    "付": "to pay; to hand over", "消": "to vanish; to remove", "研": "to research; to grind",
+    "称": "to call; to weigh; to state", "委": "to entrust; committee", "查": "to check; to look into",
+    "找": "to look for; to find", "显": "to show; obvious", "注": "to pour; to note; to focus",
+    "落": "to fall; to drop; to set", "响": "loud; sound; to ring", "希": "to hope; rare",
+    "革": "leather; to change", "划": "to plan; to mark off", "绝": "to cut off; absolutely",
+    "害": "to harm; harm; evil", "久": "long (time); for long", "免": "to avoid; to exempt",
+    "哪": "which; where", "排": "row; to line up; to arrange", "莫": "do not; none; no",
+    "冲": "to rush; to dash; to rinse", "卡": "card; to block; to get stuck", "判": "to judge; to decide",
+    "阶": "step; stairs; rank", "沉": "to sink; heavy; deep", "读": "to read; to study",
+    "航": "to sail; to fly; boat", "穿": "to wear; to pierce", "靠": "to lean on; to rely on",
+    "顾": "to look after; to visit", "讨": "to ask for; to discuss", "括": "to include; to tie up",
+    "封": "to seal; envelope; to confer", "销": "to sell; to cancel; to melt", "赶": "to hurry; to catch up",
+    "忽": "suddenly; to neglect", "录": "to record; record", "庭": "courtyard; hall; law court",
+    "含": "to contain; to hold in mouth", "灭": "to put out; to destroy", "博": "broad; rich; learned",
+    "中": "middle; center; in", "干": "dry; to concern", "切": "close to; eager; earnest",
 }
 
 
@@ -293,6 +326,103 @@ def plain(entries, reading=None, limit=MEANING, hint=""):
     return "; ".join(pick)
 
 
+# a character's main reading where counting words gets it wrong: the particles are said
+# in nearly every sentence, though fewer dictionary words have them
+READ = {"了": "le",      # le after every finished action; liǎo only in 了解, 了不起...
+        "的": "de",      # de in every other sentence; dí, dì only in 的确, 目的
+        "着": "zhe",     # the ongoing -ing; zháo, zhuó in a few words (着急, 着手)
+        "地": "dì",      # dì in hundreds of words (地方, 地图...); de, the -ly, as "also"
+        "儿": "ér",      # the r of 哪儿, 一点儿 is a sound added to another word, not a reading
+        # and words a learner meets in the first weeks, said far more than the dictionary's
+        # count of words shows: the count leans to the written language's compounds
+        "为": "wèi",     # 为什么, 因为, 为了 (HSK 1-3); wéi in 认为, 成为, 以为 is the "also"
+        "还": "hái",     # still, also: among the hundred commonest words; huán is to give back
+        "应": "yīng",    # 应该 should; yìng in 反应, 答应, 适应
+        "更": "gèng",    # more; gēng in 更新, 更改
+        "佛": "fó",      # Buddha: CC-CEDICT has fó only as a name (Fó), and fú is 仿佛's
+        }
+
+
+def tone(syl):
+    return unicodedata.normalize("NFC", syl.lower())
+
+
+def toneless(syl):
+    """'lǚ' -> 'lü', 'hǎo' -> 'hao'."""
+    return unicodedata.normalize("NFC", "".join(
+        ch for ch in unicodedata.normalize("NFD", tone(syl)) if ord(ch) < 0x300 or ord(ch) == 0x308))
+
+
+def usage(ced, hsk, rank):
+    """{character: {reading: how much it's used}}, and the (character, reading)s that are
+    HSK words alone (吗 ma, 得 de): every word a character is in, counted
+    for the reading it has there. An HSK word counts the most (its own pinyin, the lower
+    the level the more); any other CC-CEDICT word by how common its other characters are
+    (Jun Da's rank stands in for how common the word is), names and idioms less."""
+    def common(ch):
+        r = rank.get(ch, 99999)
+        return 1 if r < 500 else .6 if r < 1500 else .3 if r < 3000 else .1 if r < 6000 else .03
+
+    out = {}
+
+    def count(w, syls, weight, others):
+        if len(syls) != len(w):
+            return
+        for i, ch in enumerate(w):
+            n = weight
+            if others:
+                for j, o in enumerate(w):
+                    n *= common(o) if j != i else 1
+            k = out.setdefault(ch, {})
+            k[tone(syls[i])] = k.get(tone(syls[i]), 0) + n
+
+    inhsk, alone = set(), set()
+    for lvl in hsk:
+        for w, py, en in hsk[lvl]:
+            inhsk.add(w)
+            if len(w) == 1:
+                alone.add((w, tone(py)))
+            count(w, py.replace("'", " ").split(), 40 / int(lvl), False)
+    for w, es in ced.items():
+        if w in inhsk or len(w) < 2:
+            continue
+        for e in es:
+            if not senses([e]):
+                continue            # a variant's or a cross-reference's entry
+            weight = (.5 if len(w) > 3 else 1) * (.3 if e[0][:1].isupper() else 1)
+            count(w, e[0].split(), weight, True)
+    return out, alone
+
+
+def readings(c, mmh, entries, used, alone):
+    """A character's readings, the commonest first, at most two: Make Me a Hanzi's and
+    CC-CEDICT's for the character alone (not a surname's or a variant's), ordered by how
+    much the words that use each say it so. A toneless syllable in a word (孩子 zi) counts
+    for the toned reading it's the weak form of (zǐ), unless it's a word of its own (吗 ma,
+    an HSK word alone, or READ's). A second reading only when it's said in a fair share."""
+    cand = list(dict.fromkeys(READ.get(c, "").split() + [tone(p) for p in mmh] +
+                              [tone(e[0]) for e in entries if e[0][:1].islower() and " " not in e[0]
+                               and senses([e])]))
+    if not cand:
+        return []
+    score = dict.fromkeys(cand, 0.0)
+
+    def weak(r):
+        own = (c, r) in alone or READ.get(c) == r
+        toned = [x for x in cand if x != r and toneless(x) == r]
+        return toned[0] if toneless(r) == r and toned and not own else None
+
+    for r, n in used.get(c, {}).items():
+        if weak(r):
+            score[weak(r)] += n
+        elif r in score:
+            score[r] += n
+    order = sorted(cand, key=lambda r: (r != READ.get(c), bool(weak(r)), -score[r], cand.index(r)))
+    first = order[0]
+    rest = [r for r in order[1:] if score[r] >= max(.1 * score[first], 1) or r in mmh[:2]]
+    return [first] + rest[:1]
+
+
 def short(definition, senses=2):
     """'good; well; proper; good to' -> 'good; well'"""
     parts = [p.strip() for p in re.split(r"[;,]", definition or "") if p.strip()]
@@ -318,6 +448,7 @@ def main():
     hsk = json.load(open(os.path.join(ROOT, "sources/hsk.json"), encoding="utf-8"))["levels"]
 
     rank = {c: i for i, c in enumerate(freq)}
+    used, alone = usage(ced, hsk, rank)
     top = [c for c in freq if c in dic and c in gfx][:a.chars]
     common = set(top)
 
@@ -407,6 +538,8 @@ def main():
         g = garden.get(c)
         k = kind(c)
         py = d.get("pinyin") or ([g[0]] if g else [])
+        if k == "char":
+            py = readings(c, py, ced.get(c, []), used, alone) or py
         old = short(d.get("definition")) or (g[1] if g else "")
         if len(old) > 32:
             old = short(d.get("definition"), 1)
