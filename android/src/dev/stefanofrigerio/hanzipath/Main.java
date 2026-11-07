@@ -35,6 +35,7 @@ public class Main extends Activity {
     Read read;
     Apart apart;              // "Tell them apart": a pair side by side (a review's first card, or from Stats)
     Tree tree;                // the family tree open, or the one a looked-up part came from
+    Parts parts;              // the parts, from home: back from a card returns there
     boolean gardenOpen;       // the whole path shown on home, not just the rows around you
     Object shownKey;          // what the screen shows (page's key): a new one comes in
     android.animation.ValueAnimator motion;   // the screen's motion while it runs (Motion)
@@ -140,6 +141,7 @@ public class Main extends Activity {
         read = null;
         apart = null;
         tree = null;
+        parts = null;
         Home.build(this, page("home", this::home));
         Widget.refresh(this);   // back from a round: the widget counts what's due now
     }
@@ -207,6 +209,12 @@ public class Main extends Activity {
         stats.show();
     }
 
+    /** Every part, and how many characters each builds, from home. */
+    void openParts() {
+        parts = new Parts(this);
+        parts.show();
+    }
+
     /** HSK levels, from Stats: back returns there. */
     void openLevels() {
         levels = new Levels(this);
@@ -241,6 +249,10 @@ public class Main extends Activity {
         }
         if (screen.equals("learn") && learn != null && learn.lookup && "levels".equals(learn.from) && levels != null) {
             levels.show();
+            return true;
+        }
+        if (screen.equals("learn") && learn != null && learn.lookup && "parts".equals(learn.from) && parts != null) {
+            parts.show();
             return true;
         }
         if (screen.equals("levels") && stats != null) {

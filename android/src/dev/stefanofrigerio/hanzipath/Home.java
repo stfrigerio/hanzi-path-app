@@ -202,6 +202,7 @@ final class Home {
             gs.addView(t, tp);
         }
         col.addView(gs);
+        col.addView(Parts.entry(m));
 
         col.addView(Stats.entry(m));
 
