@@ -40,17 +40,19 @@ public class Main extends Activity {
     Object shownKey;          // what the screen shows (page's key): a new one comes in
     android.animation.ValueAnimator motion;   // the screen's motion while it runs (Motion)
     final java.util.ArrayDeque<Taps.Back> taps = new java.util.ArrayDeque<>();   // cards a tapped character opened (Taps)
+    boolean created;          // onCreate has just built home: the onResume after it needn't again
 
     @Override
     protected void onCreate(Bundle saved) {
         super.onCreate(saved);
+        preload(getApplicationContext());
         Ink.init(this);
+        prog = new Progress(this);
         try {
-            PathData.load(this);
+            PathData.load(this);   // read on its thread meanwhile: this waits for it (or reads it, if it's not begun)
         } catch (Exception e) {
             throw new RuntimeException("the path didn't load", e);
         }
-        prog = new Progress(this);
         root = new FrameLayout(this);
         root.setOnApplyWindowInsetsListener((v, insets) -> {
             Insets bars = insets.getInsets(WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout());
@@ -61,9 +63,33 @@ public class Main extends Activity {
         setContentView(root);
         paint();
         home();
+        created = true;
         Reminder.arm(this);
         Speech.changed = () -> runOnUiThread(this::voiceChanged);
         if (prog.say) Speech.check(this);   // known before the first review whether listen can be asked
+    }
+
+    /** The start, off the main thread: the path (and its words) read while the faces and the
+     *  progress load; the sentences beside it (home's Read line wants them); then, at a low
+     *  priority, what only other screens use (Search's index, the HSK lists). Each is built
+     *  under its own lock, so a screen that wants one before it's ready waits for it, and a
+     *  failure here is met again, and said, where it's wanted. */
+    static void preload(android.content.Context app) {
+        new Thread(() -> {
+            try {
+                PathData.load(app);
+                Words.build();
+            } catch (Exception e) { /* onCreate reads it again and says why */ }
+        }, "path").start();
+        new Thread(() -> {
+            Sentences.load(app);
+            android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND);
+            try {
+                PathData.load(app);
+                Search.build();
+                Levels.hsk(app);
+            } catch (Exception e) { /* built when first used instead */ }
+        }, "sentences").start();
     }
 
     static final int ASK_NOTIFY = 1;
@@ -278,7 +304,11 @@ public class Main extends Activity {
         super.onResume();
         Updater.maybe(this, false);
         Speech.recheck(this);   // back from installing a voice, maybe
-        if (screen.equals("home")) home();
+        if (created) {          // home was built a moment ago, in onCreate: as it is, at rest
+            created = false;
+            if (motion != null) motion.cancel();
+            motion = null;
+        } else if (screen.equals("home")) home();
     }
 
     @Override

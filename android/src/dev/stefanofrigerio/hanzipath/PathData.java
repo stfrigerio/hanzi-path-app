@@ -1,12 +1,17 @@
 package dev.stefanofrigerio.hanzipath;
 
 import android.content.Context;
+import android.util.JsonReader;
+import android.util.JsonToken;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -14,7 +19,10 @@ import java.util.Map;
 
 /**
  * The path (assets/path.json, made by tools/build.py): every item in the order it's taught.
- * Stroke shapes are in assets/strokes-N.json, CHUNK items each, read when first needed.
+ * Read once, streamed (JsonReader: no 600 KB string, no tree of objects), before the first
+ * frame, since home draws all of it (Main starts it on a thread of its own, beside the
+ * progress). Stroke shapes are in assets/strokes-N.json, CHUNK items each, read when first
+ * needed.
  */
 final class PathData {
     static final List<Item> items = new ArrayList<>();
@@ -22,41 +30,98 @@ final class PathData {
     static int chunk = 60;
     static final Map<Integer, JSONObject> chunks = new HashMap<>();
     static final Map<String, Glyph> glyphs = new HashMap<>();
+    static final String[] NONE = new String[0];
+    static final String[][] NO_WORDS = new String[0][];
 
     private PathData() {}
 
     static synchronized void load(Context ctx) throws Exception {
         if (!items.isEmpty()) return;
-        JSONObject p = new JSONObject(read(ctx, "path.json"));
-        chunk = p.getInt("chunk");
-        JSONArray a = p.getJSONArray("items");
-        for (int i = 0; i < a.length(); i++) {
-            JSONObject o = a.getJSONObject(i);
-            Item it = new Item();
-            it.h = o.getString("h");
-            it.kind = o.getString("k");
-            it.en = o.optString("en");
-            it.py = strings(o.optJSONArray("py"));
-            it.parts = strings(o.optJSONArray("parts"));
-            it.used = strings(o.optJSONArray("used"));
-            it.strokes = o.optInt("n");
-            JSONArray w = o.optJSONArray("w");
-            it.words = new String[w == null ? 0 : w.length()][];
-            for (int j = 0; j < it.words.length; j++) {
-                JSONArray x = w.getJSONArray(j);
-                it.words[j] = new String[]{x.getString(0), x.getString(1), x.getString(2), String.valueOf(x.getInt(3))};
+        List<Item> read = new ArrayList<>(2400);
+        int ch = chunk;
+        try (JsonReader r = reader(ctx, "path.json")) {
+            r.beginObject();
+            while (r.hasNext()) {
+                String k = r.nextName();
+                if (k.equals("chunk")) ch = r.nextInt();
+                else if (k.equals("items")) {
+                    r.beginArray();
+                    while (r.hasNext()) read.add(item(r));
+                    r.endArray();
+                } else r.skipValue();
             }
-            JSONObject et = o.optJSONObject("et");
-            if (et != null) {
-                it.etType = et.optString("type", null);
-                it.etSemantic = et.optString("semantic", null);
-                it.etPhonetic = et.optString("phonetic", null);
-                it.why = et.optString("why", null);
-            }
+            r.endObject();
+        }
+        chunk = ch;
+        for (int i = 0; i < read.size(); i++) {
+            Item it = read.get(i);
             it.at = i;
             items.add(it);
             at.put(it.h, it);
         }
+    }
+
+    /** One item, as path.json has it: {h, k, py, en, parts, n, et, w, used}. */
+    static Item item(JsonReader r) throws IOException {
+        Item it = new Item();
+        it.en = "";
+        it.py = it.parts = it.used = NONE;
+        it.words = NO_WORDS;
+        r.beginObject();
+        while (r.hasNext()) {
+            String k = r.nextName();
+            if (r.peek() == JsonToken.NULL) { r.skipValue(); continue; }
+            switch (k) {
+                case "h": it.h = r.nextString(); break;
+                case "k": it.kind = r.nextString(); break;
+                case "en": it.en = r.nextString(); break;
+                case "py": it.py = strings(r); break;
+                case "parts": it.parts = strings(r); break;
+                case "used": it.used = strings(r); break;
+                case "n": it.strokes = r.nextInt(); break;
+                case "w": {
+                    List<String[]> w = new ArrayList<>();
+                    r.beginArray();
+                    while (r.hasNext()) {
+                        r.beginArray();
+                        String[] x = {r.nextString(), r.nextString(), r.nextString(), String.valueOf(r.nextInt())};
+                        while (r.hasNext()) r.skipValue();
+                        r.endArray();
+                        w.add(x);
+                    }
+                    r.endArray();
+                    it.words = w.toArray(NO_WORDS);
+                    break;
+                }
+                case "et": {
+                    r.beginObject();
+                    while (r.hasNext()) {
+                        String e = r.nextName();
+                        if (r.peek() == JsonToken.NULL) { r.skipValue(); continue; }
+                        switch (e) {
+                            case "type": it.etType = r.nextString(); break;
+                            case "semantic": it.etSemantic = r.nextString(); break;
+                            case "phonetic": it.etPhonetic = r.nextString(); break;
+                            case "why": it.why = r.nextString(); break;
+                            default: r.skipValue();
+                        }
+                    }
+                    r.endObject();
+                    break;
+                }
+                default: r.skipValue();
+            }
+        }
+        r.endObject();
+        return it;
+    }
+
+    static String[] strings(JsonReader r) throws IOException {
+        List<String> out = new ArrayList<>(4);
+        r.beginArray();
+        while (r.hasNext()) out.add(r.nextString());
+        r.endArray();
+        return out.isEmpty() ? NONE : out.toArray(NONE);
     }
 
     static Item get(String h) { return at.get(h); }
@@ -90,5 +155,11 @@ final class PathData {
 
     static String read(Context ctx, String name) throws IOException {
         try (InputStream in = ctx.getAssets().open(name)) { return Updater.text(in); }
+    }
+
+    /** An asset as a stream of JSON, read as it's parsed. */
+    static JsonReader reader(Context ctx, String name) throws IOException {
+        InputStream in = ctx.getAssets().open(name);
+        return new JsonReader(new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8), 65536));
     }
 }
