@@ -170,10 +170,7 @@ final class Levels {
 
         if (l.chars.size() > fold) {
             int more = l.chars.size() - fold;
-            TextView t = Ui.pill(m, "", Ui.OUTLINE, null);
-            t.setMinHeight(Ink.dp(36));
-            t.setTextSize(14);
-            t.setPadding(Ink.dp(14), 0, Ink.dp(14), 0);
+            TextView t = Ui.small(m, "", null);
             Runnable label = () -> t.setText(open[l.n] ? "Fold " + l.name() : "Show all (" + more + " more)");
             label.run();
             t.setOnClickListener(v -> {

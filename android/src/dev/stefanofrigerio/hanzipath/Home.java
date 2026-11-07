@@ -183,7 +183,7 @@ final class Home {
         gs.addView(g, new LinearLayout.LayoutParams(-1, -2));
         if (from > 0 || fold < st.length) {
             int more = st.length - (fold - from);
-            TextView t = Ui.pill(m, "", Ui.OUTLINE, null);
+            TextView t = Ui.small(m, "", null);
             Runnable label = () -> t.setText(m.gardenOpen ? "Fold the path" : "Show the whole path (" + more + " more)");
             label.run();
             t.setOnClickListener(v -> {
@@ -259,9 +259,6 @@ final class Home {
             m.prog.saveOpts();
             m.home();
         });
-        ok.setMinHeight(Ink.dp(36));
-        ok.setTextSize(14);
-        ok.setPadding(Ink.dp(14), 0, Ink.dp(14), 0);
         LinearLayout.LayoutParams op = new LinearLayout.LayoutParams(-2, -2);
         op.gravity = Gravity.END;
         c.addView(ok, op);

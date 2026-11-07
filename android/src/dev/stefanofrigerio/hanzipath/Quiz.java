@@ -409,11 +409,7 @@ class Quiz {
     }
 
     TextView smallPill(String s, View.OnClickListener on) {
-        TextView t = Ui.pill(m, s, Ui.OUTLINE, on);
-        t.setMinHeight(Ink.dp(36));
-        t.setTextSize(14);
-        t.setPadding(Ink.dp(14), 0, Ink.dp(14), 0);
-        return t;
+        return Ui.small(m, s, on);
     }
 
     boolean practice() { return kind.equals("practice"); }

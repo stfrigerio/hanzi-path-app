@@ -344,7 +344,7 @@ class Tree {
         fv.shown = unfolded.contains(part) ? Integer.MAX_VALUE : fold;
         s.addView(fv, new LinearLayout.LayoutParams(-1, -2));
         if (fam.size() > fold) {
-            TextView t = Ui.pill(m, "", Ui.OUTLINE, null);
+            TextView t = Ui.small(m, "", null);
             Runnable label = () -> t.setText(unfolded.contains(part) ? "Fold the family" : "Show all " + fam.size());
             label.run();
             t.setOnClickListener(v -> {
@@ -354,7 +354,9 @@ class Tree {
                 fv.invalidate();
                 label.run();
             });
-            s.addView(t, new LinearLayout.LayoutParams(-1, -2));
+            LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(-2, -2);
+            tp.gravity = Gravity.CENTER_HORIZONTAL;   // a fold, as home's and the levels': small, centred
+            s.addView(t, tp);
         }
         return s;
     }
@@ -486,12 +488,7 @@ class Tree {
         chips.removeViewAt(0);
         LinearLayout head = Ui.row(m, 12);
         head.addView(label, Ui.weight(1));
-        TextView link = Ui.text(m, "Family tree ›", 13, Ink.sansMedium, Ink.ink);
-        link.setGravity(Gravity.CENTER);
-        link.setMinHeight(Ink.dp(32));
-        link.setPadding(Ink.dp(12), 0, Ink.dp(12), 0);
-        Ui.touch(link, Ink.paper, Ink.ink, 999);
-        link.setOnClickListener(v -> open(m, it.h));
+        TextView link = Ui.small(m, "Family tree ›", v -> open(m, it.h));
         link.setContentDescription("The family tree of " + it.h + ": its parts, theirs, and the characters that share them");
         head.addView(link);
         chips.addView(head, 0);

@@ -48,10 +48,8 @@ final class Cards {
      *  None for a single stroke. */
     static TextView stepper(Main m, HanziView hv) {
         if (hv.glyph == null || hv.fill.length < 2) return null;
-        TextView t = Ui.pill(m, hv.stepLabel(), Ui.OUTLINE, v -> hv.step());
-        t.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 13);
-        t.setTypeface(Ink.monoMedium);
-        t.setPadding(Ink.dp(16), 0, Ink.dp(16), 0);
+        TextView t = Ui.small(m, hv.stepLabel(), v -> hv.step());
+        t.setTypeface(Ink.monoMedium);   // "3 / 7": figures, in the mono
         t.setMinWidth(Ink.dp(96));
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, -2);
         lp.gravity = Gravity.CENTER_HORIZONTAL;
