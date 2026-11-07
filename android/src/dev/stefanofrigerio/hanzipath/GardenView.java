@@ -9,8 +9,9 @@ import android.view.MotionEvent;
 import android.view.View;
 
 /**
- * The whole path on the home screen, every item a cell in order: the garden that fills with
- * what you know. Next is the highlighter, learning pink, known blue, a wilting one (due and
+ * The path on the home screen, every item a cell in order: the garden that fills with what
+ * you know. Folded, it shows only its first {@code shown} cells (what's met and the rows
+ * ahead); open, all of them. Next is the highlighter, learning pink, known blue, a wilting one (due and
  * slipping) outlined in pink; the next forty ahead outlined, the rest faint. A part has a
  * dot in its corner. A tap opens the item.
  */
@@ -19,7 +20,7 @@ class GardenView extends View {
     interface Tap { void open(int index); }
 
     int[] state = new int[0];
-    int cols = 10;
+    int cols = 10, shown = Integer.MAX_VALUE;
     float cell, gap;
     Tap tap;
     final Paint fillP = new Paint(Paint.ANTI_ALIAS_FLAG), lineP = new Paint(Paint.ANTI_ALIAS_FLAG),
@@ -29,7 +30,7 @@ class GardenView extends View {
 
     GardenView(Context c) {
         super(c);
-        gap = Ink.dp(3);
+        gap = Ink.dp(2);
         lineP.setStyle(Paint.Style.STROKE);
         lineP.setStrokeWidth(Math.max(1, Ink.dp(1)));
         textP.setTypeface(Ink.han);
@@ -42,7 +43,7 @@ class GardenView extends View {
             public boolean onSingleTapUp(MotionEvent e) {
                 int col = (int) (e.getX() / (cell + gap)), row = (int) (e.getY() / (cell + gap));
                 int i = row * cols + col;
-                if (col < cols && i < state.length && tap != null) { playSoundEffect(android.view.SoundEffectConstants.CLICK); tap.open(i); }
+                if (col < cols && i < count() && tap != null) { playSoundEffect(android.view.SoundEffectConstants.CLICK); tap.open(i); }
                 return true;
             }
         });
@@ -55,12 +56,27 @@ class GardenView extends View {
         invalidate();
     }
 
+    /** Show the first n cells (folded), or every one (Integer.MAX_VALUE). */
+    void show(int n) {
+        shown = n;
+        requestLayout();
+        invalidate();
+    }
+
+    int count() { return Math.min(shown, state.length); }
+
+    /** How many cells fit in a row this wide: as many as stay at least 32 dp. */
+    static int columns(int widthPx) {
+        float gap = Ink.dp(2);
+        return Math.max(8, (int) ((widthPx + gap) / (Ink.dp(32) + gap)));
+    }
+
     @Override
     protected void onMeasure(int ws, int hs) {
         int w = MeasureSpec.getSize(ws);
-        cols = Math.max(8, (int) ((w + gap) / (Ink.dp(34) + gap)));
+        cols = columns(w);
         cell = (w - gap * (cols - 1)) / cols;
-        int rows = (state.length + cols - 1) / cols;
+        int rows = (count() + cols - 1) / cols;
         setMeasuredDimension(w, (int) Math.ceil(rows * cell + Math.max(0, rows - 1) * gap));
     }
 
@@ -68,7 +84,7 @@ class GardenView extends View {
     protected void onDraw(Canvas c) {
         textP.setTextSize(cell * 0.56f);
         Paint.FontMetrics fm = textP.getFontMetrics();
-        for (int i = 0; i < state.length; i++) {
+        for (int i = 0; i < count(); i++) {
             Item it = PathData.items.get(i);
             float x = (i % cols) * (cell + gap), y = (i / cols) * (cell + gap);
             r.set(x, y, x + cell, y + cell);

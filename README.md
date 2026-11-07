@@ -56,9 +56,11 @@ Set up once:
   seconds is knew, right but slower unsure, wrong again (it comes back at the
   end of the round). Then the answer in full, and Next. *Undo* takes back the
   last grade.
-- **Home**: what's known, days in a row, today's reviews, what's due by
-  tomorrow, and the whole path as a garden: yellow next, pink learning, blue
-  known, outlined pink wilting (due and slipping). Tap any item to look it up.
+- **Home**: today in four lines (due now, new left, days in a row, known of
+  met) with Review and Learn, the week's reviews as a bar per day, and the
+  path as a garden: yellow next, pink learning, blue known, outlined pink
+  wilting (due and slipping). It shows the rows around where you are; *Show
+  the whole path* opens the rest. Tap any item to look it up.
 
 ## Progress
 
