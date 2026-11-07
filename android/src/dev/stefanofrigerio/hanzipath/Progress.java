@@ -287,6 +287,19 @@ final class Progress extends SQLiteOpenHelper {
         return (1 - Math.exp(-c.s / MATURE_D)) * fresh;
     }
 
+    /** Where an item stands, the one rule every screen colours it by (GardenView's states):
+     *  on its learning or relearning steps (an hour, a day: on schedule), learning, never
+     *  wilting; graduated, known once its strength is KNOWN, wilting when due (its recall has
+     *  fallen to FSRS's target) after more than its first review, learning otherwise. Not met:
+     *  next when it's in the batch the caller offers, else ahead (GardenView.NEAR). */
+    int state(String h, long now, boolean next) {
+        Card c = cards.get(h);
+        if (c == null) return next ? GardenView.NEXT : GardenView.NEAR;
+        if (c.learning()) return GardenView.YOUNG;
+        if (strength(h, now) >= KNOWN) return GardenView.KNOWN;
+        return c.due <= now && c.reps > 1 ? GardenView.WILT : GardenView.YOUNG;
+    }
+
     /** What's due, the most overdue for what it holds first; in a backlog, ordered for
      *  coming back (order). */
     List<String> due(long now) {

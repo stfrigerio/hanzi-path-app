@@ -173,9 +173,7 @@ class Search {
     /** Where an item is for you, in the garden's words: known, learning, wilting, next, ahead. */
     String state(Item it, long now) {
         Progress p = m.prog;
-        Progress.Card c = p.cards.get(it.h);
-        if (c != null) return p.strength(it.h, now) >= Progress.KNOWN ? "known" : c.due <= now && c.reps > 1 ? "wilting" : "learning";
-        return p.nextNew(p.batch).contains(it.h) ? "next" : "ahead";
+        return GardenView.stateName(p.state(it.h, now, p.nextNew(p.batch).contains(it.h)));
     }
 
     // ---- the index, built once ----

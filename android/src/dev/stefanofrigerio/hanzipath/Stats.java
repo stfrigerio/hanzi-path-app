@@ -101,7 +101,7 @@ class Stats {
         for (Map.Entry<String, Progress.Card> e : p.cards.entrySet()) {
             if (PathData.get(e.getKey()) == null) continue;
             met++;
-            if (p.strength(e.getKey(), now) >= Progress.KNOWN) known++;
+            if (p.state(e.getKey(), now, false) == GardenView.KNOWN) known++;
         }
         int size = PathData.items.size();
         LinearLayout ps = section("The path", met + " of " + size + " met · " + pct(met, size) + "%");

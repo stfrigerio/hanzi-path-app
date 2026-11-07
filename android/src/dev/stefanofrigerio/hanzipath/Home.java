@@ -33,7 +33,7 @@ final class Home {
         List<String> due = p.due(now);
         int known = 0, met = 0;
         for (Item it : PathData.items) {
-            if (p.strength(it.h, now) >= Progress.KNOWN) known++;
+            if (p.state(it.h, now, false) == GardenView.KNOWN) known++;
             if (p.cards.containsKey(it.h)) met++;
         }
         int left = p.newLeftToday();
@@ -136,15 +136,14 @@ final class Home {
         int k = batch > 0 ? batch : p.batch;
         for (int i = 0; i < st.length; i++) {
             Item it = PathData.items.get(i);
-            Progress.Card c = p.cards.get(it.h);
-            if (c != null) {
+            if (p.cards.containsKey(it.h)) {
                 lastMet = i;
-                double s = p.strength(it.h, now);
-                st[i] = s >= Progress.KNOWN ? GardenView.KNOWN : c.due <= now && c.reps > 1 ? GardenView.WILT : GardenView.YOUNG;
+                st[i] = p.state(it.h, now, false);
                 if (st[i] == GardenView.WILT) wilting++;
             } else {
                 if (firstNew < 0) firstNew = i;
-                st[i] = i < firstNew + k ? GardenView.NEXT : i < firstNew + 40 ? GardenView.NEAR : GardenView.FAR;
+                st[i] = p.state(it.h, now, i < firstNew + k);
+                if (st[i] == GardenView.NEAR && i >= firstNew + 40) st[i] = GardenView.FAR;
             }
         }
         g.set(st);

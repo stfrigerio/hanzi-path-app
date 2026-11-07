@@ -190,9 +190,7 @@ class Tree {
 
     /** Where an item is for you, as the garden draws it (ahead: outlined). */
     static int state(Progress p, String h, long now, Set<String> next) {
-        Progress.Card c = p.cards.get(h);
-        if (c != null) return p.strength(h, now) >= Progress.KNOWN ? GardenView.KNOWN : c.due <= now && c.reps > 1 ? GardenView.WILT : GardenView.YOUNG;
-        return next.contains(h) ? GardenView.NEXT : GardenView.NEAR;
+        return p.state(h, now, next.contains(h));
     }
 
     static String stateName(int st) {
