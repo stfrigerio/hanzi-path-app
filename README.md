@@ -46,14 +46,12 @@ Set up once:
   reading in the tones' inks (1 blue, 2 green, 3 peach, 4 pink: the garden's),
   what it's made of and what it leads to, why it looks like this (Make Me a
   Hanzi's etymology: which part gives the meaning, which the sound), a box for
-  your own story, and the HSK words you can now read. *Write it*: trace it
-  stroke by stroke with a finger.
+  your own story, and the HSK words you can now read.
 - **Check**: right after the batch, a round of questions. That's the first
   grade, so a new item starts on what you showed you know.
-- **Review**: FSRS-4.5, a small scheduler with three grades (again, unsure, knew). Reviews ask you
-  to read (character → reading and meaning), write (reading and meaning →
-  trace it from nothing; the grade is suggested from your mistakes) or a mix.
-  *Undo* takes back the last grade.
+- **Review**: FSRS-4.5, a small scheduler with three grades (again, unsure, knew). A review shows
+  the character; *Show* gives its reading and meaning. *Undo* takes back the
+  last grade.
 - **Home**: what's known, days in a row, today's reviews, what's due by
   tomorrow, and the whole path as a garden: yellow next, pink learning, blue
   known, outlined pink wilting (due and slipping). Tap any item to look it up.
@@ -71,7 +69,7 @@ puts all of it on the clipboard as text; *Load from clipboard* takes it back.
 |---|---|
 | `android/src/…/Main.java` | the activity: screens, back, the bars |
 | `Home`, `Learn`, `Quiz`, `Settings`, `Cards` | the screens, built in code |
-| `HanziView` | the practice square: strokes, their animation, tracing |
+| `HanziView` | the practice square: strokes and their animation |
 | `GardenView` | the path on the home screen |
 | `Progress` | FSRS and the database |
 | `PathData`, `Glyph` | the path and its stroke shapes (from `data/`) |

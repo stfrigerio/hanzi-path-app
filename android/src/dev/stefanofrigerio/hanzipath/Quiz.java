@@ -9,13 +9,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 
 /**
- * A round of questions: the check after a batch (its first grade), or a review. Read: the
- * character, then Show for its reading and meaning. Write: the reading and meaning, then
- * trace the character from nothing; the grade is suggested from the mistakes. Again puts it
- * at the end of the round (up to three times). Undo takes the last grade back.
+ * A round of questions: the check after a batch (its first grade), or a review: the
+ * character, then Show for its reading and meaning. Again puts it at the end of the round
+ * (up to three times). Undo takes the last grade back.
  */
 class Quiz {
     final Main m;
@@ -23,20 +21,15 @@ class Quiz {
     List<String> queue;
     int done, total, misses;
     Map<String, Integer> tries = new HashMap<>();
-    String mode;
-    int suggest;
     long shown, ms;
     boolean revealed;
     Last last;
     HanziView hv;
     LinearLayout answer;
     View showRow, grades;
-    TextView[] gradeBtn = new TextView[4];
-    static final Random rnd = new Random();
 
     static class Last {
         Progress.Undo undo;
-        String mode;
         List<String> queue;
         int done, misses;
         Map<String, Integer> tries;
@@ -49,44 +42,24 @@ class Quiz {
         this.total = items.size();
     }
 
-    String modeFor(String h) {
-        Item it = PathData.get(h);
-        Progress.Card c = m.prog.cards.get(h);
-        if (kind.equals("check") || it.isPart() || c == null) return "read";
-        if (m.prog.mode.equals("mix")) return c.reps >= 2 && rnd.nextFloat() < 0.4f ? "write" : "read";
-        return m.prog.mode;
-    }
-
-    void show(String forceMode) {
+    void show() {
         String h = queue.get(0);
         Item it = PathData.get(h);
-        mode = forceMode != null ? forceMode : modeFor(h);
-        suggest = 0;
         revealed = false;
         shown = System.currentTimeMillis();
-        final String keep = mode;
-        LinearLayout col = m.page("quiz", () -> show(keep));
+        LinearLayout col = m.page("quiz", this::show);
         TextView undo = last == null ? null : smallPill("Undo", v -> undo());
         col.addView(Cards.bar(m, (kind.equals("check") ? "check " : "review ") + Math.min(done + 1, total) + " / " + total,
                 undo, Ui.close(m, v -> m.home())));
 
         LinearLayout card = Ui.card(m);
-        boolean write = mode.equals("write");
-        TextView ask = Ui.label(m, write ? "Write the character" : "What is it, how is it read?");
+        TextView ask = Ui.label(m, "What is it, how is it read?");
         ask.setGravity(Gravity.CENTER);
         card.addView(ask, new LinearLayout.LayoutParams(-1, -2));
-        if (write) card.addView(Cards.reading(m, it));
         hv = Cards.box(m, it);
         card.addView(hv);
-        if (write) {
-            hv.quiz(3, mistakes -> {
-                suggest = mistakes == 0 ? 3 : mistakes <= 3 ? 2 : 1;
-                reveal();
-            });
-        } else {
-            hv.show();
-            hv.setOnClickListener(v -> hv.animateStrokes());
-        }
+        hv.show();
+        hv.setOnClickListener(v -> hv.animateStrokes());
         answer = Ui.column(m, 16);
         answer.setVisibility(View.GONE);
         card.addView(answer);
@@ -104,7 +77,6 @@ class Quiz {
             TextView b = Ui.pill(m, names[k], Ui.OUTLINE, v -> answer(grade));
             b.setPadding(Ink.dp(8), 0, Ink.dp(8), 0);
             b.setBackground(Ui.shape(Ink.paper, edge[k], 999, false));
-            gradeBtn[k] = b;
             g.addView(b, Ui.weight(1));
         }
         grades = g;
@@ -126,24 +98,20 @@ class Quiz {
         String h = queue.get(0);
         Item it = PathData.get(h);
         ms = System.currentTimeMillis() - shown;
-        if (mode.equals("write")) {
-            if (suggest == 0) { suggest = 1; hv.show(); }
-        } else if (m.prog.say && it.py.length > 0) m.say(h);
-        if (mode.equals("read")) answer.addView(Cards.reading(m, it));
+        if (m.prog.say && it.py.length > 0) m.say(h);
+        answer.addView(Cards.reading(m, it));
         Cards.parts(m, answer, it);
         Cards.add(answer, Cards.storyRead(m, it));
         answer.setVisibility(View.VISIBLE);
         showRow.setVisibility(View.GONE);
         grades.setVisibility(View.VISIBLE);
-        if (suggest > 0) Ui.style(gradeBtn[suggest], Ui.HIGHLIGHT);
     }
 
     void answer(int g) {
         if (!revealed) return;
         String h = queue.remove(0);
         Last l = new Last();
-        l.undo = m.prog.grade(h, g, mode, ms);
-        l.mode = mode;
+        l.undo = m.prog.grade(h, g, "read", ms);
         l.queue = new ArrayList<>(queue);
         l.queue.add(0, h);
         l.done = done;
@@ -156,7 +124,7 @@ class Quiz {
         if (g == 1 && t < 3) queue.add(h);   // once more at the end of the round
         else done++;
         if (queue.isEmpty()) finish();
-        else show(null);
+        else show();
     }
 
     void undo() {
@@ -169,7 +137,7 @@ class Quiz {
         tries = l.tries;
         last = null;
         m.quiz = this;
-        show(l.mode);
+        show();
     }
 
     /** The round's end: a seal (好 clean, 行 fine, 练 practise), what happened, the way back. */

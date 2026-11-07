@@ -98,12 +98,12 @@ public class Main extends Activity {
         List<String> due = prog.due(System.currentTimeMillis());
         if (due.isEmpty()) return;
         quiz = new Quiz(this, due.subList(0, Math.min(60, due.size())), "review");
-        quiz.show(null);
+        quiz.show();
     }
 
     void startCheck(List<String> items) {
         quiz = new Quiz(this, items, "check");
-        quiz.show(null);
+        quiz.show();
     }
 
     void openSettings() {
@@ -117,7 +117,7 @@ public class Main extends Activity {
     boolean back() {
         if (screen.equals("home")) return false;
         if (screen.equals("learn") && learn != null && learn.lookup && "quiz".equals(learn.from) && quiz != null) {
-            quiz.show(quiz.mode);
+            quiz.show();
             return true;
         }
         home();
