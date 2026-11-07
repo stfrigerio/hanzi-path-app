@@ -104,6 +104,7 @@ final class Progress extends SQLiteOpenHelper {
     int remind = -1;                      // the daily reminder: minutes after midnight, -1 off
     int round = 40;                       // reviews per round (Settings), 0 all that are due
     String speed = "normal";              // the voice's speed (Settings): normal, slower
+    String write = "sometimes";           // writing in reviews (Settings): off, sometimes, often
     boolean introDone;                    // home's first-run lines put away ("Got it", or a batch learnt)
     String todayDate = "";
     int todayNew = 0;
@@ -424,7 +425,7 @@ final class Progress extends SQLiteOpenHelper {
     /** The settings as they're kept (meta "opts"); a key missing from an older copy loads as its default. */
     JSONObject opts() throws org.json.JSONException {
         return new JSONObject().put("batch", batch).put("perDay", perDay).put("say", say).put("remind", remind)
-                .put("round", round).put("intro", introDone).put("speed", speed);
+                .put("round", round).put("intro", introDone).put("speed", speed).put("write", write);
     }
 
     /** How many reviews a round takes, of what's due. */
@@ -668,6 +669,7 @@ final class Progress extends SQLiteOpenHelper {
         stories.clear();
         round = 40;          // what a copy from before these settings doesn't say: their defaults
         speed = "normal";
+        write = "sometimes";
         apartShown = new JSONObject();
         introDone = false;
         fsrs = null;
@@ -699,6 +701,8 @@ final class Progress extends SQLiteOpenHelper {
                         round = o.optInt("round", round);
                         introDone = o.optBoolean("intro", introDone);
                         speed = "slower".equals(o.optString("speed")) ? "slower" : "normal";
+                        String wr = o.optString("write");
+                        write = wr.equals("off") || wr.equals("often") ? wr : "sometimes";
                     } else if (k.equals("today")) {
                         JSONObject o = new JSONObject(c.getString(1));
                         todayDate = o.optString("d");

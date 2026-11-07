@@ -15,7 +15,8 @@ import java.util.Date;
 
 /**
  * Settings and progress, in sections as Stats has them (a mono label under a hairline):
- * Learning (how much is new at a time and per day, how many reviews a round), Voice (said
+ * Learning (how much is new at a time and per day, how many reviews a round, how often a
+ * review asks you to write), Voice (said
  * aloud or not, its speed, the line when the phone has no Chinese voice), Reminder (the time,
  * the line when it went back to off), Progress (copied out to the clipboard and back in),
  * Updates (the version, the token, a check); the credits last, in small text.
@@ -27,6 +28,7 @@ class Settings {
     boolean armed;
 
     static final String[] ROUNDS = {"20", "40", "60", "all"};
+    static final String[] WRITING = {"off", "sometimes", "often"};   // Quiz.WRITE: how often a review asks you to write
 
     Settings(Main m) { this.m = m; }
 
@@ -43,6 +45,7 @@ class Settings {
                 v -> { p.perDay = Integer.parseInt(v); p.saveOpts(); }));
         learning.addView(choice("Reviews per round", ROUNDS, p.round <= 0 ? "all" : String.valueOf(p.round),
                 v -> { p.round = v.equals("all") ? 0 : Integer.parseInt(v); p.saveOpts(); }));
+        learning.addView(choice("Writing in reviews", WRITING, p.write, v -> { p.write = v; p.saveOpts(); }));
         // review timing (FSRS): its line goes here, last in Learning
         col.addView(learning);
 

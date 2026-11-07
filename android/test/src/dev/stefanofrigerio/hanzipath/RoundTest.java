@@ -27,9 +27,13 @@ public class RoundTest {
 
     void shot(Main m, String name) throws Exception { new HomeTest().shot(m, name); }
 
+    /** The app, its reviews asking only by a tap (no writing: WriteTest has that), so a round
+     *  can be answered by its options whatever it draws. */
     static Main open() {
         Main m = Robolectric.buildActivity(Main.class).setup().visible().get();
         ShadowLooper.idleMainLooper();
+        m.prog.write = "off";
+        m.prog.saveOpts();
         return m;
     }
 

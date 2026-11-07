@@ -47,6 +47,10 @@ Set up once:
   what it's made of and what it leads to, why it looks like this (Make Me a
   Hanzi's etymology: which part gives the meaning, which the sound), and the
   words you can now read (HSK's, or CC-CEDICT's where HSK has none).
+  *Step* shows the strokes one at a time. *Write it*, beside Next: trace it
+  with a finger over its outline, stroke by stroke (a stroke near enough its
+  path, in its direction, fills in; after two misses on one it flashes where it
+  goes); *Again* to write it once more. Not graded.
 - **Check**: right after the batch, a round of questions. That's the first
   grade, so a new item starts on what you showed you know.
 - **Review**: FSRS-4.5, a small scheduler with three grades (again, unsure, knew). Once the log
@@ -71,6 +75,13 @@ Set up once:
   seconds is knew, right but slower unsure, wrong again (it comes back at the
   end of the round). Then the answer in full, and Next. *Undo* takes back the
   last grade.
+- **Writing**: a review (or practice) may also give a character's reading and
+  meaning and ask you to write it on the empty square, stroke by stroke from
+  memory (after three misses on a stroke it flashes where it goes; *Show it*
+  gives up). The misses grade it: none is knew, up to three unsure, more again.
+  Only characters seen twice, never parts or words, never in the check.
+  Settings → *Writing in reviews*: off, sometimes (about one in four, the
+  default), often (about one in two).
 - **Mixed up**: each answer goes in the log with what was tapped. Two characters
   taken for each other twice within 60 days (either way round) are a pair: their
   wrong answers draw on each other first, and once a week a pair a review round
@@ -105,7 +116,7 @@ puts all of it on the clipboard as text; *Load from clipboard* takes it back.
 | `android/src/…/Main.java` | the activity: screens, back, the bars |
 | `Home`, `Learn`, `Quiz`, `Settings`, `Cards` | the screens, built in code |
 | `Sentences`, `Read` | sentences on the cards, and the Read round |
-| `HanziView` | the practice square: strokes and their animation |
+| `HanziView` | the practice square: strokes, their animation, stepping, writing |
 | `GardenView` | the path on the home screen |
 | `Progress` | FSRS and the database |
 | `PathData`, `Glyph` | the path and its stroke shapes (from `data/`) |
