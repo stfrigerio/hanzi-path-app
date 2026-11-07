@@ -335,13 +335,8 @@ class Tree {
             st[j] = state(m.prog, PathData.items.get(fam.get(j)).h, now, next);
             if (st[j] == GardenView.KNOWN) known++;
         }
-        LinearLayout s = Ui.column(m, 10);
-        s.setPadding(0, Ink.dp(8), 0, 0);
-        LinearLayout head = Ui.row(m, 12);
-        head.addView(Ui.label(m, "The " + part + " family"), Ui.weight(1));
         String count = fam.size() + " on the path, " + known + " known";
-        head.addView(Home.small(m, count));
-        s.addView(head);
+        LinearLayout s = Ui.section(m, "The " + part + " family", Home.small(m, count));
         FamilyView fv = new FamilyView(m, fam, st, h);
         fv.tap = i -> m.lookup(PathData.items.get(i).h);
         fv.setContentDescription("The " + part + " family: " + count);

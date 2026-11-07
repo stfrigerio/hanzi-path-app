@@ -132,9 +132,8 @@ final class Levels {
         int[] st = states(m.prog, now);
 
         LinearLayout head = Ui.column(m, 10);
-        head.addView(Ui.text(m, "A character's level is the lowest of the HSK words it's in. Tap one to open it.",
-                14, Ink.sans, Ink.ink2));
-        LinearLayout lg = Ui.row(m, 12);
+        head.addView(Ui.note(m, "A character's level is the lowest of the HSK words it's in. Tap one to open it."));
+        Flow lg = new Flow(m, 12);   // as home's legend: wraps once the text is large
         lg.addView(Home.legend(m, Ink.hl, Ink.hl, "next"));
         lg.addView(Home.legend(m, Ink.young, Ink.young, "learning"));
         lg.addView(Home.legend(m, Ink.known, Ink.known, "known"));
@@ -148,10 +147,7 @@ final class Levels {
 
     /** A level: its name, the counts, the bar, its characters folded to a few rows. */
     View section(Level l, int[] st) {
-        LinearLayout s = Ui.column(m, 10);
-        s.setPadding(0, Ink.dp(14), 0, 0);
-        s.setBackground(Home.topRule());
-        s.addView(Ui.label(m, l.name()));
+        LinearLayout s = Ui.section(m, l.name(), null);
         TextView line = Home.stat(m, l.line());
         line.setTextSize(13);
         s.addView(line);

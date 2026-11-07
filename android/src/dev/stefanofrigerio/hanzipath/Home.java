@@ -114,12 +114,10 @@ final class Home {
         int[] week = week(p, now);
         int sum = 0;
         for (int n : week) sum += n;
-        LinearLayout ws = Ui.column(m, 6);
-        ws.setPadding(0, Ink.dp(8), 0, 0);
-        ws.addView(Ui.pair(m, 12, Ui.label(m, "The week"), small(m, sum + " due in 7 days")));
+        LinearLayout ws = Ui.section(m, "The week", small(m, sum + " due in 7 days"));
         if (sum == 0) {
-            ws.addView(Ui.text(m, p.cards.isEmpty() ? "Nothing to review yet: what you learn comes back here, day by day."
-                    : "Nothing falls due this week.", 14, Ink.sans, Ink.ink2));
+            ws.addView(Ui.note(m, p.cards.isEmpty() ? "Nothing to review yet: what you learn comes back here, day by day."
+                    : "Nothing falls due this week."));
         } else {
             WeekView wv = new WeekView(m);
             String[] days = new String[7];
@@ -163,9 +161,7 @@ final class Home {
             else if (st[i] == GardenView.WILT) aboveWilt++;
             else if (st[i] == GardenView.YOUNG) aboveYoung++;
         }
-        LinearLayout gs = Ui.column(m, 10);
-        gs.setPadding(0, Ink.dp(8), 0, 0);
-        gs.addView(Ui.pair(m, 12, Ui.label(m, "The path"), small(m, met + " of " + st.length + " met")));
+        LinearLayout gs = Ui.section(m, "The path", small(m, met + " of " + st.length + " met"));
         gs.addView(Search.entry(m));
         Flow lg = new Flow(m, 12);   // large text: the legend wraps onto a second line
         lg.addView(legend(m, Ink.hl, Ink.hl, "next"));
@@ -263,11 +259,9 @@ final class Home {
                     b.setSpan(new TypefaceSpan(Ink.han), i, i + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                     b.setSpan(new ForegroundColorSpan(Ink.ink), i, i + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                 }
-            TextView t = Ui.text(m, b, 14, Ink.sans, Ink.ink2);
-            t.setLineSpacing(0, 1.15f);
-            c.addView(t);
+            c.addView(Ui.note(m, b));
         }
-        TextView ok = Ui.pill(m, "Got it", Ui.OUTLINE, v -> {
+        TextView ok = Ui.small(m, "Got it", v -> {
             m.prog.introDone = true;
             m.prog.saveOpts();
             m.home();
@@ -287,8 +281,7 @@ final class Home {
     static View back(Main m, int due, int away, int round) {
         String s = due + " due" + (away >= 2 ? " after " + away + " days away" : "")
                 + ". Rounds of " + round + " bring them back, what's slipping first.";
-        TextView t = Ui.text(m, s, 14, Ink.sans, Ink.ink2);
-        t.setLineSpacing(0, 1.15f);
+        TextView t = Ui.note(m, s);
         t.setPadding(0, 0, 0, Ink.dp(8));
         return t;
     }
@@ -349,12 +342,5 @@ final class Home {
     static android.graphics.drawable.Drawable topRule() { return topRule(Ink.rule); }
 
     /** A hairline along a view's top. */
-    static android.graphics.drawable.Drawable topRule(int color) {
-        android.graphics.drawable.GradientDrawable line = Ui.shape(color, 0, 0, false);
-        android.graphics.drawable.LayerDrawable l = new android.graphics.drawable.LayerDrawable(
-                new android.graphics.drawable.Drawable[]{line});
-        l.setLayerHeight(0, Math.max(1, Ink.dp(1)));
-        l.setLayerGravity(0, Gravity.TOP | Gravity.FILL_HORIZONTAL);
-        return l;
-    }
+    static android.graphics.drawable.Drawable topRule(int color) { return Ui.topRule(color); }
 }

@@ -111,7 +111,7 @@ class Stats {
             PathBar bar = new PathBar(m);
             bar.set(known, met - known, size);
             ps.addView(bar, new LinearLayout.LayoutParams(-1, Ink.dp(12)));
-            LinearLayout lg = Ui.row(m, 14);
+            Flow lg = new Flow(m, 12);   // as home's legend: wraps once the text is large
             lg.addView(Home.legend(m, Ink.known, Ink.known, known + " known"));
             lg.addView(Home.legend(m, Ink.young, Ink.young, (met - known) + " learning"));
             lg.addView(Home.legend(m, Ink.paper, Ink.rule, (size - met) + " ahead"));
@@ -185,18 +185,12 @@ class Stats {
 
     /** A section as home's are: a label, its figure on the right, then what it shows. */
     LinearLayout section(String title, String figure) {
-        LinearLayout s = Ui.column(m, 8);
-        s.setPadding(0, Ink.dp(8), 0, 0);
-        LinearLayout h = Ui.row(m, 12);
-        h.addView(Ui.label(m, title), Ui.weight(1));
-        if (figure != null) h.addView(Home.small(m, figure));
-        s.addView(h);
-        return s;
+        return Ui.section(m, title, figure == null ? null : Home.small(m, figure));
     }
 
-    TextView empty(String s) { return Ui.text(m, s, 14, Ink.sans, Ink.ink2); }
+    TextView empty(String s) { return Ui.note(m, s); }
 
-    TextView note(String s) { return Ui.text(m, s, 13, Ink.sans, Ink.ink2); }
+    TextView note(String s) { return Ui.note(m, s); }
 
     /** A hard one: the character or word, its reading and meaning, how often it was missed;
      *  a tap opens its card. */

@@ -170,14 +170,10 @@ class Settings {
     /** A group of settings: a hairline above, its label, then its rows (and its explanation,
      *  where it has one, first under the label). */
     LinearLayout section(String title) {
-        LinearLayout c = Ui.column(m, 10);
-        c.setPadding(0, Ink.dp(14), 0, 0);
-        c.setBackground(Home.topRule());
-        c.addView(Ui.label(m, title));
-        return c;
+        return Ui.section(m, title, null);
     }
 
-    TextView small(String s) { return Ui.text(m, s, 13, Ink.sans, Ink.ink2); }
+    TextView small(String s) { return Ui.note(m, s); }
 
     /** Under Say it aloud, on a phone without a Chinese voice (Speech): why it's silent, and a
      *  pill to Android's text-to-speech settings to install one. */

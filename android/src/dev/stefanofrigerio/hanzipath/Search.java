@@ -107,29 +107,26 @@ class Search {
         results.removeAllViews();
         String q = query.trim();
         if (q.isEmpty()) {
-            TextView t = Ui.text(m, "A character, its pinyin with or without tones (shui, shuǐ, shui3), or a word of its meaning (water).",
-                    14, Ink.sans, Ink.ink2);
-            t.setPadding(Ink.dp(4), Ink.dp(16), Ink.dp(4), 0);
+            TextView t = Ui.note(m, "A character, its pinyin with or without tones (shui, shuǐ, shui3), or a word of its meaning (water).");
+            t.setPadding(0, Ink.dp(4), 0, 0);
             results.addView(t);
             return;
         }
         List<Item> found = find(q);
         if (found.isEmpty()) {
-            TextView t = Ui.text(m, "Nothing on the path matches “" + q + "”.", 15, Ink.sans, Ink.ink);
-            t.setPadding(Ink.dp(4), Ink.dp(16), Ink.dp(4), 0);
+            TextView t = Ui.note(m, "Nothing on the path matches “" + q + "”.");
+            t.setPadding(0, Ink.dp(4), 0, 0);
             results.addView(t);
             return;
         }
-        LinearLayout head = Ui.row(m, 12);
-        head.setPadding(Ink.dp(4), Ink.dp(16), Ink.dp(4), Ink.dp(6));
-        head.addView(Ui.label(m, "On the path"), Ui.weight(1));
-        head.addView(Home.small(m, found.size() == 1 ? "1 found" : found.size() + " found"));
-        results.addView(head);
+        LinearLayout head = Ui.section(m, "On the path", Home.small(m, found.size() == 1 ? "1 found" : found.size() + " found"));
+        head.setPadding(0, head.getPaddingTop(), 0, Ink.dp(6));
+        results.addView(head);   // the rows under it, a list: no gap, a faint rule between
         long now = System.currentTimeMillis();
         for (int i = 0; i < Math.min(MAX, found.size()); i++) results.addView(row(found.get(i), i > 0, now));
         if (found.size() > MAX) {
-            TextView t = Ui.text(m, (found.size() - MAX) + " more: type a little more to narrow it.", 13, Ink.sans, Ink.ink2);
-            t.setPadding(Ink.dp(4), Ink.dp(12), Ink.dp(4), 0);
+            TextView t = Ui.note(m, (found.size() - MAX) + " more: type a little more to narrow it.");
+            t.setPadding(0, Ink.dp(12), 0, 0);
             results.addView(t);
         }
     }

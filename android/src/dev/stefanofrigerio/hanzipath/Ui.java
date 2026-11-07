@@ -144,7 +144,60 @@ final class Ui {
         return t;
     }
 
+    /** A section on a page: a hairline above, its label, its figure at the right (null: none;
+     *  Home.small's mono figures), then what it shows, 10 dp apart. Inside a card a label
+     *  stands alone (the card's gap above it, no hairline). */
+    static LinearLayout section(Context c, String title, View figure) {
+        LinearLayout s = column(c, 10);
+        s.setPadding(0, Ink.dp(14), 0, 0);
+        s.setBackground(topRule(Ink.rule));
+        s.addView(figure == null ? label(c, title) : pair(c, 12, label(c, title), figure));
+        return s;
+    }
+
+    /** A way into another screen ("Stats ›"): its label, the › at the end, 48 dp high, a
+     *  hairline above, the highlighter's wash under the finger. */
+    static LinearLayout entry(Context c, String title, String spoken, View.OnClickListener on) {
+        LinearLayout s = row(c, 8);
+        s.setPadding(0, Ink.dp(12), 0, Ink.dp(12));
+        s.setMinimumHeight(Ink.dp(48));
+        s.addView(label(c, title), weight(1));
+        s.addView(text(c, "›", 20, Ink.sans, Ink.ink));
+        press(s, topRule(Ink.rule));
+        s.setContentDescription(spoken != null ? spoken : title);
+        s.setOnClickListener(on);
+        return s;
+    }
+
+    /** A sentence that explains, or says there's nothing yet: the sans, muted. */
+    static TextView note(Context c, CharSequence s) {
+        TextView t = text(c, s, 14, Ink.sans, Ink.ink2);
+        t.setLineSpacing(0, 1.15f);
+        return t;
+    }
+
+    /** A hairline along a view's top: Ink.rule above a section, an entry or an answer;
+     *  Ink.grid between the rows of a list or a ledger. */
+    static android.graphics.drawable.Drawable topRule(int color) {
+        GradientDrawable line = shape(color, 0, 0, false);
+        android.graphics.drawable.LayerDrawable l = new android.graphics.drawable.LayerDrawable(
+                new android.graphics.drawable.Drawable[]{line});
+        l.setLayerHeight(0, Math.max(1, Ink.dp(1)));
+        l.setLayerGravity(0, Gravity.TOP | Gravity.FILL_HORIZONTAL);
+        return l;
+    }
+
     static final int OUTLINE = 0, SOLID = 1, HIGHLIGHT = 2;
+
+    /** The small pill, for what acts in place or comes second (Undo, Got it, Show all, Fold,
+     *  Family tree ›, Step, a setting's value): 36 dp high, 14 sp, outlined. */
+    static TextView small(Context c, String s, View.OnClickListener on) {
+        TextView t = pill(c, s, OUTLINE, on);
+        t.setMinHeight(Ink.dp(36));
+        t.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+        t.setPadding(Ink.dp(14), Ink.dp(4), Ink.dp(14), Ink.dp(4));
+        return t;
+    }
 
     static TextView pill(Context c, String s, int kind, View.OnClickListener on) {
         TextView t = text(c, s, 15, Ink.sansMedium, kind == SOLID ? Ink.paper : kind == HIGHLIGHT ? Ink.hlInk : Ink.ink);
