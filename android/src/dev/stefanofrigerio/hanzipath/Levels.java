@@ -68,7 +68,7 @@ final class Levels {
                     if (!out.containsKey(w)) out.put(w, l);
                 }
             }
-        } catch (Exception e) { /* no lists: every character beyond HSK */ }
+        } catch (Exception e) { return out; /* no lists: every character beyond HSK (read again when next wanted) */ }
         return hsk = out;
     }
 

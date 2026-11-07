@@ -11,9 +11,6 @@ import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-import org.json.JSONArray;
-import org.json.JSONObject;
-
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -22,7 +19,9 @@ import java.util.Set;
 /**
  * Real sentences to read (assets/sentences.json, made by tools/build.py from Tatoeba): every
  * character in them on the path, a few for each place on the path from where they become
- * readable, in that order. Read the first time they're wanted, not with the path.
+ * readable, in that order. Read the first time they're wanted, not with the path: Main starts
+ * reading them on a thread of its own as the app opens, and whoever wants them first waits
+ * for it (load is synchronized), so home's Read line doesn't parse them on the main thread.
  *
  * A card (Learn's, a looked-up one, a question's answer) shows one it's in that you can read
  * now: every character met, or the card's own. The Read round takes the ones you can read
@@ -44,21 +43,31 @@ final class Sentences {
 
     static synchronized void load(Context ctx) {
         if (loaded) return;
-        loaded = true;
-        try {
-            JSONArray a = new JSONObject(PathData.read(ctx, "sentences.json")).getJSONArray("s");
-            for (int i = 0; i < a.length(); i++) {
-                JSONArray x = a.getJSONArray(i);
-                S s = new S();
-                s.zh = x.getString(0);
-                s.py = x.getString(1).split(" ");
-                s.en = x.getString(2);
-                s.at = x.getInt(3);
-                s.han = han(s.zh);
-                if (s.han.length == s.py.length) all.add(s);
+        List<S> read = new ArrayList<>(5000);
+        try (android.util.JsonReader r = PathData.reader(ctx, "sentences.json")) {
+            r.beginObject();
+            while (r.hasNext()) {
+                if (!r.nextName().equals("s")) { r.skipValue(); continue; }
+                r.beginArray();
+                while (r.hasNext()) {
+                    r.beginArray();
+                    S s = new S();
+                    s.zh = r.nextString();
+                    s.py = r.nextString().split(" ");
+                    s.en = r.nextString();
+                    s.at = r.nextInt();
+                    while (r.hasNext()) r.skipValue();
+                    r.endArray();
+                    s.han = han(s.zh);
+                    if (s.han.length == s.py.length) read.add(s);
+                }
+                r.endArray();
             }
+            r.endObject();
+            all.addAll(read);
+            loaded = true;
         } catch (Exception e) {
-            all.clear();   // no sentences: the cards show none, there's no Read round
+            all.clear();   // no sentences: the cards show none, there's no Read round (read again when next wanted)
         }
     }
 
