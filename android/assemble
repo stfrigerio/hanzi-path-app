@@ -31,7 +31,12 @@ cp ../data/path.json ../data/strokes-*.json "$OUT/assets/"
 mkdir -p "$OUT/assets/fonts" && cp fonts/*.ttf "$OUT/assets/fonts/"
 javac -source 8 -target 8 -nowarn -Xlint:-options -bootclasspath "$JAR" -classpath "$BT/core-lambda-stubs.jar" -d "$OUT/classes" $(find src -name '*.java')
 "$BT/d8" --min-api 31 --lib "$JAR" --output "$OUT/dex" $(find "$OUT/classes" -name '*.class')
-"$BT/aapt2" compile --dir res -o "$OUT/res.zip"
+# the resources, with the faces the widget's layouts name (RemoteViews can't take a Typeface)
+cp -r res "$OUT/res" && mkdir -p "$OUT/res/font"
+cp fonts/mono.ttf "$OUT/res/font/mono.ttf"
+cp fonts/mono-medium.ttf "$OUT/res/font/mono_medium.ttf"
+cp fonts/sans.ttf "$OUT/res/font/sans.ttf"
+"$BT/aapt2" compile --dir "$OUT/res" -o "$OUT/res.zip"
 "$BT/aapt2" link -I "$JAR" --manifest AndroidManifest.xml -A "$OUT/assets" -0 json -0 ttf \
     --version-code "$CODE" --version-name "$CODE" -o "$OUT/unsigned.apk" "$OUT/res.zip"
 (cd "$OUT/dex" && zip -q ../unsigned.apk classes.dex)

@@ -84,6 +84,7 @@ puts all of it on the clipboard as text; *Load from clipboard* takes it back.
 | `PathData`, `Glyph` | the path and its stroke shapes (from `data/`) |
 | `Ink`, `Ui`, `Flow` | the look: the garden's colours, the faces, pills, cards |
 | `Updater`, `Installed` | updates from GitHub's release |
+| `Widget` (`res/layout/widget_*`) | the home-screen widget: what's due, a character from the path |
 | `android/assemble` | the build: javac, d8, aapt2, apksigner |
 
 ## The path

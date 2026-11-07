@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The widget from about 4×2 (Widget.java): the character on the left as at 2×2; on the
+     right, after a rule, how many are due and the next few to learn. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@android:id/background"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal"
+    android:background="@drawable/widget_card"
+    android:clipToOutline="true"
+    android:paddingStart="18dp"
+    android:paddingEnd="18dp"
+    android:paddingTop="14dp"
+    android:paddingBottom="14dp">
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:orientation="vertical">
+        <TextView
+            android:id="@+id/what"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:text="REVIEW"
+            android:textSize="11sp"
+            android:letterSpacing="0.12"
+            android:fontFamily="@font/mono_medium"
+            android:textColor="@color/ink2" />
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1">
+            <TextView
+                android:id="@+id/han"
+                android:layout_width="84dp"
+                android:layout_height="84dp"
+                android:layout_gravity="center"
+                android:gravity="center"
+                android:maxLines="1"
+                android:paddingStart="6dp"
+                android:paddingEnd="6dp"
+                android:includeFontPadding="false"
+                android:text="人"
+                android:textSize="52sp"
+                android:fontFamily="serif"
+                android:textColor="@color/ink" />
+        </FrameLayout>
+        <include layout="@layout/widget_pinyin" />
+        <TextView
+            android:id="@+id/meaning"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:text="person; people"
+            android:textSize="13sp"
+            android:fontFamily="@font/sans"
+            android:textColor="@color/ink2" />
+    </LinearLayout>
+
+    <ImageView
+        android:layout_width="1dp"
+        android:layout_height="match_parent"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:src="@drawable/widget_rule"
+        android:scaleType="fitXY" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:orientation="vertical">
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:maxLines="1"
+            android:text="DUE NOW"
+            android:textSize="11sp"
+            android:letterSpacing="0.12"
+            android:fontFamily="@font/mono_medium"
+            android:textColor="@color/ink2" />
+        <TextView
+            android:id="@+id/count"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:maxLines="1"
+            android:text="4"
+            android:textSize="34sp"
+            android:fontFamily="@font/mono_medium"
+            android:textColor="@color/ink" />
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+        <TextView
+            android:id="@+id/then_what"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:text="NEXT TO LEARN"
+            android:textSize="11sp"
+            android:letterSpacing="0.12"
+            android:fontFamily="@font/mono_medium"
+            android:textColor="@color/ink2" />
+        <TextView
+            android:id="@+id/then"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:text="口 日 月 山 水"
+            android:textSize="22sp"
+            android:fontFamily="serif"
+            android:textColor="@color/ink" />
+    </LinearLayout>
+</LinearLayout>

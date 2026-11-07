@@ -4,7 +4,8 @@
      readings spoken by Android's own voice (Speech). The updater asks GitHub's latest
      release at most every few hours and installs a newer APK over this one (silently once
      this app installed itself). The one notification is the daily reminder (Reminder: an
-     inexact alarm, armed again after a reboot or an update). versionCode is set by assemble: the commits on the branch. -->
+     inexact alarm, armed again after a reboot or an update). The home-screen widget (Widget)
+     shows what's due and a character from the path. versionCode is set by assemble: the commits on the branch. -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="dev.stefanofrigerio.hanzipath">
 
@@ -47,6 +48,14 @@
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
+        </receiver>
+        <receiver android:name=".Widget" android:exported="true" android:label="汉字之路">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget" />
         </receiver>
     </application>
 </manifest>

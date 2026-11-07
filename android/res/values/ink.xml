@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ink.java's day palette for what the app can't paint in code: the home-screen widget
+     (RemoteViews takes resources, and the launcher picks day or night by itself). Keep in
+     step with Ink.init. -->
+<resources>
+    <color name="ink">#141414</color>
+    <color name="ink2">#5c5c66</color>
+    <color name="rule">#c9c8c0</color>
+    <color name="tone1">#1f55c8</color>
+    <color name="tone2">#2e7d32</color>
+    <color name="tone3">#b5571c</color>
+    <color name="tone4">#c2286f</color>
+    <color name="tone5">#76767e</color>
+    <color name="hl">#ffff00</color>
+    <color name="hl_ink">#141414</color>
+</resources>
