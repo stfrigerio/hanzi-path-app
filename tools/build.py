@@ -499,6 +499,85 @@ def toneless(syl):
         ch for ch in unicodedata.normalize("NFD", tone(syl)) if ord(ch) < 0x300 or ord(ch) == 0x308))
 
 
+def tone_of(syl):
+    """1-4 from a syllable's mark, 5 for the neutral tone."""
+    for ch in unicodedata.normalize("NFD", syl):
+        t = {0x304: 1, 0x301: 2, 0x30C: 3, 0x300: 4}.get(ord(ch))
+        if t:
+            return t
+    return 5
+
+
+# words said with a neutral tone that a source gives toned (CC-CEDICT's first entry,
+# or its only one): the reading HSK or CC-CEDICT also give, and the Xiandai Hanyu
+# Cidian's light tone. Applied where the toneless syllables match, so 东西 dōng xī
+# "east and west" becomes dōng xi "thing", the commoner by far
+NEUTRAL = {"东西": "dōng xi", "意思": "yì si", "时候": "shí hou", "认识": "rèn shi",
+           "知道": "zhī dao", "告诉": "gào su", "朋友": "péng you", "喜欢": "xǐ huan",
+           "客气": "kè qi", "衣服": "yī fu", "地方": "dì fang", "事情": "shì qing",
+           "先生": "xiān sheng", "明白": "míng bai", "故事": "gù shi",
+           "生意": "shēng yi", "本事": "běn shi", "工夫": "gōng fu", "买卖": "mǎi mai"}
+# directional complements, said light after a verb (站起来 zhàn qǐ lai) and as a verb
+# themselves (回来 huí lai): the second syllable loses its tone
+COMPLEMENT = {"过来": "lai", "起来": "lai", "出来": "lai", "回来": "lai", "下来": "lai",
+              "出去": "qu", "回去": "qu"}
+DIGIT = set("零〇一二三四五六七八九十")       # 一 before one is counting: 一二, 一九八一
+NUMERAL = DIGIT | set("百千万两")              # and after a number: 十一, 一百一
+DROPS = set("是有做给举拿买找生了")             # verbs said with 个 for 一个: 是个, 有个
+
+
+def light(w, syl):
+    """A word's syllables with the neutral tones NEUTRAL and COMPLEMENT know."""
+    if w in NEUTRAL and [toneless(s) for s in syl] == [toneless(s) for s in NEUTRAL[w].split()]:
+        return NEUTRAL[w].split()
+    if w[-2:] in COMPLEMENT and toneless(syl[-1]) == COMPLEMENT[w[-2:]]:
+        return syl[:-1] + [COMPLEMENT[w[-2:]]]
+    return syl
+
+
+def spoken(han, syl, ends=(), stops=(), heads=()):
+    """Dictionary tones to the ones said, a syllable per character of han: 不 bú before a
+    4th tone and bu in 是不是; 一 yí before a 4th tone, yì before the others, yī counting
+    (十一, 第一, 一二, 一月), alone or ending a word (统一, in ends), yi in 看一看; 个 ge
+    as a measure word: after a number or 这, 那, 哪, 几, 每, 某 (一个, 这个), and after a
+    verb that drops the 一 (是个好人, 有个问题) unless 个 starts a word (有个性). ends and
+    heads: where a word of two or more ends and starts; stops: the characters a
+    punctuation mark follows. The 3rd-tone change (你好 ní hǎo) isn't
+    written: a learner reads it from the two 3rds."""
+    out = list(syl)
+    n = len(han)
+
+    def near(i, d):
+        """The character before (d -1) or after (d 1) han[i] in the same clause, or ""."""
+        j = i + d
+        if j < 0 or j >= n or (d > 0 and i in stops) or (d < 0 and j in stops):
+            return ""
+        return han[j]
+
+    for i, c in enumerate(han):
+        if c == "个" and tone(syl[i]) == "gè" and (near(i, -1) in NUMERAL | set("这那哪几每某") or
+                                                   near(i, -1) in DROPS and i not in heads):
+            out[i] = "ge"
+    for i, c in enumerate(han):
+        prev, nxt = near(i, -1), near(i, 1)
+        if c == "一" and tone(syl[i]) == "yī":
+            if not nxt or i in ends or prev in NUMERAL or nxt in DIGIT or prev in ("第", "期", "拜") \
+                    or nxt in ("月", "号") or han[i + 1:i + 3] == "年级":
+                continue                        # counting, an ordinal, a date, alone, a word's end
+            if prev == nxt:
+                out[i] = "yi"                   # 看一看
+            elif nxt == "个" or tone_of(syl[i + 1]) == 4:
+                out[i] = "yí"
+            elif tone_of(syl[i + 1]) < 4:
+                out[i] = "yì"
+        elif c == "不" and tone(syl[i]) == "bù" and nxt:
+            if prev == nxt and prev != "不":
+                out[i] = "bu"                   # 是不是
+            elif tone_of(syl[i + 1]) == 4:
+                out[i] = "bú"
+    return out
+
+
 def usage(ced, hsk, rank):
     """{character: {reading: how much it's used}}, and the (character, reading)s that are
     HSK words alone (吗 ma, 得 de): every word a character is in, counted
@@ -637,11 +716,12 @@ def lexicon(ced, hsk, onpath):
     return lex
 
 
-def said(han, lex, main):
+def said(han, lex, main, stops=()):
     """A sentence's syllables, one per character: split into the fewest words the lexicon
     knows (more of HSK's on a tie), each read as it's said in that word (了解 liǎo, 睡觉
     jiào); a character alone by its main reading, but de for 地 after a doubled word (慢慢地)
-    and for 得 before how something's done (说得很好)."""
+    and for 得 before how something's done (说得很好). Then as it's spoken (spoken(), light()):
+    不是 bú shì, 一个 yí ge, 东西 dōng xi. stops: the characters a punctuation mark follows."""
     n = len(han)
     best = [(0, 0, None)] + [None] * n      # (words, -characters in HSK words, (start, syllables))
     for i in range(1, n + 1):
@@ -663,15 +743,18 @@ def said(han, lex, main):
         j, syl = best[i][2]
         words.insert(0, (han[j:i], syl))
         i = j
-    out = []
+    out, ends, heads = [], set(), set()
     for w, syl in words:
         k = len(out)
         if w == "地" and k >= 2 and han[k - 1] == han[k - 2]:
             syl = ["de"]
         elif w == "得" and 0 < k < n - 1 and han[k + 1] in "很太非真好快慢多少清越更最不":
             syl = ["de"]
-        out += syl
-    return out
+        if len(w) > 1:
+            heads.add(k)
+            ends.add(k + len(w) - 1)
+        out += light(w, syl)
+    return spoken(han, out, ends, stops, heads)
 
 
 def sentences(src, items, ced, hsk):
@@ -721,7 +804,14 @@ def sentences(src, items, ced, hsk):
             if len(picked) == SENTENCES_PER_ITEM:
                 break
         for s, han, en in picked:
-            syl = said(han, lex, main)
+            stops, k = set(), 0
+            for c in s:
+                if c in OPEN or c in CLOSE:
+                    if k:
+                        stops.add(k - 1)
+                else:
+                    k += 1
+            syl = said(han, lex, main, stops)
             toks, k, pre = [], 0, ""
             for c in s:
                 if c in OPEN:
@@ -834,6 +924,12 @@ def main():
         extra.setdefault(last, []).append(((len(w) != 2, -inside[w], others), [w, e[0], en, 0]))
     for c, lst in extra.items():
         words[c] = [w for _, w in sorted(lst)[:WORDS_PER_CHAR]]
+    # as they're said: 不对 bú duì, 一样 yí yàng, 东西 dōng xi
+    for lst in words.values():
+        for wd in lst:
+            syl = wd[1].split()
+            if len(syl) == len(wd[0]):
+                wd[1] = " ".join(spoken(wd[0], light(wd[0], syl), {len(wd[0]) - 1}))
 
     users = {}
     for c in order:
