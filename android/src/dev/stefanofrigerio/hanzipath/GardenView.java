@@ -10,8 +10,8 @@ import android.view.View;
 
 /**
  * The path on the home screen, every item a cell in order: the garden that fills with what
- * you know. Folded, it shows only its first {@code shown} cells (what's met and the rows
- * ahead); open, all of them. Next is the highlighter, learning pink, known blue, a wilting one (due and
+ * you know. Folded, it shows only the cells from {@code from} to {@code shown} (whole rows: the
+ * last rows met and the rows ahead); open, all of them. Next is the highlighter, learning pink, known blue, a wilting one (due and
  * slipping) outlined in pink; the next forty ahead outlined, the rest faint. A part has a
  * dot in its corner. A tap opens the item; the cell under the finger takes the press (its fill
  * as a pill's turns, Ink.pressed, and a ring of ink) once it's a tap, not a scroll.
@@ -21,7 +21,7 @@ class GardenView extends View {
     interface Tap { void open(int index); }
 
     int[] state = new int[0];
-    int cols = 10, shown = Integer.MAX_VALUE;
+    int cols = 10, from = 0, shown = Integer.MAX_VALUE;
     float cell, gap;
     Tap tap;
     int pressed = -1;      // the cell under the finger
@@ -63,19 +63,26 @@ class GardenView extends View {
     }
 
     /** Show the first n cells (folded), or every one (Integer.MAX_VALUE). */
-    void show(int n) {
-        shown = n;
+    void show(int n) { show(0, n); }
+
+    /** Show the cells from a (the start of a row) up to b (folded), or every one (0, Integer.MAX_VALUE). */
+    void show(int a, int b) {
+        from = a;
+        shown = b;
         requestLayout();
         invalidate();
     }
 
-    int count() { return Math.min(shown, state.length); }
+    /** The first cell drawn, and how many are. */
+    int first() { return Math.min(from, state.length); }
 
-    /** The cell under a touch, or -1. */
+    int count() { return Math.min(shown, state.length) - first(); }
+
+    /** The cell under a touch (its index on the path), or -1. */
     int at(MotionEvent e) {
         int col = (int) (e.getX() / (cell + gap)), row = (int) (e.getY() / (cell + gap));
         int i = row * cols + col;
-        return e.getX() >= 0 && e.getY() >= 0 && col < cols && i < count() ? i : -1;
+        return e.getX() >= 0 && e.getY() >= 0 && col < cols && i < count() ? first() + i : -1;
     }
 
     void press(int i) {
@@ -104,9 +111,10 @@ class GardenView extends View {
     protected void onDraw(Canvas c) {
         textP.setTextSize(cell * 0.56f);
         Paint.FontMetrics fm = textP.getFontMetrics();
-        for (int i = 0; i < count(); i++) {
+        for (int i = first(), end = first() + count(); i < end; i++) {
             Item it = PathData.items.get(i);
-            float x = (i % cols) * (cell + gap), y = (i / cols) * (cell + gap);
+            int j = i - first();
+            float x = (j % cols) * (cell + gap), y = (j / cols) * (cell + gap);
             r.set(x, y, x + cell, y + cell);
             int bg = 0, line = 0, fg;
             switch (state[i]) {

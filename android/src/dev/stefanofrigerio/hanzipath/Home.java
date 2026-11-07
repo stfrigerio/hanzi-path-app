@@ -21,6 +21,10 @@ import java.util.Locale;
  * garden, folded to the rows around where you are, the rest a tap away.
  */
 final class Home {
+    /** A folded garden longer than this many rows from the top starts at your last rows met
+     *  instead, with a line counting what's above them. */
+    static final int SHORT = 10;
+
     private Home() {}
 
     static void build(Main m, LinearLayout col) {
@@ -140,6 +144,15 @@ final class Home {
         int cols = GardenView.columns(m.contentWidth());
         int focus = Math.max(lastMet, firstNew < 0 ? st.length - 1 : firstNew + k - 1);
         int fold = Math.min(st.length, (focus / cols + 3) * cols);   // your row and two ahead
+        // hundreds met: from the last two rows of them, not from the top
+        int from = 0;
+        if (fold > SHORT * cols) from = Math.max(0, (firstNew < 0 ? focus : firstNew) / cols - 2) * cols;
+        int aboveKnown = 0, aboveYoung = 0, aboveWilt = 0;
+        for (int i = 0; i < from; i++) {
+            if (st[i] == GardenView.KNOWN) aboveKnown++;
+            else if (st[i] == GardenView.WILT) aboveWilt++;
+            else if (st[i] == GardenView.YOUNG) aboveYoung++;
+        }
         LinearLayout gs = Ui.column(m, 10);
         gs.setPadding(0, Ink.dp(8), 0, 0);
         LinearLayout gh = Ui.row(m, 12);
@@ -154,16 +167,26 @@ final class Home {
         lg.addView(legend(m, Ink.known, Ink.known, "known"));
         lg.addView(legend(m, 0, Ink.rule, "ahead"));
         gs.addView(lg);
-        g.show(m.gardenOpen ? Integer.MAX_VALUE : fold);
+        final int start = from;
+        TextView above = null;
+        if (from > 0) {
+            above = small(m, aboveKnown + " known" + (aboveYoung > 0 ? ", " + aboveYoung + " learning" : "")
+                    + (aboveWilt > 0 ? ", " + aboveWilt + " wilting" : "") + " before these rows");
+            above.setVisibility(m.gardenOpen ? View.GONE : View.VISIBLE);
+            gs.addView(above);
+        }
+        final TextView before = above;
+        g.show(m.gardenOpen ? 0 : start, m.gardenOpen ? Integer.MAX_VALUE : fold);
         gs.addView(g, new LinearLayout.LayoutParams(-1, -2));
-        if (fold < st.length) {
-            int more = st.length - fold;
+        if (from > 0 || fold < st.length) {
+            int more = st.length - (fold - from);
             TextView t = Ui.pill(m, "", Ui.OUTLINE, null);
             Runnable label = () -> t.setText(m.gardenOpen ? "Fold the path" : "Show the whole path (" + more + " more)");
             label.run();
             t.setOnClickListener(v -> {
                 m.gardenOpen = !m.gardenOpen;
-                g.show(m.gardenOpen ? Integer.MAX_VALUE : fold);
+                g.show(m.gardenOpen ? 0 : start, m.gardenOpen ? Integer.MAX_VALUE : fold);
+                if (before != null) before.setVisibility(m.gardenOpen ? View.GONE : View.VISIBLE);
                 label.run();
             });
             LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(-2, -2);
