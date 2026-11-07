@@ -46,6 +46,8 @@ class Quiz {
     int grade;
     HanziView hv;
     final Random rnd = new Random();
+    boolean fresh;         // just answered: the rings come in (Motion), once
+    final List<View> ringed = new ArrayList<>(), faded = new ArrayList<>();
 
     static class Last {
         Progress.Undo undo;
@@ -73,7 +75,9 @@ class Quiz {
             shown = System.currentTimeMillis();
             if (mode.equals("listen")) m.say(h);
         }
-        LinearLayout col = m.page("quiz", this::show);
+        LinearLayout col = m.page("quiz", Arrays.asList(this, done, h, tries(h)), this::show);
+        ringed.clear();
+        faded.clear();
         TextView undo = last == null ? null : smallPill("Undo", v -> undo());
         col.addView(Cards.bar(m, (kind.equals("check") ? "check " : "review ") + Math.min(done + 1, total) + " / " + total,
                 undo, Ui.close(m, v -> m.home())));
@@ -109,8 +113,25 @@ class Quiz {
             Cards.parts(m, answer, it);
             Cards.add(answer, Cards.why(m, it));
             card.addView(answer);
+            if (fresh) reveal(answer);
         }
         col.addView(card);
+    }
+
+    /** The answer coming in after a tap (Motion.ANSWER): the right one's ring and a wrong pick's
+     *  fade in as they settle from a touch smaller, the other answers fade back, the answer
+     *  in full fades in under them. */
+    void reveal(View answer) {
+        fresh = false;
+        m.motion = Motion.run(m, Motion.ANSWER, f -> {
+            for (View v : ringed) {
+                v.getBackground().setAlpha(Math.round(255 * f));
+                v.setScaleX(0.96f + 0.04f * f);
+                v.setScaleY(0.96f + 0.04f * f);
+            }
+            for (View v : faded) v.setAlpha(1 - 0.55f * f);
+            answer.setAlpha(f);
+        });
     }
 
     /** The kind of question for h: choose in the check and while it's new (seen fewer than
@@ -182,7 +203,8 @@ class Quiz {
             if (right || mine) g.setStroke(Ink.dp(2), right ? Ink.tone[2] : Ink.tone[4]);
             else g.setStroke(Math.max(1, Ink.dp(1)), Ink.rule);
             v.setBackground(g);
-            if (!right && !mine) v.setAlpha(0.45f);
+            if (right || mine) ringed.add(v);
+            else { v.setAlpha(0.45f); faded.add(v); }
         }
         return v;
     }
@@ -211,7 +233,8 @@ class Quiz {
             if (right || mine) g.setStroke(Ink.dp(2), right ? Ink.tone[2] : Ink.tone[4]);
             else g.setStroke(Math.max(1, Ink.dp(1)), Ink.rule);
             t.setBackground(g);
-            if (!right && !mine) t.setAlpha(0.45f);
+            if (right || mine) ringed.add(t);
+            else { t.setAlpha(0.45f); faded.add(t); }
         }
         t.setContentDescription((it.py.length > 0 ? it.py[0] + ", " : "") + it.en);
         return t;
@@ -285,6 +308,8 @@ class Quiz {
         l.mode = mode;
         last = l;
         picked = o;
+        fresh = true;
+        Motion.felt(m.root, o.equals(h));
         Item it = PathData.get(h);
         if (m.prog.say && it.py.length > 0) m.say(h);
         show();

@@ -3,8 +3,7 @@ package dev.stefanofrigerio.hanzipath;
 import android.content.Context;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
-import android.graphics.drawable.RippleDrawable;
-import android.content.res.ColorStateList;
+import android.graphics.drawable.StateListDrawable;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.style.ForegroundColorSpan;
@@ -97,10 +96,16 @@ final class Ui {
         t.setTextColor(kind == SOLID ? Ink.paper : kind == HIGHLIGHT ? Ink.hlInk : Ink.ink);
     }
 
-    /** Something you can touch: a hairline shape that ripples under the finger. */
-    static void touch(View v, int fill, int stroke, float radiusDp) {
-        v.setBackground(new RippleDrawable(ColorStateList.valueOf(Ink.night ? 0x33ffffff : 0x22000000),
-                shape(fill, stroke, radiusDp, false), null));
+    /** Something you can touch: a hairline shape whose fill turns under the finger (Ink.pressed:
+     *  paper takes a wash of the highlighter, ink lifts), at once: no fade, which would hold the
+     *  old fill over the new one while the finger is already down. */
+    static void touch(View v, int fill, int stroke, float radiusDp) { touch(v, fill, stroke, radiusDp, false); }
+
+    static void touch(View v, int fill, int stroke, float radiusDp, boolean dashed) {
+        StateListDrawable s = new StateListDrawable();
+        s.addState(new int[]{android.R.attr.state_pressed}, shape(Ink.pressed(fill), stroke, radiusDp, dashed));
+        s.addState(new int[0], shape(fill, stroke, radiusDp, dashed));
+        v.setBackground(s);
     }
 
     static void enable(TextView pill, boolean on, int kind) {
@@ -114,7 +119,7 @@ final class Ui {
     static TextView close(Context c, View.OnClickListener on) {
         TextView t = text(c, "×", 24, Ink.sans, Ink.ink);
         t.setGravity(Gravity.CENTER);
-        t.setBackground(shape(Ink.paper, Ink.ink, 999, false));
+        touch(t, Ink.paper, Ink.ink, 999);
         t.setLayoutParams(new LinearLayout.LayoutParams(Ink.dp(40), Ink.dp(40)));
         t.setContentDescription("Back to the path");
         t.setOnClickListener(on);
@@ -147,7 +152,7 @@ final class Ui {
                 k.restore();
             }
         };
-        v.setBackground(shape(Ink.paper, Ink.ink, 999, false));
+        touch(v, Ink.paper, Ink.ink, 999);
         v.setLayoutParams(new LinearLayout.LayoutParams(Ink.dp(34), Ink.dp(34)));
         v.setContentDescription("Say it");
         v.setOnClickListener(on);

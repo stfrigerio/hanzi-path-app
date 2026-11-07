@@ -12,7 +12,7 @@ import android.util.TypedValue;
  * 4 pink, neutral grey. Every colour in the app is one of these.
  */
 final class Ink {
-    static int paper, paper2, ink, ink2, rule, hl, hlInk, known, young, grid;
+    static int paper, paper2, ink, ink2, rule, hl, hlInk, known, young, grid, press;
     static final int[] tone = new int[6];
     static boolean night;
     static Typeface mono, monoMedium, sans, sansMedium, brush, han;
@@ -35,6 +35,7 @@ final class Ink {
         }
         hl = 0xffffff00;
         hlInk = 0xff141414;
+        press = mix(paper, hl, night ? 0.14f : 0.3f);     // paper under a finger: a wash of the highlighter
         if (mono == null) {
             mono = Typeface.createFromAsset(ctx.getAssets(), "fonts/mono.ttf");
             monoMedium = Typeface.createFromAsset(ctx.getAssets(), "fonts/mono-medium.ttf");
@@ -43,6 +44,24 @@ final class Ink {
             brush = Typeface.createFromAsset(ctx.getAssets(), "fonts/brush.ttf");   // 汉字之路好行练 only
             han = Typeface.create("serif", Typeface.NORMAL);                        // Android's Noto Serif CJK
         }
+    }
+
+    /** What a fill turns to under a finger: paper takes a wash of the highlighter, ink lifts
+     *  towards the paper, any other ink deepens. */
+    static int pressed(int fill) {
+        if (fill == 0 || fill == paper || fill == paper2) return press;
+        if (fill == ink) return mix(ink, paper, 0.22f);
+        return mix(fill, hlInk, 0.14f);
+    }
+
+    /** a towards b by t, channel by channel (opaque). */
+    static int mix(int a, int b, float t) {
+        int r = 0xff000000;
+        for (int sh = 0; sh <= 16; sh += 8) {
+            int x = (a >> sh) & 0xff, y = (b >> sh) & 0xff;
+            r |= Math.round(x + (y - x) * t) << sh;
+        }
+        return r;
     }
 
     static int dp(float v) { return Math.round(v * density); }

@@ -60,7 +60,7 @@ final class Cards {
         Item p = PathData.get(h);
         LinearLayout r = Ui.row(m, 8);
         r.setPadding(Ink.dp(6), Ink.dp(4), Ink.dp(12), Ink.dp(4));
-        r.setBackground(Ui.shape(Ink.paper, m.prog.cards.containsKey(h) ? Ink.ink : Ink.ink2, 999, !m.prog.cards.containsKey(h)));
+        Ui.touch(r, Ink.paper, m.prog.cards.containsKey(h) ? Ink.ink : Ink.ink2, 999, !m.prog.cards.containsKey(h));
         TextView han = Ui.text(m, h, 21, Ink.han, Ink.ink);
         han.setMinWidth(Ink.dp(28));
         han.setGravity(Gravity.CENTER);
