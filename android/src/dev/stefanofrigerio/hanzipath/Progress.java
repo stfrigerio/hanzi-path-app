@@ -77,6 +77,7 @@ final class Progress extends SQLiteOpenHelper {
     boolean say = true;
     int remind = -1;                      // the daily reminder: minutes after midnight, -1 off
     int round = 40;                       // reviews per round (Settings), 0 all that are due
+    String speed = "normal";              // the voice's speed (Settings): normal, slower
     boolean introDone;                    // home's first-run lines put away ("Got it", or a batch learnt)
     String todayDate = "";
     int todayNew = 0;
@@ -258,7 +259,7 @@ final class Progress extends SQLiteOpenHelper {
     /** The settings as they're kept (meta "opts"); a key missing from an older copy loads as its default. */
     JSONObject opts() throws org.json.JSONException {
         return new JSONObject().put("batch", batch).put("perDay", perDay).put("say", say).put("remind", remind)
-                .put("round", round).put("intro", introDone);
+                .put("round", round).put("intro", introDone).put("speed", speed);
     }
 
     /** How many reviews a round takes, of what's due. */
@@ -480,6 +481,7 @@ final class Progress extends SQLiteOpenHelper {
         cards.clear();
         stories.clear();
         round = 40;          // what a copy from before these settings doesn't say: their defaults
+        speed = "normal";
         apartShown = new JSONObject();
         introDone = false;
         SQLiteDatabase db = getReadableDatabase();
@@ -506,6 +508,7 @@ final class Progress extends SQLiteOpenHelper {
                         remind = o.optInt("remind", remind);
                         round = o.optInt("round", round);
                         introDone = o.optBoolean("intro", introDone);
+                        speed = "slower".equals(o.optString("speed")) ? "slower" : "normal";
                     } else if (k.equals("today")) {
                         JSONObject o = new JSONObject(c.getString(1));
                         todayDate = o.optString("d");
