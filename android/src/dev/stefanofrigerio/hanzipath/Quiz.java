@@ -219,8 +219,9 @@ class Quiz {
         misses = l.misses;
         tries = l.tries;
         last = null;
+        if (picked != null) shown = System.currentTimeMillis();   // this question: the same four, timed again
+        else optionsFor = null;                                    // the one before: drawn afresh
         picked = null;
-        optionsFor = null;
         m.quiz = this;
         show();
     }
