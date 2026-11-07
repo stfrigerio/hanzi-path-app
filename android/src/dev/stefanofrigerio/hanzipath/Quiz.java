@@ -34,6 +34,9 @@ import java.util.Set;
  * (the word, four readings and meanings), word-pick (its reading and meaning, four words)
  * and word-listen (said aloud, four words). Its wrong answers are other words, ones sharing
  * a character with it first, ones you've met or could (their characters known) before the rest.
+ *
+ * And tone (Tones): the character said aloud and shown, five tones to pick from; drawn now
+ * and then in a review for a character whose tone you've missed or been slow on.
  */
 class Quiz {
     static final long SLOW = 8000;
@@ -46,7 +49,7 @@ class Quiz {
     Last last;
     String optionsFor;     // the question the options were drawn for (a redraw keeps them)
     List<String> options;
-    String mode;           // choose | pick | listen, or word-choose | word-pick | word-listen
+    String mode;           // choose | pick | listen | tone, or word-choose | word-pick | word-listen
     String picked;         // the answer tapped; null while it's open
     int grade;
     HanziView hv;
@@ -76,10 +79,10 @@ class Quiz {
         Item it = PathData.get(h);
         if (!h.equals(optionsFor)) {
             mode = kindFor(h);
-            options = options(h, mode);
+            options = mode.equals("tone") ? Tones.OPTIONS : options(h, mode);
             optionsFor = h;
             shown = System.currentTimeMillis();
-            if (mode.endsWith("listen")) m.say(h);
+            if (heard()) m.say(h);
         }
         LinearLayout col = m.page("quiz", Arrays.asList(this, done, h, tries(h)), this::show);
         ringed.clear();
@@ -89,12 +92,15 @@ class Quiz {
                 undo, Ui.close(m, v -> m.home())));
 
         LinearLayout card = Ui.card(m);
-        TextView ask = Ui.label(m, picked == null ? (mode.endsWith("listen") ? "Which one did you hear?" : "Which one is it?")
-                : picked.equals(h) ? "Right" : "Not that one");
+        TextView ask = Ui.label(m, picked == null ? (mode.endsWith("listen") ? "Which one did you hear?"
+                : mode.equals("tone") ? "Which tone is it?" : "Which one is it?")
+                : right(picked, h) ? "Right" : "Not that one");
         ask.setGravity(Gravity.CENTER);
-        if (picked != null) ask.setTextColor(picked.equals(h) ? Ink.tone[2] : Ink.tone[4]);
+        if (picked != null) ask.setTextColor(right(picked, h) ? Ink.tone[2] : Ink.tone[4]);
         card.addView(ask, new LinearLayout.LayoutParams(-1, -2));
-        if (mode.endsWith("choose")) {
+        if (mode.equals("tone")) {
+            Tones.question(this, card, it);
+        } else if (mode.endsWith("choose")) {
             if (word != null) {
                 hv = null;
                 card.addView(Cards.word(m, h));
@@ -160,6 +166,7 @@ class Quiz {
         Progress.Card c = m.prog.cards.get(h);
         String w = Words.is(h) ? "word-" : "";
         if (kind.equals("check") || c == null || c.reps < 2) return w + "choose";
+        if (Tones.fits(m.prog, h) && rnd.nextInt(Tones.EVERY) == 0) return "tone";
         List<String> k = new ArrayList<>(Arrays.asList("choose", "pick"));
         if (m.prog.say && !py(h).isEmpty()) k.add("listen");
         return w + k.get(rnd.nextInt(k.size()));
@@ -257,8 +264,9 @@ class Quiz {
     }
 
     /** After a tap: the right answer ringed green, a wrong pick pink, the rest fade. */
-    void mark(View v, String o, String h, float radius) {
-        boolean right = o.equals(h), mine = o.equals(picked);
+    void mark(View v, String o, String h, float radius) { mark(v, o.equals(h), o.equals(picked), radius); }
+
+    void mark(View v, boolean right, boolean mine, float radius) {
         android.graphics.drawable.GradientDrawable g = Ui.shape(Ink.paper, 0, radius, false);
         if (right || mine) g.setStroke(Ink.dp(2), right ? Ink.tone[2] : Ink.tone[4]);
         else g.setStroke(Math.max(1, Ink.dp(1)), Ink.rule);
@@ -367,12 +375,18 @@ class Quiz {
 
     int tries(String h) { return tries.containsKey(h) ? tries.get(h) : 0; }
 
+    /** Whether the answer o to h is right: the card itself, or for tone its tone. */
+    boolean right(String o, String h) { return mode.equals("tone") ? Tones.right(o, h) : o.equals(h); }
+
+    /** The kinds said aloud as they're asked: listen, tone. */
+    boolean heard() { return mode.endsWith("listen") || mode.equals("tone"); }
+
     /** A tap: the grade, from right or wrong and how long it took. */
     void pick(String o) {
         if (picked != null) return;
         String h = queue.get(0);
         long ms = System.currentTimeMillis() - shown;
-        grade = !o.equals(h) ? 1 : ms <= SLOW ? 3 : 2;
+        grade = !right(o, h) ? 1 : ms <= SLOW ? 3 : 2;
         Last l = new Last();
         l.undo = m.prog.grade(h, grade, mode, ms);
         l.queue = new ArrayList<>(queue);
@@ -384,7 +398,7 @@ class Quiz {
         last = l;
         picked = o;
         fresh = true;
-        Motion.felt(m.root, o.equals(h));
+        Motion.felt(m.root, right(o, h));
         if (m.prog.say && !py(h).isEmpty()) m.say(h);
         show();
     }
@@ -418,7 +432,7 @@ class Quiz {
         mode = l.mode;
         shown = System.currentTimeMillis();
         picked = null;
-        if (mode.endsWith("listen")) m.say(optionsFor);
+        if (heard()) m.say(optionsFor);
         m.quiz = this;
         show();
     }
