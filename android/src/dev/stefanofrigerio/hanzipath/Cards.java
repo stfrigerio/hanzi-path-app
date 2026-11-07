@@ -43,6 +43,31 @@ final class Cards {
         return hv;
     }
 
+    /** Under the square: a small Step pill. Each tap shows the next stroke ("3 / 7"); on the
+     *  last it reads Again and starts over; tapping the square replays them all and leaves it.
+     *  None for a single stroke. */
+    static TextView stepper(Main m, HanziView hv) {
+        if (hv.glyph == null || hv.fill.length < 2) return null;
+        TextView t = Ui.pill(m, hv.stepLabel(), Ui.OUTLINE, v -> hv.step());
+        t.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 13);
+        t.setTypeface(Ink.monoMedium);
+        t.setPadding(Ink.dp(16), 0, Ink.dp(16), 0);
+        t.setMinWidth(Ink.dp(96));
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, -2);
+        lp.gravity = Gravity.CENTER_HORIZONTAL;
+        t.setLayoutParams(lp);
+        Runnable label = () -> {
+            int n = hv.fill.length;
+            t.setText(hv.stepLabel());
+            t.setContentDescription(hv.step < 0 ? "Step through the strokes, one at a time"
+                    : hv.step >= n ? "Stroke " + n + " of " + n + ", the last. Tap to start over"
+                    : "Stroke " + hv.step + " of " + n + ". Tap for the next");
+        };
+        hv.onStep = label;
+        label.run();
+        return t;
+    }
+
     static View reading(Main m, Item it) {
         LinearLayout c = Ui.column(m, 2);
         c.setGravity(Gravity.CENTER_HORIZONTAL);
