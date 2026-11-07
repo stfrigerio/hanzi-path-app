@@ -23,6 +23,7 @@ import java.util.Map;
 /**
  * How it's going, from the review log and the cards: reviews a day for the last thirty days,
  * the share answered right week by week, how far along the path is, the items missed most,
+ * the pairs mixed up (taken for each other twice lately; a tap shows them side by side),
  * how long an answer takes this week against last, and how many sentences you've read.
  * Read only: nothing here changes them.
  */
@@ -134,6 +135,18 @@ class Stats {
         }
         col.addView(hs);
 
+        // 4b. mixed up: pairs taken for each other twice or more lately (Progress.pairs)
+        List<Progress.Pair> pairs = p.pairs(now);
+        LinearLayout ms = section("Mixed up", pairs.isEmpty() ? null : "last " + Progress.CONFUSED / Progress.DAY + " days");
+        if (pairs.isEmpty()) {
+            ms.addView(empty("Nothing mixed up. Two characters taken for each other twice show here, side by side."));
+        } else {
+            LinearLayout rows = Ui.column(m, 0);
+            for (int i = 0; i < pairs.size(); i++) rows.addView(pairRow(pairs.get(i), i > 0));
+            ms.addView(rows);
+        }
+        col.addView(ms);
+
         // 5. time: the median answer, this week against last
         long thisWeek = weekStart(now, 0), lastWeek = weekStart(now, 1);
         List<Long> a = new ArrayList<>(), b = new ArrayList<>();
@@ -213,6 +226,36 @@ class Stats {
         r.addView(Home.stat(m, missed));
         r.setOnClickListener(v -> m.lookup(h));
         r.setContentDescription(h + " " + py + " " + mean + ", " + missed);
+        return r;
+    }
+
+    /** A pair mixed up, laid out as a hard one: the two characters, their readings and
+     *  meanings, how often; a tap opens them side by side (Apart). */
+    View pairRow(Progress.Pair pr, boolean rule) {
+        Item a = PathData.get(pr.a), b = PathData.get(pr.b);
+        LinearLayout r = Ui.row(m, 14);
+        r.setMinimumHeight(Ink.dp(60));
+        r.setPadding(Ink.dp(4), Ink.dp(6), Ink.dp(4), Ink.dp(6));
+        Ui.press(r, rule ? Home.topRule(Ink.grid) : null);
+        TextView han = Ui.text(m, a.h + " " + b.h, 28, Ink.han, Ink.ink);
+        han.setGravity(Gravity.CENTER);
+        han.setMaxLines(1);
+        r.addView(han);
+        LinearLayout t = Ui.column(m, 2);
+        android.text.SpannableStringBuilder py = new android.text.SpannableStringBuilder();
+        if (!a.reading().isEmpty()) py.append(Ui.pinyin(a.reading()));
+        if (!a.reading().isEmpty() && !b.reading().isEmpty()) py.append(" / ");
+        if (!b.reading().isEmpty()) py.append(Ui.pinyin(b.reading()));
+        if (py.length() > 0) t.addView(Ui.text(m, py, 15, Ink.monoMedium, Ink.ink2));
+        TextView en = Ui.text(m, Apart.meaning(a.h) + " / " + Apart.meaning(b.h), 14, Ink.sans, Ink.ink2);
+        en.setMaxLines(1);
+        en.setEllipsize(TextUtils.TruncateAt.END);
+        t.addView(en);
+        r.addView(t, Ui.weight(1));
+        String n = Apart.times(pr.n);
+        r.addView(Home.stat(m, n));
+        r.setOnClickListener(v -> m.openApart(pr));
+        r.setContentDescription(a.h + " " + a.reading() + " and " + b.h + " " + b.reading() + ", mixed up " + n + ". Tap to see them side by side.");
         return r;
     }
 

@@ -64,6 +64,12 @@ Set up once:
   seconds is knew, right but slower unsure, wrong again (it comes back at the
   end of the round). Then the answer in full, and Next. *Undo* takes back the
   last grade.
+- **Mixed up**: each answer goes in the log with what was tapped. Two characters
+  taken for each other twice within 60 days (either way round) are a pair: their
+  wrong answers draw on each other first, and once a week a pair a review round
+  starts with *Tell them apart*: the two side by side, readings, meanings and
+  parts (the differing ones on the highlighter), and a line on what tells them
+  apart. Not graded; *Next* goes on. Stats lists the pairs under *Mixed up*.
 - **Sentences**: a card (learning it, looking it up, a question's answer) shows a
   real sentence it's in that you can read, every character in it met: the
   sentence with it on the highlighter, its pinyin, the English, a speaker for

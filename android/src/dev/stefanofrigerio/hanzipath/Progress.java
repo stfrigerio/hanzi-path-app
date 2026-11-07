@@ -34,7 +34,11 @@ import java.util.Map;
  *   meta     opts, today, days: settings and small state, each a JSON value
  *   reviews  every grade given, as given (for fitting FSRS's weights to you later); beside
  *            them, sentences read (mode "read") and practice answers (mode "practice-<kind>"),
- *            neither of them a grade: GRADED leaves them out
+ *            neither of them a grade: GRADED leaves them out. Each answer keeps what was
+ *            tapped (picked; null in rows from before version 2): a wrong one that is another
+ *            character is a confusion
+ *
+ * Version 2 added reviews.picked (onUpgrade: the column added, every row kept).
  */
 final class Progress extends SQLiteOpenHelper {
     static final long DAY = 86_400_000L;
@@ -46,6 +50,9 @@ final class Progress extends SQLiteOpenHelper {
     /** The rows of the review log that are FSRS grades: not a sentence read, not a practice answer. */
     static final String GRADED = "(mode IS NULL OR (mode <> 'read' AND mode NOT LIKE 'practice-%'))";
     static final int PRACTICE = 20;       // items in a practice round
+    static final int VERSION = 2;
+    static final long CONFUSED = 60 * DAY;   // two confusions of a pair within this make it confusable
+    static final long APART = 7 * DAY;       // a pair's "Tell them apart" card, at most once in this
 
     static class Card {
         double s, d;
@@ -75,9 +82,10 @@ final class Progress extends SQLiteOpenHelper {
     int todayNew = 0;
     JSONObject days = new JSONObject();   // {"2026-11-06": {"reviews": 12, "learnt": 5}}
     int sinceWords = Words.EVERY;         // character batches since the last word batch (Words): the first can be words
+    JSONObject apartShown = new JSONObject();   // {"人|入": when its "Tell them apart" card was last shown}
 
     Progress(Context ctx) {
-        super(ctx, "hanzi.db", null, 1);
+        super(ctx, "hanzi.db", null, VERSION);
         load();
     }
 
@@ -88,12 +96,15 @@ final class Progress extends SQLiteOpenHelper {
         db.execSQL("CREATE TABLE stories (h TEXT PRIMARY KEY, text TEXT, at INTEGER)");
         db.execSQL("CREATE TABLE meta (k TEXT PRIMARY KEY, v TEXT)");
         db.execSQL("CREATE TABLE reviews (id INTEGER PRIMARY KEY AUTOINCREMENT, at INTEGER, h TEXT,"
-                + " grade INTEGER, mode TEXT, ms INTEGER, r REAL, s REAL, d REAL)");
+                + " grade INTEGER, mode TEXT, ms INTEGER, r REAL, s REAL, d REAL, picked TEXT)");
         db.execSQL("CREATE INDEX reviews_h ON reviews (h)");
     }
 
     @Override
-    public void onUpgrade(SQLiteDatabase db, int from, int to) { /* version 1 */ }
+    public void onUpgrade(SQLiteDatabase db, int from, int to) {
+        // 1 → 2: what was tapped, beside each answer; the rows from before keep null
+        if (from < 2) db.execSQL("ALTER TABLE reviews ADD COLUMN picked TEXT");
+    }
 
     // ── the scheduler ──
     static double recall(Card c, long now) {
@@ -116,7 +127,10 @@ final class Progress extends SQLiteOpenHelper {
         return Math.min(s, W[11] * Math.pow(d, -W[12]) * (Math.pow(s + 1, W[13]) - 1) * Math.exp(W[14] * (1 - r)));
     }
 
-    Undo grade(String h, int g, String how, long ms) {
+    Undo grade(String h, int g, String how, long ms) { return grade(h, g, how, ms, null); }
+
+    /** A grade, and the answer tapped for it (picked: a card, or a tone; null when none was). */
+    Undo grade(String h, int g, String how, long ms, String picked) {
         long now = System.currentTimeMillis();
         Undo u = new Undo();
         u.h = h;
@@ -147,7 +161,7 @@ final class Progress extends SQLiteOpenHelper {
         putCard(h, c);
         ContentValues v = new ContentValues();
         v.put("at", now); v.put("h", h); v.put("grade", g); v.put("mode", how); v.put("ms", ms);
-        v.put("r", r); v.put("s", c.s); v.put("d", c.d);
+        v.put("r", r); v.put("s", c.s); v.put("d", c.d); v.put("picked", picked);
         getWritableDatabase().insert("reviews", null, v);
         bumpDay("reviews", 1);
         return u;
@@ -310,10 +324,12 @@ final class Progress extends SQLiteOpenHelper {
     }
 
     /** A practice answer, in the log as "practice-<kind>" with its grade, the card untouched. */
-    void practised(String h, int g, String kind, long ms) {
+    void practised(String h, int g, String kind, long ms) { practised(h, g, kind, ms, null); }
+
+    void practised(String h, int g, String kind, long ms, String picked) {
         ContentValues v = new ContentValues();
         v.put("at", System.currentTimeMillis()); v.put("h", h); v.put("grade", g); v.put("mode", "practice-" + kind); v.put("ms", ms);
-        v.put("r", 0); v.put("s", 0); v.put("d", 0);
+        v.put("r", 0); v.put("s", 0); v.put("d", 0); v.put("picked", picked);
         getWritableDatabase().insert("reviews", null, v);
         bumpDay("practice", 1);
     }
@@ -330,6 +346,72 @@ final class Progress extends SQLiteOpenHelper {
                 new String[]{String.valueOf(since)})) {
             return c.moveToNext() ? new long[]{c.getLong(0), c.getLong(1)} : new long[2];
         }
+    }
+
+    // ── confusions: a wrong answer that was another character (Quiz, Apart, Stats) ──
+    /** Two characters taken for each other: a and b in the path's order, how often (either
+     *  way round), and the last time. */
+    static final class Pair {
+        String a, b;
+        int n;
+        long last;
+
+        String key() { return a + "|" + b; }
+    }
+
+    /** The log's confusions since a time: every wrong answer (graded or practice, not a tone,
+     *  not a sentence) whose pick was another character or part on the path. */
+    Map<String, Pair> confusions(long since) {
+        Map<String, Pair> out = new HashMap<>();
+        try (Cursor c = getReadableDatabase().rawQuery("SELECT h, picked, at FROM reviews WHERE at >= ? AND grade = 1"
+                + " AND picked IS NOT NULL AND picked <> h AND mode NOT LIKE '%tone' AND mode <> 'read'",
+                new String[]{String.valueOf(since)})) {
+            while (c.moveToNext()) {
+                Item x = PathData.get(c.getString(0)), y = PathData.get(c.getString(1));
+                if (x == null || y == null) continue;
+                Item a = x.at < y.at ? x : y, b = a == x ? y : x;
+                Pair p = out.get(a.h + "|" + b.h);
+                if (p == null) { p = new Pair(); p.a = a.h; p.b = b.h; out.put(p.key(), p); }
+                p.n++;
+                p.last = Math.max(p.last, c.getLong(2));
+            }
+        }
+        return out;
+    }
+
+    /** The confusable pairs: taken for each other twice or more within CONFUSED, the most
+     *  confused first, then the latest. */
+    List<Pair> pairs(long now) {
+        List<Pair> out = new ArrayList<>();
+        for (Pair p : confusions(now - CONFUSED).values()) if (p.n >= 2) out.add(p);
+        Collections.sort(out, (x, y) -> x.n != y.n ? Integer.compare(y.n, x.n) : Long.compare(y.last, x.last));
+        return out;
+    }
+
+    /** The characters h is confusable with, the most confused first. */
+    List<String> confusables(String h, long now) {
+        List<String> out = new ArrayList<>();
+        for (Pair p : pairs(now)) {
+            if (p.a.equals(h)) out.add(p.b);
+            else if (p.b.equals(h)) out.add(p.a);
+        }
+        return out;
+    }
+
+    /** The pair a review round starts with: confusable, both met, its card not seen within
+     *  APART. Null: none is due. */
+    Pair apartDue(long now) {
+        for (Pair p : pairs(now))
+            if (cards.containsKey(p.a) && cards.containsKey(p.b) && now - apartShown.optLong(p.key(), 0) >= APART) return p;
+        return null;
+    }
+
+    /** A pair's card seen: the week counts from now (meta "apart"). */
+    void apartSeen(Pair p, long now) {
+        try {
+            apartShown.put(p.key(), now);
+            putMeta("apart", apartShown.toString());
+        } catch (Exception e) { /* it may come again sooner */ }
     }
 
     // ── the review log, read back (Stats) ──
@@ -398,6 +480,7 @@ final class Progress extends SQLiteOpenHelper {
         cards.clear();
         stories.clear();
         round = 40;          // what a copy from before these settings doesn't say: their defaults
+        apartShown = new JSONObject();
         introDone = false;
         SQLiteDatabase db = getReadableDatabase();
         try (Cursor c = db.rawQuery("SELECT h, s, d, reps, lapses, first, last, due, grade FROM cards", null)) {
@@ -429,6 +512,8 @@ final class Progress extends SQLiteOpenHelper {
                         todayNew = o.optInt("n");
                     } else if (k.equals("days")) {
                         days = new JSONObject(c.getString(1));
+                    } else if (k.equals("apart")) {
+                        apartShown = new JSONObject(c.getString(1));
                     } else if (k.equals("words")) {
                         sinceWords = new JSONObject(c.getString(1)).optInt("since", sinceWords);
                     }
@@ -451,7 +536,8 @@ final class Progress extends SQLiteOpenHelper {
     }
 
     // ── a copy out and back in (Settings) ──
-    /** Everything as text: {v: 2, cards, stories, meta, reviews}, as the web version wrote it. */
+    /** Everything as text: {v: 2, cards, stories, meta, reviews}, as the web version wrote it;
+     *  a review carries "picked" when it has one (a copy without it reads as null). */
     String export() throws Exception {
         JSONObject cs = new JSONObject(), st = new JSONObject(), meta = new JSONObject();
         for (Map.Entry<String, Card> e : cards.entrySet()) {
@@ -464,10 +550,12 @@ final class Progress extends SQLiteOpenHelper {
         meta.put("today", obj("d", todayDate, "n", todayNew));
         meta.put("days", days);
         meta.put("words", obj("since", sinceWords));
+        meta.put("apart", apartShown);
         JSONArray rv = new JSONArray();
-        try (Cursor c = getReadableDatabase().rawQuery("SELECT at, h, grade, mode, ms, r, s, d FROM reviews ORDER BY id", null)) {
+        try (Cursor c = getReadableDatabase().rawQuery("SELECT at, h, grade, mode, ms, r, s, d, picked FROM reviews ORDER BY id", null)) {
             while (c.moveToNext()) rv.put(new JSONObject().put("at", c.getLong(0)).put("h", c.getString(1)).put("g", c.getLong(2))
-                    .put("mode", c.getString(3)).put("ms", c.getLong(4)).put("r", c.getDouble(5)).put("s", c.getDouble(6)).put("d", c.getDouble(7)));
+                    .put("mode", c.getString(3)).put("ms", c.getLong(4)).put("r", c.getDouble(5)).put("s", c.getDouble(6)).put("d", c.getDouble(7))
+                    .put("picked", c.isNull(8) ? null : c.getString(8)));   // null: no key (a row from before picked)
         }
         return new JSONObject().put("v", 2).put("cards", cs).put("stories", st).put("meta", meta).put("reviews", rv).toString();
     }
@@ -520,6 +608,7 @@ final class Progress extends SQLiteOpenHelper {
                 v.put("at", o.optLong("at")); v.put("h", o.optString("h")); v.put("grade", o.optLong("g"));
                 v.put("mode", o.optString("mode")); v.put("ms", o.optLong("ms"));
                 v.put("r", o.optDouble("r", 0)); v.put("s", o.optDouble("s", 0)); v.put("d", o.optDouble("d", 0));
+                if (o.has("picked")) v.put("picked", o.optString("picked")); else v.putNull("picked");
                 db.insert("reviews", null, v);
             }
             db.setTransactionSuccessful();

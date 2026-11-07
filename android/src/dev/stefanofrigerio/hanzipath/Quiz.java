@@ -40,6 +40,11 @@ import java.util.Set;
  * schedule and Stats stay as they were. A miss still comes back at the end of the round.
  * And tone (Tones): the character said aloud and shown, five tones to pick from; drawn now
  * and then in a review for a character whose tone you've missed or been slow on.
+ *
+ * What was tapped goes in the log with each answer: a wrong one that is another character
+ * is a confusion, and two of a pair within 60 days make it confusable (Progress.pairs). Its
+ * wrong answers come from its confusables first, and once a week a pair a review round starts
+ * with the two side by side (Apart: "Tell them apart", not graded, Next to the questions).
  */
 class Quiz {
     static final long SLOW = 8000;
@@ -59,6 +64,7 @@ class Quiz {
     final Random rnd = new Random();
     boolean fresh;         // just answered: the rings come in (Motion), once
     final List<View> ringed = new ArrayList<>(), faded = new ArrayList<>();
+    Progress.Pair apart;   // a review's first card: "Tell them apart" (Apart), until Next
 
     static class Last {
         Progress.Undo undo;
@@ -74,9 +80,15 @@ class Quiz {
         this.kind = kind;
         this.queue = new ArrayList<>(items);
         this.total = items.size();
+        // a review round starts with a pair the learner mixes up, side by side, once a week a pair (Apart)
+        if (kind.equals("review")) apart = m.prog.apartDue(System.currentTimeMillis());
     }
 
     void show() {
+        if (apart != null) {   // the round's first card: not a question, not graded; Next goes on to them
+            Apart.show(m, apart, "review", () -> { apart = null; show(); });
+            return;
+        }
         String h = queue.get(0);
         String[] word = Words.get(h);
         Item it = PathData.get(h);
@@ -301,7 +313,7 @@ class Quiz {
         return t;
     }
 
-    /** Three close wrong answers: siblings (sharing a part), then neighbours on the path; ones
+    /** Three close wrong answers: its confusables, then siblings (sharing a part), then neighbours on the path; ones
      *  met first; each meaning once; to listen, each reading once too. */
     List<String> options(String h, String mode) {
         if (Words.is(h)) return pickFrom(h, mode, wordPool(h));
@@ -319,7 +331,8 @@ class Quiz {
         }
         Collections.shuffle(sib, rnd);
         Collections.shuffle(near, rnd);
-        List<String> pool = new ArrayList<>();
+        // the ones the learner has taken it for (Progress.pairs) before anything else, the most confused first
+        List<String> pool = new ArrayList<>(m.prog.confusables(h, System.currentTimeMillis()));
         for (List<String> l : Arrays.asList(sib, near)) {
             for (String s : l) if (m.prog.cards.containsKey(s)) pool.add(s);      // met first
             for (String s : l) if (!m.prog.cards.containsKey(s)) pool.add(s);
@@ -393,8 +406,9 @@ class Quiz {
         long ms = System.currentTimeMillis() - shown;
         grade = !right(o, h) ? 1 : ms <= SLOW ? 3 : 2;
         Last l = new Last();
-        if (practice()) m.prog.practised(h, grade, mode, ms);   // logged, not graded: the card stays
-        else l.undo = m.prog.grade(h, grade, mode, ms);
+        // what was tapped goes in the log with it: a wrong card is a confusion (Progress.pairs)
+        if (practice()) m.prog.practised(h, grade, mode, ms, o);   // logged, not graded: the card stays
+        else l.undo = m.prog.grade(h, grade, mode, ms, o);
         l.queue = new ArrayList<>(queue);
         l.done = done;
         l.misses = misses;
