@@ -246,9 +246,27 @@ final class Ui {
         pill.setTextColor(Ink.ink2);
     }
 
-    /** The round × in a screen's top corner. */
+    /** The round × in a screen's top corner. Its text stays "×" (TalkBack, the tests) but it's
+     *  drawn as two lines through the circle's centre: the glyph sat low in the font's line. */
     static TextView close(Context c, View.OnClickListener on) {
-        TextView t = text(c, "×", 24, Ink.sans, Ink.ink);
+        TextView t = new TextView(c) {
+            final android.graphics.Paint p = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+
+            @Override
+            protected void onDraw(android.graphics.Canvas k) {
+                float cx = getWidth() / 2f, cy = getHeight() / 2f, r = Ink.dp(6.5f);
+                p.setStyle(android.graphics.Paint.Style.STROKE);
+                p.setStrokeWidth(Ink.dp(1.8f));
+                p.setStrokeCap(android.graphics.Paint.Cap.ROUND);
+                p.setColor(getCurrentTextColor());
+                k.drawLine(cx - r, cy - r, cx + r, cy + r, p);
+                k.drawLine(cx - r, cy + r, cx + r, cy - r, p);
+            }
+        };
+        t.setText("×");
+        t.setTextSize(TypedValue.COMPLEX_UNIT_SP, 24);
+        t.setTypeface(Ink.sans);
+        t.setTextColor(Ink.ink);
         t.setGravity(Gravity.CENTER);
         touch(t, Ink.paper, Ink.ink, 999);
         t.setLayoutParams(new LinearLayout.LayoutParams(Ink.dp(40), Ink.dp(40)));
