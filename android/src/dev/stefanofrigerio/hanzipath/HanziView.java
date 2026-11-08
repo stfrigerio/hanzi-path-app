@@ -22,7 +22,9 @@ import java.util.List;
  * time: the strokes so far in ink, the newest in the highlighter as it lands, its number by
  * its start, the rest a faint outline to come. Or it's written: traced stroke by stroke with
  * a finger (quiz); a stroke near enough its median, in its direction, fills in; a miss counts,
- * and after hintAfter misses on one stroke it flashes where it goes, in the highlighter.
+ * and after hintAfter misses on one stroke it flashes where it goes, in the highlighter; two
+ * more and the stroke fills itself (a miss each), so it never gets stuck. It learns the learner's hand
+ * as the learner goes (fromHand): a character written small or off centre is still read.
  * Writing and stepping don't mix: writing leaves stepping, and stepping, the stroke order or
  * the whole character shown leave writing.
  */
@@ -46,6 +48,7 @@ class HanziView extends View {
     // writing
     boolean quizzing, outline;   // tracing; the character's outline under it to trace over
     int next, mistakes, strokeMisses, hintAfter = 3;
+    final java.util.List<float[]> hand = new java.util.ArrayList<>();   // {drawn x, y, glyph x, y}: accepted strokes' ends
     Done done;
     Runnable onTrace;            // told when writing starts or ends (Learn's pills)
     ValueAnimator hintAnim;
@@ -233,6 +236,7 @@ class HanziView extends View {
         this.outline = outline;
         this.done = done;
         next = mistakes = strokeMisses = 0;
+        hand.clear();
         trail.reset();
         quizzing = glyph != null && fill.length > 0;
         invalidate();
@@ -334,42 +338,105 @@ class HanziView extends View {
             u[i] = touch.get(i).clone();
             toGlyph.mapPoints(u[i]);
         }
+        float[][] raw = new float[u.length][];
+        for (int i = 0; i < u.length; i++) raw[i] = u[i].clone();
         float drawn = 0;
         for (int i = 1; i < u.length; i++) drawn += dist(u[i - 1][0], u[i - 1][1], u[i][0], u[i][1]);
         if (drawn < 25) return;
-        if (fits(u, drawn, medians[next])) {
-            final int i = next++;
-            strokeMisses = 0;
-            if (hintAnim != null) hintAnim.cancel();
-            hintAnim = null;
-            hintStroke = -1;
-            ValueAnimator f = ValueAnimator.ofFloat(0, 1);
-            f.setDuration(180);
-            f.addUpdateListener(v -> { fill[i] = (float) v.getAnimatedValue(); invalidate(); });
-            f.start();
-            if (next >= fill.length) {
-                quizzing = false;
-                final Done d = done;
-                final int k = mistakes;
-                postDelayed(() -> {
-                    if (d == null || done != d) return;   // left meanwhile (endTrace)
-                    done = null;
-                    outline = false;
-                    invalidate();
-                    if (onTrace != null) onTrace.run();
-                    d.complete(k);
-                }, 220);
-            }
+        // the learner's hand as it's been so far: drawn a little small or off centre, read as the glyph's
+        for (float[] p : u) { float[] q = fromHand(p[0], p[1]); p[0] = q[0]; p[1] = q[1]; }
+        drawn = 0;
+        for (int i = 1; i < u.length; i++) drawn += dist(u[i - 1][0], u[i - 1][1], u[i][0], u[i][1]);
+        if (fits(u, drawn, medians[next]) || nearest(u, drawn)) {
+            hand.add(new float[]{raw[0][0], raw[0][1], medians[next][0].x, medians[next][0].y});
+            PointF e = medians[next][medians[next].length - 1];
+            hand.add(new float[]{raw[raw.length - 1][0], raw[raw.length - 1][1], e.x, e.y});
+            take();
         } else {
             mistakes++;
-            if (++strokeMisses >= hintAfter) flashHint(next);
+            if (++strokeMisses >= hintAfter + 2) take();          // never stuck: shown, then it fills itself
+            else if (strokeMisses >= hintAfter) flashHint(next);
         }
+    }
+
+    /** The next stroke in: filled with the brush; the last one ends the writing. */
+    void take() {
+        final int i = next++;
+        strokeMisses = 0;
+        if (hintAnim != null) hintAnim.cancel();
+        hintAnim = null;
+        hintStroke = -1;
+        ValueAnimator f = ValueAnimator.ofFloat(0, 1);
+        f.setDuration(180);
+        f.addUpdateListener(v -> { fill[i] = (float) v.getAnimatedValue(); invalidate(); });
+        f.start();
+        if (next >= fill.length) {
+            quizzing = false;
+            final Done d = done;
+            final int k = mistakes;
+            postDelayed(() -> {
+                if (d == null || done != d) return;   // left meanwhile (endTrace)
+                done = null;
+                outline = false;
+                invalidate();
+                if (onTrace != null) onTrace.run();
+                d.complete(k);
+            }, 220);
+        }
+    }
+
+    /** A point as the learner draws, in the glyph's units, moved and scaled as the learner's strokes so far were
+     *  off the glyph's (least squares on their ends; scale only from two strokes, 0.7 to 1.6). */
+    float[] fromHand(float x, float y) {
+        int n = hand.size();
+        if (n == 0) return new float[]{x, y};
+        float ux = 0, uy = 0, gx = 0, gy = 0;
+        for (float[] h : hand) { ux += h[0]; uy += h[1]; gx += h[2]; gy += h[3]; }
+        ux /= n; uy /= n; gx /= n; gy /= n;
+        float num = 0, den = 0;
+        for (float[] h : hand) { num += (h[0] - ux) * (h[2] - gx) + (h[1] - uy) * (h[3] - gy); den += (h[0] - ux) * (h[0] - ux) + (h[1] - uy) * (h[1] - uy); }
+        float k = n < 4 || den < 1 ? 1 : Math.max(0.7f, Math.min(1.6f, num / den));
+        return new float[]{k * (x - ux) + gx, k * (y - uy) + gy};
+    }
+
+    /** A near miss taken: within the looser rule (fits, twice as far), and closer to the next
+     *  stroke than to any stroke after it, so a wrong stroke still isn't. */
+    boolean nearest(float[][] u, float drawn) {
+        if (hand.isEmpty() && shape(u, drawn)) return true;
+        if (!fits(u, drawn, medians[next], 300, 330, 0)) return false;
+        return closest(u);
+    }
+
+    /** Nothing of the learner's hand known yet (the first stroke): its shape, moved to start where the
+     *  stroke starts (up to 300 units off), by the strict rule, and closest to it. */
+    boolean shape(float[][] u, float drawn) {
+        PointF a = medians[next][0];
+        float dx = a.x - u[0][0], dy = a.y - u[0][1];
+        if (Math.hypot(dx, dy) > 300) return false;
+        float[][] v = new float[u.length][];
+        for (int i = 0; i < u.length; i++) v[i] = new float[]{u[i][0] + dx, u[i][1] + dy};
+        return fits(v, drawn, medians[next]) && closest(v);
+    }
+
+    /** Closer to the next stroke than to any stroke after it. */
+    boolean closest(float[][] u) {
+        float d = avg(u, medians[next]);
+        for (int j = next + 1; j < medians.length; j++) if (avg(u, medians[j]) < d) return false;
+        return true;
+    }
+
+    static float avg(float[][] u, PointF[] m) {
+        float a = 0;
+        for (float[] p : u) a += toPolyline(p[0], p[1], m);
+        return a / u.length;
     }
 
     /** The judge's rule, on points u in the glyph's units (drawn: their length) against the
      *  median m: near it on average (150), starting by its start and ending by its end (260),
      *  going its way (for a stroke longer than a dot), and about as long. */
-    static boolean fits(float[][] u, float drawn, PointF[] m) {
+    static boolean fits(float[][] u, float drawn, PointF[] m) { return fits(u, drawn, m, 150, 260, 0.3f); }
+
+    static boolean fits(float[][] u, float drawn, PointF[] m, float near, float ends, float way) {
         if (m.length == 0) return false;
         float len = 0;
         for (int i = 1; i < m.length; i++) len += dist(m[i - 1].x, m[i - 1].y, m[i].x, m[i].y);
@@ -378,9 +445,9 @@ class HanziView extends View {
         avg /= u.length;
         PointF a = m[0], b = m[m.length - 1];
         float[] s = u[0], t = u[u.length - 1];
-        return avg < 150
-                && dist(s[0], s[1], a.x, a.y) < 260 && dist(t[0], t[1], b.x, b.y) < 260
-                && (len < 120 || cos(t[0] - s[0], t[1] - s[1], b.x - a.x, b.y - a.y) > 0.3f)
+        return avg < near
+                && dist(s[0], s[1], a.x, a.y) < ends && dist(t[0], t[1], b.x, b.y) < ends
+                && (len < 120 || cos(t[0] - s[0], t[1] - s[1], b.x - a.x, b.y - a.y) > way)
                 && drawn > 0.3f * len && drawn < 3f * len + 150;
     }
 

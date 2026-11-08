@@ -548,4 +548,65 @@ public class WriteTest {
         assertTrue(q.hv.quizzing);
         assertTrue(q.options.isEmpty());
     }
+
+    // ── the learner's hand ──
+
+    /** Stroke i as the learner might write it from memory: seven tenths the size, off to the right
+     *  and down, with a slow wobble. */
+    static List<float[]> small(HanziView hv, int i) {
+        List<float[]> out = new ArrayList<>();
+        List<float[]> a = along(hv, i, false);
+        for (int k = 0; k < a.size(); k++) {
+            float[] p = a.get(k);
+            float w = (float) (25 * Math.sin(k * 0.4 + i));
+            out.add(new float[]{(p[0] - 512) * 0.7f + 512 + 120 + w, (p[1] - 388) * 0.7f + 388 - 120 + w});
+        }
+        return out;
+    }
+
+    /** 我 written small and off centre: every stroke taken, none a miss (it learns the hand);
+     *  and the wrong stroke written the same way still isn't. */
+    @Test
+    public void hand() {
+        Main m = Robolectric.buildActivity(Main.class).setup().visible().get();
+        m.lookup("我");
+        settle();
+        HanziView hv = m.learn.hv;
+        int n = hv.fill.length;
+        int off = 0;
+        for (int i = 0; i < n; i++) if (!fits(hv, small(hv, i), i)) off++;
+        assertTrue("the old rule alone turns some of these down: " + off, off >= 2);
+        int[] got = {-1};
+        hv.quiz(3, false, k -> got[0] = k);
+        for (int i = 0; i < n; i++) {
+            if (i + 1 < n && i > 0) {
+                draw(hv, small(hv, i + 1), true);
+                assertEquals("the next stroke for stroke " + (i + 1) + " isn't taken", i, hv.next);
+            }
+            int before = hv.mistakes;
+            draw(hv, small(hv, i), true);
+            assertEquals("stroke " + (i + 1) + " taken", i + 1, hv.next);
+            assertEquals("stroke " + (i + 1) + " not a miss", before, hv.mistakes);
+            settle();
+        }
+        assertEquals("written, with only the wrong strokes as misses", n - 2, got[0]);
+    }
+
+    /** Never stuck: after the hint and two more misses, the stroke fills itself, each a miss. */
+    @Test
+    public void neverStuck() {
+        Main m = Robolectric.buildActivity(Main.class).setup().visible().get();
+        m.lookup("我");
+        settle();
+        HanziView hv = m.learn.hv;
+        hv.quiz(3, false, k -> {});
+        for (int k = 0; k < 4; k++) { draw(hv, offTop(), true); assertEquals("still the first after " + (k + 1), 0, hv.next); }
+        draw(hv, offTop(), true);
+        assertEquals("the fifth miss fills it", 1, hv.next);
+        assertEquals(5, hv.mistakes);
+        assertEquals(0, hv.strokeMisses);
+        settle();
+        stroke(hv, 1);
+        assertEquals("on from there", 2, hv.next);
+    }
 }
