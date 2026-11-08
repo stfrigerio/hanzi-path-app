@@ -127,7 +127,7 @@ public class StatsTest {
         shots.shot(m, "s1-empty");
         assertNotNull(WalkTest.find(m.root, "Nothing reviewed yet"));
         assertNotNull(WalkTest.find(m.root, "No answers yet to count."));
-        assertNotNull(WalkTest.find(m.root, "Nothing met yet"));
+        assertNotNull(WalkTest.find(m.root, "Nothing seen yet"));
         assertNotNull(WalkTest.find(m.root, "Nothing to miss yet."));
         assertNotNull(WalkTest.find(m.root, "No answers timed"));
         assertNull("no empty charts", first(m.root, WeekView.class));
@@ -183,7 +183,7 @@ public class StatsTest {
         Stats.PathBar bar = first(m.root, Stats.PathBar.class);
         assertEquals(known, bar.known);
         assertEquals(60 - known, bar.learning);
-        assertNotNull(WalkTest.find(m.root, "60 of " + PathData.items.size() + " met"));
+        assertNotNull(WalkTest.find(m.root, "60 of " + PathData.items.size() + " seen"));
         assertNotNull(WalkTest.find(m.root, known + " known"));
 
         // 4. the hardest: ten, most lapses first, then the least stable

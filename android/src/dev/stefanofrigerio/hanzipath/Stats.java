@@ -104,9 +104,9 @@ class Stats {
             if (p.state(e.getKey(), now, false) == GardenView.KNOWN) known++;
         }
         int size = PathData.items.size();
-        LinearLayout ps = section("The path", met + " of " + size + " met · " + pct(met, size) + "%");
+        LinearLayout ps = section("The path", met + " of " + size + " seen · " + pct(met, size) + "%");
         if (met == 0) {
-            ps.addView(empty("Nothing met yet: the first batch starts it."));
+            ps.addView(empty("Nothing seen yet: the first batch starts it."));
         } else {
             PathBar bar = new PathBar(m);
             bar.set(known, met - known, size);

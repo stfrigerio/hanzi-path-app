@@ -65,20 +65,20 @@ final class Home {
         boolean intro = !p.introDone;
         if (intro) card.addView(intro(m));
         LinearLayout ledger = Ui.column(m, 0);
-        ledger.addView(line(m, "Due now", due.size() + (reviewed > 0 ? " · " + reviewed + " done today" : ""), intro));
+        ledger.addView(line(m, "Reviews due", (due.isEmpty() ? "none" : String.valueOf(due.size())) + (reviewed > 0 ? " · " + reviewed + " done today" : ""), intro));
         boolean backlog = p.backlog(due.size());
         if (backlog) ledger.addView(back(m, due.size(), p.daysAway(), p.roundOf(due.size())));
         int learnt = p.newToday();   // past New per day on a good day: what was learnt, and the day's number
-        ledger.addView(line(m, "New today", learnt > p.perDay ? learnt + " learnt, " + p.perDay + " a day"
-                : left + " of " + p.perDay + " left", true));
+        ledger.addView(learnt > p.perDay ? line(m, "New today", learnt + " learnt, goal " + p.perDay, true)
+                : line(m, "New left today", left + " of " + p.perDay, true));
         ledger.addView(line(m, "Days in a row", streak > 0 ? String.valueOf(streak) : "none yet", true));
-        ledger.addView(line(m, "Known", known + " of " + met + " met", true));
+        ledger.addView(line(m, "Characters known", known + " of " + met + " seen", true));
         int wordsMet = 0, wordsKnown = 0, wordsReady = Words.fresh(p, -1, now).size();
         for (String h : p.cards.keySet())
             if (Words.is(h)) { wordsMet++; if (p.strength(h, now) >= Progress.KNOWN) wordsKnown++; }
         if (wordsMet > 0 || wordsReady > 0) {
-            ledger.addView(line(m, "Words known", (wordsMet > 0 ? wordsKnown + " of " + wordsMet + " met" : "")
-                    + (wordsMet > 0 && wordsReady > 0 ? " · " : "") + (wordsReady > 0 ? wordsReady + " ready" : ""), true));
+            ledger.addView(wordsMet == 0 ? line(m, "Words to learn", String.valueOf(wordsReady), true)
+                    : line(m, "Words known", wordsKnown + " of " + wordsMet + " seen" + (wordsReady > 0 ? " · " + wordsReady + " to learn" : ""), true));
         }
         Cards.add(ledger, Read.line(m, now));
         card.addView(ledger);
@@ -160,7 +160,7 @@ final class Home {
             else if (st[i] == GardenView.WILT) aboveWilt++;
             else if (st[i] == GardenView.YOUNG) aboveYoung++;
         }
-        LinearLayout gs = Ui.section(m, "The path", small(m, met + " of " + st.length + " met"));
+        LinearLayout gs = Ui.section(m, "The path", small(m, met + " of " + st.length + " seen"));
         gs.addView(Search.entry(m));
         Flow lg = new Flow(m, 12);   // large text: the legend wraps onto a second line
         lg.addView(legend(m, Ink.hl, Ink.hl, "next"));

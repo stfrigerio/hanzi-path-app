@@ -153,8 +153,8 @@ public class WordsTest {
         shot(m, "w1-home");
         assertNotNull("the learn pill says words", WalkTest.find(m.root, "Learn 5 words"));
         assertNotNull(WalkTest.find(m.root, "Next, words"));
-        assertNotNull("words counted apart", WalkTest.find(m.root, "Words known"));
-        assertNotNull("the path's count is characters only", WalkTest.find(m.root, "60 of " + PathData.items.size() + " met"));
+        assertNotNull("words counted apart", WalkTest.find(m.root, "Words "));
+        assertNotNull("the path's count is characters only", WalkTest.find(m.root, "60 of " + PathData.items.size() + " seen"));
 
         WalkTest.tap(m, "Learn 5 words");
         List<String> batch = new ArrayList<>(m.learn.items);
@@ -303,8 +303,8 @@ public class WordsTest {
         // the garden stays characters: its count doesn't take the words
         m.home();
         ShadowLooper.idleMainLooper();
-        assertNotNull(WalkTest.find(m.root, "120 of " + PathData.items.size() + " met"));
-        assertNotNull(WalkTest.find(m.root, "Due now"));
+        assertNotNull(WalkTest.find(m.root, "120 of " + PathData.items.size() + " seen"));
+        assertNotNull(WalkTest.find(m.root, "Reviews due"));
 
         // copy and load: the word cards and the turn come back
         m.prog.sinceWords = 1;

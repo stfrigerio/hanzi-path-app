@@ -142,8 +142,8 @@ public class HomeTest {
         }
         WalkTest.tap(m, "Back to the path");
         shot(m, "h2-after-batch");
-        assertNotNull(WalkTest.find(m.root, "5 of " + PathData.items.size() + " met"));
-        assertNotNull(WalkTest.find(m.root, "0 · 5 done today"));
+        assertNotNull(WalkTest.find(m.root, "5 of " + PathData.items.size() + " seen"));
+        assertNotNull(WalkTest.find(m.root, "none · 5 done today"));
         int[] wk = first(m.root, WeekView.class).counts;
         int sum = 0;
         for (int n : wk) sum += n;

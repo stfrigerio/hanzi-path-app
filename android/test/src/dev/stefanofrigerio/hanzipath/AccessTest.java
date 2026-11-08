@@ -215,7 +215,7 @@ public class AccessTest {
     @Test
     public void labels() throws Exception {
         Main m = Robolectric.buildActivity(Main.class).setup().visible().get();
-        assertNotNull("home's ledger, one line each", byDescription(m.root, "Due now: 0"));
+        assertNotNull("home's ledger, one line each", byDescription(m.root, "Reviews due: none"));
         assertNotNull(byDescription(m.root, "Settings and progress"));
         WalkTest.tap(m, "Learn next 5");
         assertNotNull("the speaker", byDescription(m.root, "Say it"));

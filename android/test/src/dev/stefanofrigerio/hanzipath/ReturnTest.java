@@ -86,7 +86,7 @@ public class ReturnTest {
         TextView line = WalkTest.find(m.root, "300 due after 6 days away");
         assertNotNull("the line under Due now", line);
         assertEquals("300 due after 6 days away. Rounds of 40 bring them back, what's slipping first.", line.getText().toString());
-        assertNotNull(WalkTest.find(m.root, "Due now"));
+        assertNotNull(WalkTest.find(m.root, "Reviews due"));
         TextView rv = WalkTest.find(m.root, "Review ");
         assertEquals("Review 40 of 300", rv.getText().toString());
         assertTrue(rv.isEnabled());

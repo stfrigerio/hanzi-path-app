@@ -264,7 +264,7 @@ public class ForwardTest {
         assertEquals(p.perDay + 5, p.newToday());
         m.home();
         ShadowLooper.idleMainLooper();
-        assertNotNull(WalkTest.find(m.root, (p.perDay + 5) + " learnt, " + p.perDay + " a day"));
+        assertNotNull(WalkTest.find(m.root, (p.perDay + 5) + " learnt, goal " + p.perDay));
         shots.shot(m, prefix + "3-home-past");
 
         // below 90%: the cap holds again (8 of 10)
