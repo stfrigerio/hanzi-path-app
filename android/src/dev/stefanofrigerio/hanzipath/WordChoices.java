@@ -78,7 +78,9 @@ final class WordChoices {
     static Set<String> keysOf(String w) {
         build();
         Set<String> k = keys.get(w);
-        return k == null ? Collections.<String>emptySet() : k;
+        if (k != null) return k;
+        Item it = PathData.get(w);   // a character or part: its meaning's content words (勹 wrap → {wrap})
+        return it != null && it.en != null ? words(it.en) : Collections.<String>emptySet();
     }
 
     /** The same meaning, or one inside the other (to lose; lose, lose due to carelessness). */

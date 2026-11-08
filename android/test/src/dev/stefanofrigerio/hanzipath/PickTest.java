@@ -227,4 +227,21 @@ public class PickTest {
         ShadowLooper.idleMainLooper();
         assertEquals(q.mode, lastLog(m)[0]);
     }
+
+    /** No wrong answer means the same as the right one: 勹 "wrap" never comes with 包 "to cover;
+     *  to wrap", even after taking one for the other (a confusable comes first otherwise). */
+    @Test
+    public void noSecondRight() throws Exception {
+        Main m = Robolectric.buildActivity(Main.class).setup().visible().get();
+        m.prog.grade("包", 3, "choose", 1000);
+        m.prog.grade("勹", 1, "choose", 1000, "包");
+        Quiz q = new Quiz(m, new ArrayList<>(Arrays.asList("勹")), "review");
+        for (String mode : Arrays.asList("choose", "pick", "listen"))
+            for (int i = 0; i < 50; i++) {
+                List<String> o = q.options("勹", mode);
+                assertFalse(mode + ": " + o, o.contains("包"));
+                for (String x : o) for (String y : o)
+                    assertTrue(mode + ": " + x + " and " + y, x.equals(y) || !WordChoices.sameMeaning(x, y));
+            }
+    }
 }

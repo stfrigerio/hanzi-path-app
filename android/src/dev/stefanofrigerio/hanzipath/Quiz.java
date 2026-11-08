@@ -437,8 +437,9 @@ class Quiz {
         return WordChoices.pool(m.prog, h, mode, rnd, System.currentTimeMillis());
     }
 
-    /** The four from a pool in order of preference: each meaning once (for words, nor one
-     *  meaning inside another: WordChoices.sameMeaning); to listen, each reading once too. */
+    /** The four from a pool in order of preference: each meaning once, nor one meaning inside
+     *  another (WordChoices.sameMeaning: 勹 "wrap" and 包 "to cover; to wrap" are both right);
+     *  to listen, each reading once too. */
     List<String> pickFrom(String h, String mode, List<String> pool) {
         List<String> out = new ArrayList<>();
         Set<String> meanings = new HashSet<>(), readings = new HashSet<>();
@@ -450,7 +451,7 @@ class Quiz {
             if (out.size() >= 4) break;
             if (!Words.onPath(s) || out.contains(s) || meanings.contains(en(s))
                     || heard && (py(s).isEmpty() || readings.contains(py(s)))) continue;
-            if (Words.is(h) && Words.is(s) && sameAs(out, s)) continue;
+            if (sameAs(out, s)) continue;
             out.add(s);
             meanings.add(en(s));
             if (!py(s).isEmpty()) readings.add(py(s));
@@ -460,7 +461,7 @@ class Quiz {
     }
 
     static boolean sameAs(List<String> out, String s) {
-        for (String o : out) if (Words.is(o) && WordChoices.sameMeaning(o, s)) return true;
+        for (String o : out) if (WordChoices.sameMeaning(o, s)) return true;
         return false;
     }
 
