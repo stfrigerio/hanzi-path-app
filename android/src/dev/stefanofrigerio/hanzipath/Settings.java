@@ -58,8 +58,7 @@ class Settings {
                     if (p.say) Speech.check(m);
                     voice.setVisibility(p.say && !Speech.voice() ? View.VISIBLE : View.GONE);
                 }));
-        vs.addView(small("Off: nothing is said by itself (new cards, answers, sentences), and reviews "
-                + "leave out the listening and tone quizzes. The speaker buttons still work when you tap them."));
+        vs.addView(small("Off also drops the listening quizzes."));
         vs.addView(choice("Voice speed", new String[]{"normal", "slower"}, p.speed, v -> { p.speed = v; p.saveOpts(); }));
         voice = noVoice();
         voice.setVisibility(p.say && !Speech.voice() ? View.VISIBLE : View.GONE);
