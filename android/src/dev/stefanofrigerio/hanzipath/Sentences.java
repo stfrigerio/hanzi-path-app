@@ -126,6 +126,25 @@ final class Sentences {
         return b;
     }
 
+    /** The sentence with each of hs (characters, or words) on the highlighter: what's new in a Read round. */
+    static SpannableStringBuilder marked(S s, java.util.Collection<String> hs) {
+        SpannableStringBuilder b = new SpannableStringBuilder(s.zh);
+        if (hs == null) return b;
+        boolean[] on = new boolean[s.zh.length()];
+        for (String h : hs)
+            if (!h.isEmpty()) for (int at = s.zh.indexOf(h); at >= 0; at = s.zh.indexOf(h, at + h.length()))
+                for (int k = at; k < at + h.length(); k++) on[k] = true;
+        for (int i = 0; i < on.length; ) {   // a run marked once, so a word and its character don't stack
+            if (!on[i]) { i++; continue; }
+            int j = i;
+            while (j < on.length && on[j]) j++;
+            b.setSpan(new BackgroundColorSpan(Ink.hl), i, j, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            b.setSpan(new ForegroundColorSpan(Ink.hlInk), i, j, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            i = j;
+        }
+        return b;
+    }
+
     /** Which characters of the sentence are h's (a character, or a word): their syllables. */
     static boolean[] marks(S s, String h) {
         boolean[] out = new boolean[s.han.length];

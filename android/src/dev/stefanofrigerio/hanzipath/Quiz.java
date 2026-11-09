@@ -77,6 +77,7 @@ class Quiz {
     final Random rnd;
     boolean fresh;         // just answered: the rings come in (Motion), once
     final List<View> ringed = new ArrayList<>(), faded = new ArrayList<>();
+    final List<String> items;   // the round's items as given: a check's batch (Read offers its sentences)
     Progress.Pair apart;   // a review's first card: "Tell them apart" (Apart), until Next
 
     static class Last {
@@ -96,6 +97,7 @@ class Quiz {
         this.kind = kind;
         this.rnd = rnd;
         this.queue = new ArrayList<>(items);
+        this.items = new ArrayList<>(items);
         Collections.shuffle(queue, rnd);
         this.total = items.size();
         // a review round starts with a pair the learner mixes up, side by side, once a week a pair (Apart)
@@ -587,6 +589,7 @@ class Quiz {
         Home.Learning on = misses == 0 ? Home.learning(m.prog, now, true) : null;
         boolean onward = on != null && on.open;
         boolean again = more > 0 || practice();
+        TextView read = kind.equals("check") ? Read.offer(m, items) : null;   // sentences with the batch in them
         if (onward) {
             int n = on.items.size();
             card.addView(Ui.even(m, 10, Ui.pill(m, "Back to the path", Ui.OUTLINE, v -> m.home()),
@@ -595,6 +598,7 @@ class Quiz {
             // another round and undo, small, under them
             Flow small = new Flow(m, 10);
             small.center = true;
+            if (read != null) small.addView(read);
             if (again) small.addView(smallPill("Another round", v -> { if (practice()) m.startPractice(); else m.startReview(); }));
             if (last != null) {
                 TextView u = smallPill("Undo the last", v -> undo());
@@ -616,15 +620,17 @@ class Quiz {
                 card.addView(u, up);
             }
         } else {
-            // the way back alone: the whole line, undo small under it, as in the others
+            // the way back alone: the whole line, the small ones (read, undo) under it, as in the others
             card.addView(Ui.pill(m, "Back to the path", Ui.SOLID, v -> m.home()), new LinearLayout.LayoutParams(-1, -2));
+            Flow small = new Flow(m, 10);
+            small.center = true;
+            if (read != null) small.addView(read);
             if (last != null) {
-                LinearLayout.LayoutParams up = new LinearLayout.LayoutParams(-2, -2);
-                up.gravity = Gravity.CENTER_HORIZONTAL;
                 TextView u = smallPill("Undo the last", v -> undo());
                 u.setContentDescription("Undo the last answer");
-                card.addView(u, up);
+                small.addView(u);
             }
+            if (small.getChildCount() > 0) card.addView(small, new LinearLayout.LayoutParams(-1, -2));
         }
         col.addView(card);
     }
