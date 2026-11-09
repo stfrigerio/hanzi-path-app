@@ -61,7 +61,7 @@ final class Progress extends SQLiteOpenHelper {
     static final double MAX_S = 365, MATURE_D = 10, KNOWN = 0.5;
     /** The rows of the review log that are FSRS grades: reviews, checks and practice answers
      *  (all real answers), not a sentence read. */
-    static final String GRADED = "(mode IS NULL OR mode <> 'read')";
+    static final String GRADED = "(mode IS NULL OR mode NOT IN ('read', 'translate'))";
     static final int PRACTICE = 20;       // items in a practice round
     static final int PRACTICE_POOL = 40;  // drawn at random from this many of the weakest
     static final int MORE_AFTER = 10;     // today's answers before a good day may learn past New per day
@@ -425,7 +425,7 @@ final class Progress extends SQLiteOpenHelper {
 
     boolean active(Calendar c) {
         JSONObject d = days.optJSONObject(date(c));
-        return d != null && (d.optInt("reviews") > 0 || d.optInt("learnt") > 0 || d.optInt("practice") > 0);
+        return d != null && (d.optInt("reviews") > 0 || d.optInt("learnt") > 0 || d.optInt("practice") > 0 || d.optInt("translate") > 0);
     }
 
     // ── settings and stories ──
@@ -475,6 +475,25 @@ final class Progress extends SQLiteOpenHelper {
         v.put("r", 0); v.put("s", 0); v.put("d", 0);
         getWritableDatabase().insert("reviews", null, v);
         bumpDay("read", 1);
+    }
+
+    /** A sentence translated in a Translate round: right (3) or not (1), and how long it took.
+     *  A sentence, not a card: GRADED leaves it out of the grades. */
+    void translated(String sentence, boolean right, long ms) {
+        ContentValues v = new ContentValues();
+        v.put("at", System.currentTimeMillis()); v.put("h", sentence); v.put("grade", right ? 3 : 1); v.put("mode", "translate"); v.put("ms", ms);
+        v.put("r", 0); v.put("s", 0); v.put("d", 0);
+        getWritableDatabase().insert("reviews", null, v);
+        bumpDay("translate", 1);
+    }
+
+    /** When each sentence was last translated. */
+    Map<String, Long> lastTranslated() {
+        Map<String, Long> out = new HashMap<>();
+        try (Cursor c = getReadableDatabase().rawQuery("SELECT h, MAX(at) FROM reviews WHERE mode = 'translate' GROUP BY h", null)) {
+            while (c.moveToNext()) out.put(c.getString(0), c.getLong(1));
+        }
+        return out;
     }
 
     /** When each sentence was last read. */
@@ -548,7 +567,7 @@ final class Progress extends SQLiteOpenHelper {
     Map<String, Pair> confusions(long since) {
         Map<String, Pair> out = new HashMap<>();
         try (Cursor c = getReadableDatabase().rawQuery("SELECT h, picked, at FROM reviews WHERE at >= ? AND grade = 1"
-                + " AND picked IS NOT NULL AND picked <> h AND mode NOT LIKE '%tone' AND mode <> 'read'",
+                + " AND picked IS NOT NULL AND picked <> h AND mode NOT LIKE '%tone' AND mode NOT IN ('read', 'translate')",
                 new String[]{String.valueOf(since)})) {
             while (c.moveToNext()) {
                 Item x = PathData.get(c.getString(0)), y = PathData.get(c.getString(1));

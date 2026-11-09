@@ -33,6 +33,7 @@ public class Main extends Activity {
     Stats stats;
     Levels levels;            // HSK levels, from Stats
     Read read;
+    Translate translate;
     Apart apart;              // "Tell them apart": a pair side by side (a review's first card, or from Stats)
     Tree tree;                // the family tree open, or the one a looked-up part came from
     Parts parts;              // the parts, from home: back from a card returns there
@@ -165,6 +166,7 @@ public class Main extends Activity {
         stats = null;
         levels = null;
         read = null;
+        translate = null;
         apart = null;
         tree = null;
         parts = null;
@@ -222,6 +224,13 @@ public class Main extends Activity {
         read = new Read(this);
         if (read.queue.isEmpty()) return;
         read.show();
+    }
+
+    /** A Translate round: sentences you can read, into English and into Chinese in turn. */
+    void startTranslate() {
+        translate = new Translate(this);
+        if (translate.queue.isEmpty()) return;
+        translate.ask();
     }
 
     void openSettings() {

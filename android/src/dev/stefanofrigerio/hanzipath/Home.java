@@ -81,6 +81,7 @@ final class Home {
                     : line(m, "Words known", wordsKnown + " of " + wordsMet + " seen" + (wordsReady > 0 ? " · " + wordsReady + " to learn" : ""), true));
         }
         Cards.add(ledger, Read.line(m, now));
+        Cards.add(ledger, Translate.line(m, now));
         card.addView(ledger);
         // nothing due: practise the weakest met instead (outlined: nothing asks for it)
         int practise = due.isEmpty() ? p.weakest(Progress.PRACTICE, now).size() : 0;
