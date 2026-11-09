@@ -84,7 +84,8 @@ final class PathData {
                     r.beginArray();
                     while (r.hasNext()) {
                         r.beginArray();
-                        String[] x = {r.nextString(), r.nextString(), r.nextString(), String.valueOf(r.nextInt())};
+                        String[] x = {r.nextString(), r.nextString(), r.nextString(), String.valueOf(r.nextInt()), "0"};
+                        if (r.hasNext()) x[4] = String.valueOf(r.nextInt());   // 1: one of the extra words
                         while (r.hasNext()) r.skipValue();
                         r.endArray();
                         w.add(x);

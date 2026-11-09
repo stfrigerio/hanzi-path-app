@@ -18,7 +18,8 @@ import java.util.Map;
  *
  * Which ready words first (use): the most useful, not the path's order, where the first
  * ready are counting compounds (一二, 十二, 二十). HSK's words before CC-CEDICT's, the lower
- * level first; within a level the commoner first (by the path's order, which is Jun Da's
+ * level first, and the extra words (everyday and a computer's: 终端, 提交, 浏览器) right
+ * after HSK 2; within a level the commoner first (by the path's order, which is Jun Da's
  * rank of the word's rarest character); words made only of numbers (NUMBERS) last. The
  * order is fixed, so a word keeps its place from one session to the next: only newly ready
  * words come in among the others.
@@ -29,7 +30,7 @@ final class Words {
 
     static final String NUMBERS = "一二三四五六七八九十百千万零两";
 
-    static final List<String[]> all = new ArrayList<>();                 // [word, pinyin, meaning, level], path order
+    static final List<String[]> all = new ArrayList<>();                 // [word, pinyin, meaning, level, extra], path order
     static final List<String[]> use = new ArrayList<>();                 // the same, most useful first
     static final Map<String, String[]> by = new HashMap<>();
     static final Map<String, Integer> pos = new HashMap<>();
@@ -70,11 +71,15 @@ final class Words {
         return true;
     }
 
-    /** HSK 1 … 6 first, CC-CEDICT's (level 0) after them. */
+    /** HSK 1 … 6 first, CC-CEDICT's (level 0) after them; the extra words right after HSK 2. */
     static int rank(String[] w) {
         int l = Integer.parseInt(w[3]);
-        return l == 0 ? Integer.MAX_VALUE : l;
+        int r = l == 0 ? Integer.MAX_VALUE : 2 * l;
+        return extra(w) ? Math.min(r, 5) : r;
     }
+
+    /** One of the extra words (sources/desktop.json). */
+    static boolean extra(String[] w) { return w.length > 4 && "1".equals(w[4]); }
 
     static String[] get(String h) { build(); return by.get(h); }
 

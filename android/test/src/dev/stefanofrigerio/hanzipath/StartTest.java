@@ -100,7 +100,8 @@ public class StartTest {
             it.words = new String[w == null ? 0 : w.length()][];
             for (int j = 0; j < it.words.length; j++) {
                 JSONArray x = w.getJSONArray(j);
-                it.words[j] = new String[]{x.getString(0), x.getString(1), x.getString(2), String.valueOf(x.getInt(3))};
+                it.words[j] = new String[]{x.getString(0), x.getString(1), x.getString(2), String.valueOf(x.getInt(3)),
+                        String.valueOf(x.optInt(4))};   // 1: one of the extra words
             }
             JSONObject et = o.optJSONObject("et");
             if (et != null) {

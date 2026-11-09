@@ -4,7 +4,7 @@ package dev.stefanofrigerio.hanzipath;
 class Item {
     String h, kind, en;
     String[] py, parts, used;
-    String[][] words;     // [word, pinyin, meaning, HSK level]
+    String[][] words;     // [word, pinyin, meaning, HSK level, "1" for one of the extra words]
     int strokes, at;
     String etType, etSemantic, etPhonetic;
     String why;           // "Why it looks like this", a plain line or two (tools/build.py)

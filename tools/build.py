@@ -13,8 +13,8 @@ Sources (fetched once into ~/.cache/hanzi-path, or --src DIR):
     decomposition, etymology, pinyin, definition (LGPL); strokes (Arphic PL)
   Jun Da's character frequency list (lingua.mtsu.edu, modern Chinese corpus)
   CC-CEDICT (mdbg.net, CC BY-SA 4.0): meanings and words
-In the repo (sources/): sources/parts.json (hand-written meanings of
-parts, by hand) and hsk.json (HSK 2.0 words, MIT, see hsk-LICENSE.txt).
+In the repo (sources/): parts.json (hand-written meanings of parts), hsk.json (HSK 2.0 words, MIT, see hsk-LICENSE.txt) and
+desktop.json (extra words, everyday and a computer's).
 
 A character's readings: the commonest first, by how many words say it so (HSK's the
 most, then CC-CEDICT's, weighted by how common their characters are), READ where
@@ -27,7 +27,10 @@ then parts.json's.
 
 Words: HSK words made only of what's been taught by then, the lowest level
 first; a character with none gets CC-CEDICT's commonest words instead
-(level 0, which the app shows without a level).
+(level 0, which the app shows without a level). The extra words (desktop.json: everyday words, and a computer's) all come, on
+top of those, once their characters are on the path, marked (a fifth field, 1) so
+the app brings them after HSK 2; the characters they need that the path hasn't
+reached are added after the rest, the commonest first.
 
 Sentences (data/sentences.json): Tatoeba's Mandarin sentences with an English
 translation (CC BY 2.0 FR, fetched into the cache too), only those in simplified
@@ -1020,6 +1023,11 @@ def main():
     ced = cedict(fetch(a.src, "cedict_1_0_ts_utf-8_mdbg.txt.gz", CEDICT))
     garden = json.load(open(os.path.join(ROOT, "sources/parts.json"), encoding="utf-8"))["parts"]
     hsk = json.load(open(os.path.join(ROOT, "sources/hsk.json"), encoding="utf-8"))["levels"]
+    desktop = json.load(open(os.path.join(ROOT, "sources/desktop.json"), encoding="utf-8"))["words"]
+    hskof = {}
+    for lvl in sorted(hsk, key=int):
+        for w, py, en in hsk[lvl]:
+            hskof.setdefault(w, (int(lvl), py, en))
 
     rank = {c: i for i, c in enumerate(freq)}
     used, alone = usage(ced, hsk, rank)
@@ -1102,6 +1110,19 @@ def main():
             extra.setdefault(last, []).append(((len(w) != 2, -inside[w], others), [w, e[0], en, 0]))
         for c, lst in extra.items():
             words[c] = [w for _, w in sorted(lst)[:WORDS_PER_CHAR]]
+        # the extra words: every one once its characters are on the path, past
+        # WORDS_PER_CHAR, marked; one there already only takes the mark. An HSK word as
+        # HSK has it, the rest as sources/desktop.json has them
+        placed = {wd[0]: wd for lst in words.values() for wd in lst}
+        for w, py, en, _why in desktop:
+            if len(w) < 2 or not all(ch in pos for ch in w):
+                continue
+            if w in placed:
+                placed[w][4:] = [1]
+                continue
+            lvl, py, en = hskof.get(w, (0, py, en))
+            placed[w] = [w, py, en, lvl, 1]
+            words.setdefault(order[max(pos[ch] for ch in w)], []).append(placed[w])
         # as they're said: 不对 bú duì, 一样 yí yàng, 东西 dōng xi
         for lst in words.values():
             for wd in lst:
@@ -1157,7 +1178,8 @@ def main():
         return items, before
 
     # the path as it was first walked (the first --chars characters): its order and every
-    # item's fields stay as they are, people's progress is keyed by them. Then the path goes
+    # item's fields stay as they are, people's progress is keyed by them (only the extra
+    # words are added to them: a word is a card of its own). Then the path goes
     # on (--more): the next characters by frequency, each after the parts it needs that
     # aren't on the path yet, built the same way with the whole path known; only the new
     # items are taken from it, so an early item gains no words, uses or parts
@@ -1165,6 +1187,12 @@ def main():
     walked = len(order)
     common.update(more)
     for c in more:
+        visit(c)
+    # then the characters the extra words need that it hasn't come to, the commonest first
+    lacking = sorted({ch for w in desktop for ch in w[0] if ch not in seen and ch in dic and ch in gfx},
+                     key=lambda c: rank.get(c, 99999))
+    common.update(lacking)
+    for c in lacking:
         visit(c)
     rest, later = make(order, set(common))
     items += rest[walked:]
@@ -1207,8 +1235,9 @@ def main():
     parts = sum(1 for it in items if it["k"] == "part")
     hskw = sum(1 for it in items for w in it.get("w", []) if w[3])
     cedw = sum(1 for it in items for w in it.get("w", []) if not w[3])
+    desk = sum(1 for it in items for w in it.get("w", []) if w[4:] == [1])
     print(f"{len(items)} on the path: {len(items) - parts} characters, {parts} parts; "
-          f"words: {hskw} HSK, {cedw} from CC-CEDICT; {(len(items) + CHUNK - 1) // CHUNK} stroke files; "
+          f"words: {hskw} HSK, {cedw} from CC-CEDICT, {desk} of them extra; {(len(items) + CHUNK - 1) // CHUNK} stroke files; "
           f"{len(sents)} sentences, {sum(1 for s in sents if s[3] < 300)} readable by no. 300")
 
 
