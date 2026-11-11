@@ -113,7 +113,7 @@ class Settings {
         final int[] at = {java.util.Arrays.asList(values).indexOf(current)};
         if (at[0] < 0) at[0] = 0;
         final TextView b = Ui.small(m, values[at[0]] + "  ›", null);
-        b.setTypeface(Ink.serifBold);   // a value: the mono, as figures are
+        b.setTypeface(Ink.serifBold);   // a value: the serif, as figures are
         b.setOnClickListener(v -> {
             at[0] = (at[0] + 1) % values.length;
             b.setText(values[at[0]] + "  ›");

@@ -49,7 +49,7 @@ final class Cards {
     static TextView stepper(Main m, HanziView hv) {
         if (hv.glyph == null || hv.fill.length < 2) return null;
         TextView t = Ui.small(m, hv.stepLabel(), v -> hv.step());
-        t.setTypeface(Ink.serifBold);   // "3 / 7": figures, in the mono
+        t.setTypeface(Ink.serifBold);   // "3 / 7": figures, in the serif
         t.setMinWidth(Ink.dp(96));
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, -2);
         lp.gravity = Gravity.CENTER_HORIZONTAL;
