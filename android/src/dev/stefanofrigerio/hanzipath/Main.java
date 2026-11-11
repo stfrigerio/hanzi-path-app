@@ -311,7 +311,6 @@ public class Main extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
-        Updater.maybe(this, false);
         Speech.recheck(this);   // back from installing a voice, maybe
         if (created) {          // home was built a moment ago, in onCreate: as it is, at rest
             created = false;
@@ -325,6 +324,7 @@ public class Main extends Activity {
         super.onPause();
         Widget.refresh(this);
     }
+
 
     @Override
     public void onConfigurationChanged(Configuration c) {
@@ -350,9 +350,6 @@ public class Main extends Activity {
         }
     }
 
-    void updateStatus() {
-        runOnUiThread(() -> { if (settings != null && screen.equals("settings")) settings.status(); });
-    }
 
     @Override
     protected void onDestroy() {

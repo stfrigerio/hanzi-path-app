@@ -155,7 +155,12 @@ final class PathData {
     }
 
     static String read(Context ctx, String name) throws IOException {
-        try (InputStream in = ctx.getAssets().open(name)) { return Updater.text(in); }
+        try (InputStream in = ctx.getAssets().open(name)) {
+            java.io.ByteArrayOutputStream b = new java.io.ByteArrayOutputStream();
+            byte[] buf = new byte[65536];
+            for (int n; (n = in.read(buf)) > 0; ) b.write(buf, 0, n);
+            return b.toString("UTF-8");
+        }
     }
 
     /** An asset as a stream of JSON, read as it's parsed. */

@@ -1,115 +1,102 @@
-# hanzi path 汉字之路
+# 汉字之路 hanzi path
 
 Learn Chinese characters the way they're built: every part before the first
 common character that uses it. 想 comes after 木, 目, 相 and 心, so when you
 meet it you already know what it's made of.
 
-A native Android app (Java, no Gradle)
-that keeps itself up to date. The path is made once by a stdlib Python script.
+An Android app (Android 12 or later), 2298 items along one path: the 2000
+commonest characters and the parts they're made of, with the HSK words and
+real sentences you can read as you go. No account, no ads, no internet
+permission: your progress stays on the phone.
 
 ## Install it
 
-Once, on the cable (USB debugging allowed; the SDK in `$ANDROID_HOME`,
-default `/opt/android-sdk`):
+1. On the phone, download
+   [hanzi-path.apk](https://github.com/stfrigerio/hanzi-path-app/raw/main/hanzi-path.apk).
+2. Open it. Android asks to allow installing apps from your browser (or files
+   app) the first time: allow it, then *Install*.
 
-```
-android/install
-```
-
-After that it updates itself.
-
-## Updates
-
-Every push to `main` runs `.github/workflows/release.yml`: it builds the app
-and puts it up as the release `latest` (`hanzi-path-C.apk`, C the commits on
-main). The app checks it when it comes to the front, at most every 3 hours
-(Settings → Updates → *Check now* for at once), and installs a newer one over
-itself. The first time, Android asks you to allow "Install unknown apps" for
-汉字之路 and to confirm; after that it's silent.
-
-Set up once:
-
-1. **The signing key**, so the released APK can replace the installed one: the
-   same key `android/assemble` signs with on your machine.
-   ```
-   base64 -w0 ~/.android/debug.keystore | gh secret set ANDROID_KEYSTORE -R stfrigerio/hanzi-path-app
-   ```
-2. **A token for the app**: the repo is private. On GitHub, Settings →
-   Developer settings → Fine-grained tokens: only `hanzi-path`, *Contents:
-   Read-only*. Paste it in the app, Settings → Updates → *Save token*. It's
-   kept in the app's private storage, never in the repo.
+A new version: download it again and install it over the old one. Your
+progress stays (Settings → *Copy progress* keeps a copy as text, to move it to
+another phone).
 
 ## How it works
 
 - **Learn** a batch (5 by default): the strokes animate on a 米字格 (tap the
   square to see them again), it's said aloud (Android's Chinese voice), the
-  reading in the tones' inks (1 blue, 2 green, 3 peach, 4 pink: the garden's),
-  what it's made of and what it leads to, why it looks like this (Make Me a
-  Hanzi's etymology: which part gives the meaning, which the sound), and the
-  words you can now read (HSK's, or CC-CEDICT's where HSK has none).
-  *Step* shows the strokes one at a time. *Write it*, beside Next: trace it
-  with a finger over its outline, stroke by stroke (a stroke near enough its
-  path, in its direction, fills in; after two misses on one it flashes where it
-  goes); *Again* to write it once more. Not graded.
+  reading in the tones' inks (1 blue, 2 green, 3 peach, 4 pink), what it's made
+  of and what it leads to, why it looks like this (Make Me a Hanzi's etymology:
+  which part gives the meaning, which the sound), and the words you can now
+  read (HSK's, or CC-CEDICT's where HSK has none). *Step* shows the strokes one
+  at a time; *Write it*: trace it with a finger over its outline, stroke by
+  stroke.
 - **Check**: right after the batch, a round of questions. That's the first
   grade, so a new item starts on what you showed you know.
-- **Review**: FSRS-4.5, a small scheduler with three grades (again, unsure, knew). Once the log
-  holds 400 grades (100 of them second looks or later), a round's end fits its
-  weights to them (on the phone, in the background, at most weekly), and uses
-  them only if they predict a held-out fifth of the cards better; Settings →
-  Progress says which (*Reset to defaults* to undo). A round takes
-  the most overdue first, 40 at most (Settings → *Reviews per round*: 20, 40,
-  60, all), asked in a random order; its end says how many are still due, with
-  *Another round*, or when the next fall due.
+- **Review**: FSRS-4.5 with three grades (again, unsure, knew). Once the log
+  holds 400 grades, a round's end fits the weights to your own answers (on the
+  phone, at most weekly), and uses them only if they predict a held-out fifth of
+  the cards better. A round takes the most overdue first, 40 at most, in a
+  random order.
+- **Questions**: the character and four answers, each a reading and a meaning;
+  later the other way round (four characters to pick from), by ear (with *Say
+  it aloud* on), or written from memory on the empty square. The wrong answers
+  are close: characters sharing a part with it, or near it on the path. The tap
+  grades it: right in under 8 seconds is knew, right but slower unsure, wrong
+  again. *Undo* takes back the last grade.
 - **Practice** (nothing due): twenty drawn from the weakest forty, graded as
-  reviews are. A round with no misses ends on *Learn next N*; past New per day,
-  a good day (ten answers, nine in ten right) offers *Learn 5 more*.
-- **First run**: home's Today card says in three lines how the path goes, until
-  *Got it* or the first batch learnt.
-- **Questions** (the check and reviews): the character and four answers, each
-  a reading and a meaning. Once an item has been seen twice, a review may ask
-  it the other way round (its reading and meaning, four characters to pick
-  from) or say it aloud (four characters; only with *Say it aloud* on). The
-  wrong three are close (characters sharing a
-  part with it, or near it on the path). The tap grades it: right in under 8
-  seconds is knew, right but slower unsure, wrong again (it comes back at the
-  end of the round). Then the answer in full, and Next. *Undo* takes back the
-  last grade.
-- **Writing**: a review (or practice) may also give a character's reading and
-  meaning and ask you to write it on the empty square, stroke by stroke from
-  memory (after three misses on a stroke it flashes where it goes; *Show it*
-  gives up). The misses grade it: none is knew, up to three unsure, more again.
-  Only characters seen twice, never parts or words, never in the check.
-  Settings → *Writing in reviews*: off, sometimes (about one in four, the
-  default), often (about one in two).
-- **Mixed up**: each answer goes in the log with what was tapped. Two characters
-  taken for each other twice within 60 days (either way round) are a pair: their
-  wrong answers draw on each other first, and once a week a pair a review round
-  starts with *Tell them apart*: the two side by side, readings, meanings and
-  parts (the differing ones on the highlighter), and a line on what tells them
-  apart. Not graded; *Next* goes on. Stats lists the pairs under *Mixed up*.
-- **Sentences**: a card (learning it, looking it up, a question's answer) shows a
-  real sentence it's in that you can read, every character in it met: the
-  sentence with it on the highlighter, its pinyin, the English, a speaker for
-  all of it. Once five are made only of characters you know, the Today card
-  offers *Read 10 sentences*: one at a time, the Chinese alone, *Show* for the
-  pinyin and English (said aloud with *Say it aloud* on), *Next*. Not graded;
-  each one read goes in the log (mode `read`), and a round takes the ones not
-  read for longest first.
-- **Home**: today in four lines (due now, new left, days in a row, known of
-  met) with Review and Learn, the week's reviews as a bar per day, and the
-  path as a garden: yellow next, pink learning, blue known, outlined pink
-  wilting (due and slipping). It shows the rows around where you are; *Show
-  the whole path* opens the rest. Tap any item to look it up.
+  reviews are.
+- **Mixed up**: two characters taken for each other twice are a pair: their
+  wrong answers draw on each other, and now and then a round starts with *Tell
+  them apart*, the two side by side.
+- **Sentences**: a card shows a real sentence it's in that you can read, every
+  character in it met, with its pinyin, the English and a speaker. Once five
+  are made only of characters you know, *Read* a round of them, or *Translate*
+  them: into English (four to pick from) and into Chinese (its words on tiles,
+  tapped in order).
+- **Home**: today in four lines (reviews due, new left today, characters known,
+  words to learn), the week's reviews, and the path as a garden: yellow next, pink
+  learning, blue known, outlined pink wilting. Tap any item to look it up;
+  *Search* finds characters, words, readings and meanings.
+- A home-screen widget (what's due, a character from the path) and a daily
+  reminder.
 
-## Progress
+## The path
 
-SQLite, in the app (`databases/hanzi.db`, included in Android's backup):
-cards (FSRS's stability and difficulty), your stories, settings, and a log of
-every grade given (for fitting FSRS to you later). Settings → *Copy progress*
-puts all of it on the clipboard as text; *Load from clipboard* takes it back.
+`tools/build.py` makes `data/path.json`, `data/strokes-*.json` and
+`data/sentences.json` from its sources:
 
-## The code
+1. A few pictures first, taught whole (一 二 三 十 人 口 日 月 山 水 火 木 大
+   小 中 女 子), then the 1000 most common characters (Jun Da's frequency
+   list), then on to the 2000 most common.
+2. Each one's decomposition (Make Me a Hanzi). Before a character, every part
+   of it not yet taught, recursively. A part that is a common character comes
+   as a character; one that isn't (氵 亻 扌 讠) comes as a *part*, with what it
+   means in a character.
+3. Meanings: a short, plain one from CC-CEDICT for the character's main
+   reading; for parts, written by hand (`sources/parts.json`).
+4. Words: HSK words made only of what's been taught by then, the lowest level
+   first, three per character; CC-CEDICT's where no HSK word reaches; and 180
+   extra everyday and computer words (`sources/desktop.json`: 终端, 浏览器,
+   提交), right after HSK 2.
+5. Sentences: Tatoeba's Mandarin sentences with an English translation, 4 to
+   20 characters, all on the path, each readable from its last character's
+   place.
+6. Pinyin as it's said: 不 bú before a 4th tone, 一 yí and yì, 个 ge as a
+   measure word, the neutral tone of common words.
+
+Result: 2298 items (1979 characters, 319 parts), 3443 words, 4801 sentences.
+
+## Build it
+
+A JDK and the Android SDK (`$ANDROID_HOME`, default `/opt/android-sdk`): Java
+with the platform's own APIs, no Gradle, no dependencies.
+
+```
+android/assemble    # the APK, in android/out/
+android/install     # the same, put on a phone over adb
+android/test/run    # every screen walked in Robolectric and rendered, light and dark (needs mvn)
+python3 tools/build.py   # data/ again from its sources (fetched once into ~/.cache/hanzi-path)
+```
 
 | Path | What |
 |---|---|
@@ -118,79 +105,29 @@ puts all of it on the clipboard as text; *Load from clipboard* takes it back.
 | `Sentences`, `Read` | sentences on the cards, and the Read round |
 | `HanziView` | the practice square: strokes, their animation, stepping, writing |
 | `GardenView` | the path on the home screen |
-| `Progress` | FSRS and the database |
+| `Progress`, `Fit` | FSRS, its fitted weights, and the database (SQLite) |
 | `PathData`, `Glyph` | the path and its stroke shapes (from `data/`) |
-| `Ink`, `Ui`, `Flow` | the look: the garden's colours, the faces, pills, cards |
-| `Updater`, `Installed` | updates from GitHub's release |
-| `Widget` (`res/layout/widget_*`) | the home-screen widget: what's due, a character from the path |
-| `android/assemble` | the build: javac, d8, aapt2, apksigner |
-
-## The path
-
-`tools/build.py` makes `data/path.json`, `data/strokes-*.json` and `data/sentences.json`:
-
-1. A few pictures first, taught whole (一 二 三 十 人 口 日 月 山 水 火 木 大
-   小 中 女 子), then the 1000 most common characters (Jun Da's frequency list),
-   then on to the 2000 most common (HSK 4–6's). The second thousand is
-   built as a second pass after the first path's 1251 items, which stay
-   exactly as they were (progress is kept by them): the same rules, parts
-   before characters, but no early item gains a word, a use or a part; words
-   and sentences that need a new character go to that character's place.
-2. Each one's decomposition (Make Me a Hanzi). Before a character, every part
-   of it not yet taught, recursively. A part that is a common character comes
-   as a character; one that isn't (氵 亻 扌 讠) comes as a *part*, with what it
-   means in a character. Single strokes aren't taught.
-3. Meanings of characters: a short, plain one from CC-CEDICT, for the
-   character's main reading, without surnames, variants, cross-references and
-   grammar notes, cut under 28 letters; `MEANS` in build.py where the rules
-   can't make one that reads well (particles: 的 "of; 's (possessive)").
-   Meanings of parts: `OWN` in build.py, then the hand-written `sources/parts.json`, then Make Me a Hanzi's definition.
-4. Words: HSK words made only of what's been taught by then, the lowest
-   level first, three per character. A character no HSK word reaches gets up
-   to three of CC-CEDICT's words instead, made of what's been taught by then:
-   two characters first, the ones longer entries are most built on (a common
-   word's sign), shown without a level.
-
-5. Sentences: Tatoeba's Mandarin sentences with an English translation, 4 to
-   20 characters, in simplified characters all on the path (a traditional-only
-   character drops one); each readable from its last character's place, and at
-   most three per place (the shortest, unlike each other). Their pinyin a
-   syllable per character, read from the HSK and CC-CEDICT words in them (了解
-   liǎo, 睡觉 jiào), else each character's main reading.
-6. Words' and sentences' pinyin as it's said, not as the dictionary writes
-   each syllable: 不 bú before a 4th tone (不是 bú shì) and bu in 是不是; 一 yí
-   before a 4th tone, yì before the others (一个 yí ge, 一天 yì tiān), yī
-   counting, as an ordinal or a date, alone or ending a word (十一, 第一, 一月,
-   统一), yi in 看一看; 个 ge as a measure word (这个, 是个好人), gè in 个人;
-   the neutral tone of common words a source gives toned (东西 dōng xi, `NEUTRAL`
-   in build.py) and of directional complements (起来 qǐ lai). The 3rd-tone
-   change isn't marked: 你好 is written nǐ hǎo and said ní hǎo.
-
-Result: 2288 items, 1970 characters and 318 parts (the first 1251: 1041 and
-210); 3020 HSK words and 351 from CC-CEDICT; 4781 sentences (468 KB); 39
-stroke files.
-
-```
-python3 tools/build.py [--chars 1000] [--more 2000] [--sample 60]   # sources fetched once into ~/.cache/hanzi-path
-```
-
-## Next
-
-- Mnemonics written for you (an LLM, from the parts' meanings and the
-  etymology).
-- Words as cards of their own, once their characters are known.
-- FSRS's weights fitted to the review log.
-- Sync progress between devices.
+| `Ink`, `Ui`, `Flow` | the look: the colours, the faces, pills, cards |
+| `Widget` | the home-screen widget |
+| `tools/build.py` | the path, from its sources (stdlib Python) |
 
 ## Sources and licences
 
+The app and its tools (`android/`, `tools/`) are MIT: `LICENSE`. What comes
+from elsewhere keeps its licence, and so does what `tools/build.py` makes of it
+in `data/`: `path.json` carries Make Me a Hanzi's dictionary and CC-CEDICT's
+meanings, `strokes-*.json` Make Me a Hanzi's strokes, `sentences.json`
+Tatoeba's sentences. The texts are in `LICENSES/`.
+
 | What | From | Licence |
 |---|---|---|
-| decomposition, etymology, pinyin, definitions | [Make Me a Hanzi](https://github.com/skishore/makemeahanzi) `dictionary.txt` | LGPL-3.0 |
-| stroke shapes and order (`data/strokes-*.json`) | Make Me a Hanzi `graphics.txt` | Arphic Public License |
-| faces (`android/fonts/`) | IBM Plex Mono and Sans; Ma Shan Zheng (cut to 汉字之路好行练) | OFL |
+| decomposition, etymology, pinyin, definitions | [Make Me a Hanzi](https://github.com/skishore/makemeahanzi) `dictionary.txt` | LGPL-3.0 or later (`LICENSES/LGPL-3.0.txt`, which builds on `GPL-3.0.txt`) |
+| stroke shapes and order (`data/strokes-*.json`) | Make Me a Hanzi `graphics.txt` | Arphic Public License (`LICENSES/Arphic-1999.txt`) |
+| faces (`android/fonts/`) | IBM Plex Mono and Sans; Ma Shan Zheng (cut to 汉字之路好行练) | OFL 1.1 (`LICENSES/OFL-1.1.txt`) |
 | frequency order | Jun Da, Modern Chinese character frequency list | research use |
-| meanings of characters, words beyond HSK | [CC-CEDICT](https://cc-cedict.org/) via [MDBG](https://www.mdbg.net/chinese/dictionary?page=cc-cedict) | CC BY-SA 4.0 |
+| meanings of characters, words beyond HSK | [CC-CEDICT](https://cc-cedict.org/) via [MDBG](https://www.mdbg.net/chinese/dictionary?page=cc-cedict) | CC BY-SA 4.0 (`LICENSES/CC-BY-SA-4.0.txt`) |
 | HSK words (`sources/hsk.json`) | [hskhsk.com](https://github.com/glxxyz/hskhsk.com) | MIT (`sources/hsk-LICENSE.txt`) |
-| part meanings (`sources/parts.json`) | by hand | ours |
-| sentences and their English (`data/sentences.json`) | [Tatoeba](https://tatoeba.org) (cmn, eng and links exports) | CC BY 2.0 FR |
+| part meanings (`sources/parts.json`), the extra words (`sources/desktop.json`) | by hand | MIT (`LICENSE`) |
+| sentences and their English (`data/sentences.json`) | [Tatoeba](https://tatoeba.org) | [CC BY 2.0 FR](https://creativecommons.org/licenses/by/2.0/fr/) |
+
+Made by [Stefano Frigerio](https://github.com/stfrigerio).

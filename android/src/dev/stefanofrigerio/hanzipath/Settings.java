@@ -4,9 +4,7 @@ import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.text.InputType;
 import android.view.View;
-import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -19,11 +17,11 @@ import java.util.Date;
  * review asks you to write), Voice (said
  * aloud or not, its speed, the line when the phone has no Chinese voice), Reminder (the time,
  * the line when it went back to off), Progress (copied out to the clipboard and back in),
- * Updates (the version, the token, a check); the credits last, in small text.
+ * the credits last, in small text.
  */
 class Settings {
     final Main m;
-    TextView status, version, io, note, timing;
+    TextView io, note, timing;
     View voice;
     boolean armed;
 
@@ -94,38 +92,6 @@ class Settings {
         pr.addView(timing());
         col.addView(pr);
 
-        // updates
-        LinearLayout up = section("Updates");
-        up.addView(small("The app updates itself from the repo's latest release. It needs a GitHub token that can read hanzi-path (fine-grained, Contents: read-only)."));
-        version = small("");
-        up.addView(version);
-        final EditText token = new EditText(m);
-        token.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
-        token.setTypeface(Ink.mono);
-        token.setTextSize(14);
-        token.setTextColor(Ink.ink);
-        token.setHintTextColor(Ink.ink2);
-        token.setSingleLine(true);
-        token.setBackground(Ui.shape(Ink.paper2, Ink.rule, 999, false));
-        token.setPadding(Ink.dp(14), Ink.dp(10), Ink.dp(14), Ink.dp(10));
-        token.setHint(prefs().getString("token", "").isEmpty() ? "GitHub token" : "Token saved. Paste a new one to replace it.");
-        token.setMinHeight(Ink.dp(44));   // as tall as large text needs, 44 dp at least
-        token.setContentDescription("GitHub token");
-        up.addView(token, new LinearLayout.LayoutParams(-1, -2));
-        Flow ua = new Flow(m, 8);
-        ua.addView(Ui.pill(m, "Save token", Ui.OUTLINE, v -> {
-            String t = token.getText().toString().trim();
-            if (t.isEmpty()) { status.setText("Paste the token first."); return; }
-            prefs().edit().putString("token", t).putLong("checked", 0).apply();
-            token.setText("");
-            token.setHint("Token saved. Paste a new one to replace it.");
-            Updater.maybe(m, true);
-        }));
-        ua.addView(Ui.pill(m, "Check now", Ui.OUTLINE, v -> { status.setText("Checking…"); Updater.maybe(m, true); }));
-        up.addView(ua);
-        status = small("");
-        up.addView(status);
-        col.addView(up);
 
         // the credits, last, in smaller text under a hairline
         TextView credits = Ui.text(m, "Characters, strokes and etymology: Make Me a Hanzi. Order: Jun Da's character frequencies. "
@@ -133,21 +99,11 @@ class Settings {
         credits.setPadding(0, Ink.dp(14), 0, 0);
         credits.setBackground(Home.topRule());
         col.addView(credits);
-        status();
         if (p.say) Speech.check(m);   // whether there's a voice, for the line under Say it aloud
     }
 
     SharedPreferences prefs() { return m.getSharedPreferences("hanzi", Context.MODE_PRIVATE); }
 
-    void status() {
-        SharedPreferences pr = prefs();
-        long checked = pr.getLong("checked", 0);
-        long code = 0;
-        try { code = m.getPackageManager().getPackageInfo(m.getPackageName(), 0).getLongVersionCode(); } catch (Exception e) { /* */ }
-        version.setText("Version " + code + " · checked " + (checked == 0 ? "never"
-                : DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(new Date(checked))));
-        status.setText(pr.getString("status", ""));
-    }
 
     interface Pick { void set(String v); }
 

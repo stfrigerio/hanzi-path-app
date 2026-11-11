@@ -35,8 +35,8 @@ import java.util.Map;
  *            weights fitted to the learner's log (Fit), which new grades use
  *   reviews  every grade given, as given (Fit fits FSRS's weights to them): a review's
  *            mode is its kind of question, a practice answer's "practice-<kind>" (graded too:
- *            a real answer; rows from before practice was graded have r = s = d = 0); beside
- *            them, sentences read (mode "read"), not a grade: GRADED leaves them out. Each
+ *            a real answer; rows from before practice was graded have r = s = d = 0);
+ *            beside them, sentences read (mode "read"), not a grade: GRADED leaves them out. Each
  *            answer keeps what was tapped (picked; null in rows from before version 2): a
  *            wrong one that is another character is a confusion
  *
@@ -208,8 +208,10 @@ final class Progress extends SQLiteOpenHelper {
     Undo grade(String h, int g, String how, long ms) { return grade(h, g, how, ms, null); }
 
     /** A grade, and the answer tapped for it (picked: a card, or a tone; null when none was). */
-    Undo grade(String h, int g, String how, long ms, String picked) {
-        long now = System.currentTimeMillis();
+    Undo grade(String h, int g, String how, long ms, String picked) { return grade(h, g, how, ms, picked, System.currentTimeMillis()); }
+
+    /** A grade given at a time (now, or another time), on the day it was given. */
+    Undo grade(String h, int g, String how, long ms, String picked, long now) {
         Undo u = new Undo();
         u.h = h;
         Card c = cards.get(h);
@@ -242,8 +244,9 @@ final class Progress extends SQLiteOpenHelper {
         v.put("at", now); v.put("h", h); v.put("grade", g); v.put("mode", how); v.put("ms", ms);
         v.put("r", r); v.put("s", c.s); v.put("d", c.d); v.put("picked", picked);
         getWritableDatabase().insert("reviews", null, v);
-        bumpDay("reviews", 1);
-        if (how != null && how.startsWith("practice-")) bumpDay("practice", 1);
+        String day = date(now);
+        bumpDay(day, "reviews", 1);
+        if (how != null && how.startsWith("practice-")) bumpDay(day, "practice", 1);
         u.practice = how != null && how.startsWith("practice-");
         return u;
     }
@@ -368,6 +371,12 @@ final class Progress extends SQLiteOpenHelper {
 
     static String today() { return date(Calendar.getInstance()); }
 
+    static String date(long at) {
+        Calendar c = Calendar.getInstance();
+        c.setTimeInMillis(at);
+        return date(c);
+    }
+
     /** Learnt today: past New per day too, when a good day learnt more. */
     int newToday() { newLeftToday(); return todayNew; }
 
@@ -400,10 +409,12 @@ final class Progress extends SQLiteOpenHelper {
         bumpDay("learnt", n);
     }
 
-    void bumpDay(String what, int n) {
+    void bumpDay(String what, int n) { bumpDay(today(), what, n); }
+
+    void bumpDay(String day, String what, int n) {
         try {
-            JSONObject d = days.optJSONObject(today());
-            if (d == null) days.put(today(), d = new JSONObject());
+            JSONObject d = days.optJSONObject(day);
+            if (d == null) days.put(day, d = new JSONObject());
             d.put(what, Math.max(0, d.optInt(what) + n));
             putMeta("days", days.toString());
         } catch (Exception e) { /* a count lost */ }

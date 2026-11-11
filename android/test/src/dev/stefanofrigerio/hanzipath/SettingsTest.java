@@ -20,17 +20,17 @@ import java.util.List;
 import static org.junit.Assert.*;
 
 /**
- * Settings, grouped: the five sections (Learning, Voice, Reminder, Progress, Updates) in that
- * order, each a hairline and a label, every row inside its own section and in its order, the
- * explanations first under their labels, the credits last in small text. Laid out without
- * faults (AccessTest's check) and rendered, scrolled, at normal and 1.5× text, light and
- * dark: s*.png.
+ * Settings, grouped: its sections (SECTIONS) in that order, each a hairline and a label, every
+ * row inside its own section and in its order, the explanations first under their labels,
+ * the credits last in small text. Laid out without faults (AccessTest's check) and rendered,
+ * scrolled, at normal and 1.5× text, light and dark: s*.png.
  */
 @RunWith(RobolectricTestRunner.class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = 35, qualifiers = "w412dp-h915dp-xxhdpi")
 public class SettingsTest {
-    static final String[] SECTIONS = {"Learning", "Voice", "Reminder", "Progress", "Updates"};
+    static final String[] SECTIONS = {"Learning", "Voice", "Reminder", "Progress",
+    };
 
     /** What each section holds, top to bottom: the start of a row's text. */
     static final String[][] ROWS = {
@@ -38,7 +38,6 @@ public class SettingsTest {
             {"Say it aloud", "Voice speed", "No Chinese voice"},
             {"Reminder"},
             {"Kept in the app's database", "Copy progress", "Load from clipboard"},
-            {"The app updates itself", "Version ", "Save token", "Check now"},
     };
 
     /** The column a section label heads. */
@@ -84,7 +83,7 @@ public class SettingsTest {
         m.settings.remindNote("Notifications aren't allowed, so the reminder is off. Allow them for 汉字之路 in Android's settings, then pick a time again.");
         ShadowLooper.idleMainLooper();
 
-        // the five sections, in order, down the page, each a hairline over its label
+        // the six sections, in order, down the page, each a hairline over its label
         LinearLayout page = (LinearLayout) section(m, SECTIONS[0]).getParent();
         int last = -1, lastY = -1;
         for (String s : SECTIONS) {
@@ -115,10 +114,11 @@ public class SettingsTest {
         }
         assertTrue(WalkTest.find(section(m, "Voice"), "No Chinese voice").isShown());
         assertNotNull("the reminder's line in Reminder", WalkTest.find(section(m, "Reminder"), "Notifications aren"));
-        assertNotNull("the token field in Updates", findEdit(section(m, "Updates")));
 
         // explanations: first under their labels, in ink2
-        for (String[] e : new String[][]{{"Progress", "Kept in the app's database"}, {"Updates", "The app updates itself"}}) {
+        for (String[] e : new String[][]{
+                {"Progress", "Kept in the app's database"},
+        }) {
             LinearLayout sec = section(m, e[0]);
             TextView t = WalkTest.find(sec, e[1]);
             assertEquals(e[1] + " right under " + e[0], 1, sec.indexOfChild(t));
