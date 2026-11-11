@@ -89,13 +89,13 @@ class WeekView extends View {
                 }
             }
             if (n > 0 && (!sparse || today || i == tallest)) {
-                num.setTypeface(today ? Ink.monoMedium : Ink.mono);
+                num.setTypeface(today ? Ink.serifBold : Ink.serif);
                 num.setColor(Ink.ink);
                 String f = String.valueOf(n);
                 float half = num.measureText(f) / 2;
                 c.drawText(f, Math.max(half, Math.min(w - half, cx)), base - h - Ink.dp(5) - nf.descent, num);
             }
-            day.setTypeface(today ? Ink.monoMedium : Ink.mono);
+            day.setTypeface(today ? Ink.serifBold : Ink.serif);
             day.setColor(today ? Ink.ink : Ink.ink2);
             String d = days[i] == null ? "" : days[i];
             float half = day.measureText(d) / 2, x = Math.max(half, Math.min(w - half, cx));   // kept inside at the ends

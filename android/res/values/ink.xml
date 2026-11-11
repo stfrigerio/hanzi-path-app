@@ -3,14 +3,14 @@
      (RemoteViews takes resources, and the launcher picks day or night by itself). Keep in
      step with Ink.init. -->
 <resources>
-    <color name="ink">#141414</color>
-    <color name="ink2">#5c5c66</color>
-    <color name="rule">#c9c8c0</color>
-    <color name="tone1">#1f55c8</color>
-    <color name="tone2">#2e7d32</color>
-    <color name="tone3">#b5571c</color>
-    <color name="tone4">#c2286f</color>
-    <color name="tone5">#76767e</color>
-    <color name="hl">#ffff00</color>
-    <color name="hl_ink">#141414</color>
+    <color name="ink">#2b2520</color>
+    <color name="ink2">#6f665c</color>
+    <color name="rule">#dccfbb</color>
+    <color name="tone1">#2d5b9e</color>
+    <color name="tone2">#3a7535</color>
+    <color name="tone3">#a3561a</color>
+    <color name="tone4">#c0392b</color>
+    <color name="tone5">#746b60</color>
+    <color name="hl">#ffd84a</color>
+    <color name="hl_ink">#2b2520</color>
 </resources>

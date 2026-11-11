@@ -29,8 +29,8 @@ import static org.junit.Assert.*;
 
 /**
  * The design rules on every main screen, light and dark: the bar's
- * label, every label the same (12 sp medium mono, 0.12, ink2), every section on a page with
- * its hairline, every "›" row alike, two pill sizes, figures in the mono, notes in one style,
+ * label, every label the same (12 sp serif bold capitals, 0.14, ink2), every section on a page
+ * with its hairline, every "›" row alike, two pill sizes, figures in the serif, notes in one style,
  * the round's end with its seal, and no colour that isn't Ink's (none of the faint ones on
  * words). Renders d*.png (dn*.png at night).
  */
@@ -139,7 +139,7 @@ public class DesignTest {
         assertEquals(where + ": × at the bar's end", "×", x.getText().toString());
     }
 
-    /** A label: medium mono, letter-spaced (the masthead's HANZI PATH is the logo's, not one). */
+    /** A label: serif bold, letter-spaced (the masthead's HANZI PATH is the logo's, not one). */
     static boolean label(TextView t) {
         return t.getLetterSpacing() > 0.11f && !t.getText().toString().equals("HANZI PATH");
     }
@@ -147,8 +147,8 @@ public class DesignTest {
     void labelStyle(TextView t, String where) {
         String s = where + ": label '" + t.getText() + "'";
         assertEquals(s + " is 12 sp", Ink.px(t.getContext(), 12), t.getTextSize(), 0.5f);
-        assertEquals(s + " is spaced 0.12", 0.12f, t.getLetterSpacing(), 0.001f);
-        assertSame(s + " is the medium mono", Ink.monoMedium, t.getTypeface());
+        assertEquals(s + " is spaced 0.14", 0.14f, t.getLetterSpacing(), 0.001f);
+        assertSame(s + " is the serif bold", Ink.serifBold, t.getTypeface());
         int c = t.getCurrentTextColor();
         assertTrue(s + " is muted (or Right / Not that one in their tone)", c == Ink.ink2 || c == Ink.tone[2] || c == Ink.tone[4]);
         String text = t.getText().toString();
@@ -243,7 +243,7 @@ public class DesignTest {
 
     static Set<Integer> inks() {
         Set<Integer> s = new HashSet<>();
-        for (int c : new int[]{Ink.paper, Ink.paper2, Ink.ink, Ink.ink2, Ink.hl, Ink.hlInk, Ink.known, Ink.young}) s.add(c);
+        for (int c : new int[]{Ink.paper, Ink.paper2, Ink.ink, Ink.ink2, Ink.hl, Ink.hlInk, Ink.known, Ink.young, Ink.accent}) s.add(c);
         for (int i = 1; i <= 5; i++) s.add(Ink.tone[i]);
         return s;
     }

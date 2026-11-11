@@ -56,7 +56,7 @@ class Search {
         caret.setSize(Math.max(2, Ink.dp(2)), -1);
         field.setTextCursorDrawable(caret);
         field.setHint("水, shui, water");
-        field.setBackground(Ui.shape(Ink.paper2, Ink.ink, 999, false));
+        field.setBackground(Ui.shape(Ink.paper2, Ink.line, 999, false));
         field.setPadding(Ink.dp(18), 0, Ink.dp(18), 0);
         field.setContentDescription("Search the path");
         field.setText(query);
@@ -145,7 +145,7 @@ class Search {
         if (it.py.length > 0) {
             android.text.SpannableStringBuilder b = Ui.pinyin(it.py[0]);
             for (int i = 1; i < it.py.length; i++) b.append(", ").append(Ui.pinyin(it.py[i]));
-            t.addView(Ui.text(m, b, 15, Ink.monoMedium, Ink.ink));
+            t.addView(Ui.text(m, b, 15, Ink.serifBold, Ink.ink));
         }
         TextView en = Ui.text(m, it.en, 14, Ink.sans, Ink.ink2);
         en.setMaxLines(2);

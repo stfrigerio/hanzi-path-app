@@ -45,7 +45,7 @@ another phone).
 
 - **Learn** a batch (5 by default): the strokes animate on a 米字格 (tap the
   square to see them again), it's said aloud (Android's Chinese voice), the
-  reading in the tones' inks (1 blue, 2 green, 3 peach, 4 pink), what it's made
+  reading in the tones' inks (1 blue, 2 green, 3 ochre, 4 red), what it's made
   of and what it leads to, why it looks like this (Make Me a Hanzi's etymology:
   which part gives the meaning, which the sound), and the words you can now
   read (HSK's, or CC-CEDICT's where HSK has none). *Step* shows the strokes one
@@ -75,8 +75,8 @@ another phone).
   them: into English (four to pick from) and into Chinese (its words on tiles,
   tapped in order).
 - **Home**: today in four lines (reviews due, new left today, characters known,
-  words to learn), the week's reviews, and the path as a garden: yellow next, pink
-  learning, blue known, outlined pink wilting. Tap any item to look it up;
+  words to learn), the week's reviews, and the path as a garden: marigold next,
+  coral learning, blue known, outlined coral wilting. Tap any item to look it up;
   *Search* finds characters, words, readings and meanings.
 - A home-screen widget (what's due, a character from the path) and a daily
   reminder.
@@ -117,6 +117,7 @@ android/assemble    # the APK, in android/out/
 android/install     # the same, put on a phone over adb
 android/test/run    # every screen walked in Robolectric and rendered, light and dark (needs mvn)
 python3 tools/build.py   # data/ again from its sources (fetched once into ~/.cache/hanzi-path)
+tools/cut-han            # the hanzi face (Path Kai) cut again to data/'s characters (needs fontTools)
 ```
 
 | Path | What |
@@ -144,7 +145,7 @@ Tatoeba's sentences. The texts are in `LICENSES/`.
 |---|---|---|
 | decomposition, etymology, pinyin, definitions | [Make Me a Hanzi](https://github.com/skishore/makemeahanzi) `dictionary.txt` | LGPL-3.0 or later (`LICENSES/LGPL-3.0.txt`, which builds on `GPL-3.0.txt`) |
 | stroke shapes and order (`data/strokes-*.json`) | Make Me a Hanzi `graphics.txt` | Arphic Public License (`LICENSES/Arphic-1999.txt`) |
-| faces (`android/fonts/`) | IBM Plex Mono and Sans; Ma Shan Zheng (cut to 汉字之路好行练) | OFL 1.1 (`LICENSES/OFL-1.1.txt`) |
+| faces (`android/fonts/`) | IBM Plex Sans; Ma Shan Zheng (cut to 汉字之路好行练); LXGW WenKai, cut by `tools/cut-han` and renamed Path Kai | OFL 1.1 (`LICENSES/OFL-1.1.txt`) |
 | frequency order | Jun Da, Modern Chinese character frequency list | research use |
 | meanings of characters, words beyond HSK | [CC-CEDICT](https://cc-cedict.org/) via [MDBG](https://www.mdbg.net/chinese/dictionary?page=cc-cedict) | CC BY-SA 4.0 (`LICENSES/CC-BY-SA-4.0.txt`) |
 | HSK words (`sources/hsk.json`) | [hskhsk.com](https://github.com/glxxyz/hskhsk.com) | MIT (`sources/hsk-LICENSE.txt`) |

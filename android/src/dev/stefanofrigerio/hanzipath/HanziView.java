@@ -83,7 +83,7 @@ class HanziView extends View {
         edgeP.setStrokeJoin(Paint.Join.ROUND);
         edgeP.setStrokeWidth(Math.max(1, Ink.dp(1.5f)));
         numP.setColor(Ink.ink2);
-        numP.setTypeface(Ink.mono);
+        numP.setTypeface(Ink.serif);
         numP.setTextAlign(Paint.Align.CENTER);
         numP.setTextSize(Ink.px(c, 13));
         haloP.set(numP);

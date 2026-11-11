@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Ink.java's night palette (the garden's navy), for the widget. Keep in step with Ink.init. -->
 <resources>
-    <color name="ink">#eeede6</color>
-    <color name="ink2">#a9a8b8</color>
-    <color name="rule">#3a3b52</color>
-    <color name="tone1">#7aa2ff</color>
-    <color name="tone2">#7ee068</color>
-    <color name="tone3">#ffb38a</color>
-    <color name="tone4">#ff8cc0</color>
-    <color name="tone5">#84839a</color>
-    <color name="hl">#ffff00</color>
-    <color name="hl_ink">#141414</color>
+    <color name="ink">#ede5d6</color>
+    <color name="ink2">#aba190</color>
+    <color name="rule">#3b342c</color>
+    <color name="tone1">#8fb0ec</color>
+    <color name="tone2">#8ecf87</color>
+    <color name="tone3">#e9a462</color>
+    <color name="tone4">#ef7b62</color>
+    <color name="tone5">#9a9083</color>
+    <color name="hl">#f2cb45</color>
+    <color name="hl_ink">#1a1714</color>
 </resources>

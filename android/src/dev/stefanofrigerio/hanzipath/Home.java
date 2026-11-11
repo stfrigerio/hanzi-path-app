@@ -46,7 +46,7 @@ final class Home {
 
         // masthead
         TextView logo = Ui.text(m, "汉字之路", 44, Ink.brush, Ink.ink);
-        TextView en = Ui.text(m, "HANZI PATH", 13, Ink.monoMedium, Ink.ink2);
+        TextView en = Ui.text(m, "HANZI PATH", 13, Ink.serifBold, Ink.ink2);
         en.setLetterSpacing(0.12f);
         en.setPadding(0, 0, 0, Ink.dp(10));
         Ui.Pair name = new Ui.Pair(m, 12, false);   // large text: the English goes under the brush
@@ -316,9 +316,9 @@ final class Home {
         java.util.regex.Matcher x = java.util.regex.Pattern.compile("\\d+").matcher(s);
         while (x.find()) {
             b.setSpan(new ForegroundColorSpan(Ink.ink), x.start(), x.end(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            b.setSpan(new TypefaceSpan(Ink.monoMedium), x.start(), x.end(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            b.setSpan(new TypefaceSpan(Ink.serifBold), x.start(), x.end(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
-        return Ui.text(m, b, 14, Ink.mono, Ink.ink2);
+        return Ui.text(m, b, 14, Ink.serif, Ink.ink2);
     }
 
     static View legend(Main m, int fill, int line, String s) {
@@ -326,7 +326,7 @@ final class Home {
         View sw = new View(m);
         sw.setBackground(Ui.shape(fill, line, 0, false));
         r.addView(sw, new LinearLayout.LayoutParams(Ink.dp(10), Ink.dp(10)));
-        r.addView(Ui.text(m, s, 12, Ink.mono, Ink.ink2));
+        r.addView(Ui.text(m, s, 12, Ink.serif, Ink.ink2));
         return r;
     }
 

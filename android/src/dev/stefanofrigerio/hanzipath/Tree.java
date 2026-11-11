@@ -241,7 +241,7 @@ class Tree {
         r.setPadding(0, Ink.dp(8), 0, Ink.dp(8));
         r.addView(square(n.h, st, ROOT, 40));
         LinearLayout t = Ui.column(m, 2);
-        t.addView(Ui.text(m, reading(it), 20, Ink.monoMedium, Ink.ink));
+        t.addView(Ui.text(m, reading(it), 20, Ink.serifBold, Ink.ink));
         TextView en = Ui.text(m, it.en, 15, Ink.sans, Ink.ink);
         en.setMaxLines(2);
         en.setEllipsize(TextUtils.TruncateAt.END);
@@ -266,7 +266,7 @@ class Tree {
         LinearLayout t = Ui.column(m, 0);
         CharSequence py = reading(it);
         if (py.length() > 0) {
-            TextView p = Ui.text(m, py, 14, Ink.monoMedium, Ink.ink);
+            TextView p = Ui.text(m, py, 14, Ink.serifBold, Ink.ink);
             p.setMaxLines(1);
             t.addView(p);
         }

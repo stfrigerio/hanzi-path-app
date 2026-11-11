@@ -1,0 +1,65 @@
+#!/usr/bin/env python3
+"""Cuts the face for hanzi in text (android/fonts/han.ttf) from LXGW WenKai: every character
+the app can show (data/, sources/, the code) and plain ASCII, nothing else.
+
+WenKai is OFL with Reserved Font Names ("LXGW", 霞鹜 …) that a cut may keep only for web
+fonts, so this one is renamed "Path Kai"; its copyright notice stays (LICENSES/OFL-1.1.txt).
+Run it again when the path gains characters (tools/build.py), else a new one falls back to
+Android's serif. Needs fontTools (pip install fonttools); WenKai is fetched once into
+~/.cache/hanzi-path.
+
+Usage: tools/cut-han
+"""
+import glob, os, sys, urllib.request
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CACHE = os.path.expanduser("~/.cache/hanzi-path")
+VERSION = "v1.530"
+URL = f"https://github.com/lxgw/LxgwWenKai/releases/download/{VERSION}/LXGWWenKai-Regular.ttf"
+NAME, PS = "Path Kai", "PathKai-Regular"
+
+try:
+    from fontTools import subset
+    from fontTools.ttLib import TTFont
+except ImportError:
+    sys.exit("tools/cut-han needs fontTools: pip install fonttools")
+
+
+def han(ch):
+    o = ord(ch)
+    return 0x2e80 <= o <= 0x9fff or 0x3000 <= o <= 0x303f or 0xff00 <= o <= 0xffef or o >= 0x20000
+
+
+def main():
+    src = os.path.join(CACHE, f"LXGWWenKai-Regular-{VERSION}.ttf")
+    if not os.path.exists(src):
+        os.makedirs(CACHE, exist_ok=True)
+        print("fetching", URL)
+        urllib.request.urlretrieve(URL, src + ".part")
+        os.replace(src + ".part", src)
+    chars = set()
+    for f in glob.glob(os.path.join(ROOT, "data/*.json")) + glob.glob(os.path.join(ROOT, "sources/*.json")) \
+            + glob.glob(os.path.join(ROOT, "android/src/**/*.java"), recursive=True):
+        chars.update(ch for ch in open(f, encoding="utf-8").read() if han(ch))
+    font = TTFont(src)
+    opts = subset.Options()
+    opts.layout_features = ["*"]
+    opts.name_IDs = ["*"]
+    s = subset.Subsetter(opts)
+    s.populate(text="".join(sorted(chars)) + "".join(chr(c) for c in range(0x20, 0x7f)))
+    s.subset(font)
+    names = font["name"]
+    for rec in list(names.names):
+        if rec.nameID in (1, 4, 16, 18, 21):
+            rec.string = NAME
+        elif rec.nameID == 6 or rec.nameID == 20:
+            rec.string = PS
+        elif rec.nameID == 3:
+            rec.string = f"{PS};{VERSION} cut for hanzi path"
+    out = os.path.join(ROOT, "android/fonts/han.ttf")
+    font.save(out)
+    print(f"{out}: {len(chars)} characters, {os.path.getsize(out) // 1024} KB")
+
+
+if __name__ == "__main__":
+    main()

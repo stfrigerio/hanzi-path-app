@@ -53,7 +53,7 @@ final class Tones {
             LinearLayout r = Ui.row(m, 8);
             r.setGravity(Gravity.CENTER);
             r.addView(Ui.speaker(m, v -> m.say(it.h)));
-            r.addView(Ui.text(m, "tap to hear it again", 13, Ink.mono, Ink.ink2));
+            r.addView(Ui.text(m, "tap to hear it again", 13, Ink.serif, Ink.ink2));
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, -2);
             lp.gravity = Gravity.CENTER_HORIZONTAL;
             card.addView(r, lp);
@@ -71,20 +71,20 @@ final class Tones {
             int t = Integer.parseInt(o);
             SpannableStringBuilder b = new SpannableStringBuilder(MARK[t]);
             b.setSpan(new ForegroundColorSpan(Ink.tone[t]), 0, b.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            b.setSpan(new TypefaceSpan(Ink.monoMedium), 0, b.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            b.setSpan(new TypefaceSpan(Ink.serifBold), 0, b.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             b.append('\n');
             int at = b.length();
             b.append(t == 5 ? "neutral" : o);
             b.setSpan(new AbsoluteSizeSpan(11, true), at, b.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             b.setSpan(new ForegroundColorSpan(Ink.ink2), at, b.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            TextView v = Ui.text(m, b, 26, Ink.mono, Ink.ink);
+            TextView v = Ui.text(m, b, 26, Ink.serif, Ink.ink);
             v.setGravity(Gravity.CENTER);
             v.setLineSpacing(0, 0.9f);
             v.setMinHeight(Ink.dp(72));
             v.setPadding(0, Ink.dp(6), 0, Ink.dp(8));
             v.setContentDescription(NAME[t] + (t == 5 ? "" : ", " + MARK[t]));
             if (q.picked == null) {
-                Ui.touch(v, Ink.paper, Ink.ink, 999);
+                Ui.touch(v, Ink.surface, Ink.line, 999);
                 v.setOnClickListener(x -> q.pick(o));
             } else q.mark(v, right(o, h), o.equals(q.picked), 999);
             row.addView(v, Ui.weight(1));

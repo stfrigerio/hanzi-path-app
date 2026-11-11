@@ -6,16 +6,22 @@ import android.graphics.Typeface;
 import android.util.TypedValue;
 
 /**
- * The look: a hypertext garden in the scrapbook look. White paper (night: its
- * navy), ink for text and the hairline round what you can touch, the highlighter only under
- * what's next or suggested. The tones are the garden's inks: 1 blue, 2 green, 3 peach,
- * 4 pink, neutral grey. Every colour in the app is one of these.
+ * The look: ink on paper. Rice paper, warm (night: ink on black lacquer, the paper's cream
+ * for text); cards a shade lighter than the page with a soft edge; a line round what you can
+ * touch; the main way on in vermilion, the seal's red; the highlighter, marigold, only under
+ * what's next or suggested. The tones' inks: 1 blue, 2 green, 3 ochre, 4 red, neutral grey,
+ * each readable on the paper (4.5:1). Every colour in the app is one of these.
+ *
+ * Faces: hanzi in text in Path Kai (fonts/han.ttf, LXGW WenKai cut by tools/cut-han), the
+ * same hand as the strokes; labels, pinyin and figures in Android's serif; the rest in IBM
+ * Plex Sans; the brush (Ma Shan Zheng) only for the logo and the seal.
  */
 final class Ink {
     static int paper, paper2, ink, ink2, rule, hl, hlInk, known, young, grid, press;
+    static int surface, edge, line, accent;   // a card's fill and edge, a touchable's line, the main way on
     static final int[] tone = new int[6];
     static boolean night;
-    static Typeface mono, monoMedium, sans, sansMedium, brush, han;
+    static Typeface serif, serifBold, sans, sansMedium, brush, han;
     static float density;
 
     private Ink() {}
@@ -25,31 +31,34 @@ final class Ink {
         night = (ctx.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK)
                 == Configuration.UI_MODE_NIGHT_YES;
         if (night) {
-            paper = 0xff0e0f1a; paper2 = 0xff151626; ink = 0xffeeede6; ink2 = 0xffa9a8b8; rule = 0xff3a3b52;
-            tone[1] = 0xff7aa2ff; tone[2] = 0xff7ee068; tone[3] = 0xffffb38a; tone[4] = 0xffff8cc0; tone[5] = 0xff84839a;
-            known = 0xff7aa2ff; young = 0xffff8cc0; grid = 0xff24253a;
+            paper = 0xff1a1714; paper2 = 0xff231f1b; ink = 0xffede5d6; ink2 = 0xffaba190; rule = 0xff3b342c;
+            tone[1] = 0xff8fb0ec; tone[2] = 0xff8ecf87; tone[3] = 0xffe9a462; tone[4] = 0xffef7b62; tone[5] = 0xff9a9083;
+            known = 0xff8fb0ec; young = 0xffef7b62; grid = 0xff2a2520;
+            surface = 0xff211d19; edge = 0xff3b342c; accent = 0xffe0603f; hl = 0xfff2cb45;
         } else {
-            paper = 0xffffffff; paper2 = 0xfff7f6f0; ink = 0xff141414; ink2 = 0xff5c5c66; rule = 0xffc9c8c0;
-            tone[1] = 0xff1f55c8; tone[2] = 0xff2e7d32; tone[3] = 0xffb5571c; tone[4] = 0xffc2286f; tone[5] = 0xff76767e;
-            known = 0xff1f55c8; young = 0xfff27fae; grid = 0xffe3e2da;
+            paper = 0xfff7f2e8; paper2 = 0xffefe8da; ink = 0xff2b2520; ink2 = 0xff6f665c; rule = 0xffdccfbb;
+            tone[1] = 0xff2d5b9e; tone[2] = 0xff3a7535; tone[3] = 0xffa3561a; tone[4] = 0xffc0392b; tone[5] = 0xff746b60;
+            known = 0xff2d5b9e; young = 0xffe58a72; grid = 0xffebe2d2;
+            surface = 0xfffffdf8; edge = 0xffe2d6c2; accent = 0xffb5402a; hl = 0xffffd84a;
         }
-        hl = 0xffffff00;
-        hlInk = 0xff141414;
+        hlInk = night ? paper : ink;
+        line = mix(edge, ink, 0.25f);
         press = mix(paper, hl, night ? 0.14f : 0.3f);     // paper under a finger: a wash of the highlighter
-        if (mono == null) {
-            mono = Typeface.createFromAsset(ctx.getAssets(), "fonts/mono.ttf");
-            monoMedium = Typeface.createFromAsset(ctx.getAssets(), "fonts/mono-medium.ttf");
+        if (sans == null) {
+            serif = Typeface.create("serif", Typeface.NORMAL);                      // Android's Noto Serif
+            serifBold = Typeface.create("serif", Typeface.BOLD);
             sans = Typeface.createFromAsset(ctx.getAssets(), "fonts/sans.ttf");
             sansMedium = Typeface.createFromAsset(ctx.getAssets(), "fonts/sans-medium.ttf");
             brush = Typeface.createFromAsset(ctx.getAssets(), "fonts/brush.ttf");   // 汉字之路好行练 only
-            han = Typeface.create("serif", Typeface.NORMAL);                        // Android's Noto Serif CJK
+            int id = ctx.getResources().getIdentifier("han", "font", ctx.getPackageName());
+            han = id != 0 ? ctx.getResources().getFont(id) : Typeface.create("serif", Typeface.NORMAL);   // in res/font, for the widget too
         }
     }
 
     /** What a fill turns to under a finger: paper takes a wash of the highlighter, ink lifts
      *  towards the paper, any other ink deepens. */
     static int pressed(int fill) {
-        if (fill == 0 || fill == paper || fill == paper2) return press;
+        if (fill == 0 || fill == paper || fill == paper2 || fill == surface) return press;
         if (fill == ink) return mix(ink, paper, 0.22f);
         return mix(fill, hlInk, 0.14f);
     }

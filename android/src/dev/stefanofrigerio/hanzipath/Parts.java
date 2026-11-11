@@ -115,7 +115,7 @@ final class Parts {
             keep();
             show();
         });
-        sort.setTypeface(Ink.monoMedium);
+        sort.setTypeface(Ink.serifBold);
         sort.setTextSize(14);
         sort.setMinHeight(Ink.dp(38));
         sort.setPadding(Ink.dp(14), 0, Ink.dp(14), 0);
@@ -196,7 +196,7 @@ final class Parts {
         r.addView(square(it, st[it.at]));
 
         LinearLayout t = Ui.column(m, 3);
-        TextView py = Ui.text(m, Tree.reading(it), 16, Ink.monoMedium, Ink.ink);
+        TextView py = Ui.text(m, Tree.reading(it), 16, Ink.serifBold, Ink.ink);
         py.setMaxLines(1);
         t.addView(py);
         TextView en = Ui.text(m, it.en, 14, Ink.sans, Ink.ink);
@@ -216,7 +216,7 @@ final class Parts {
             all.setGravity(Gravity.CENTER);
             all.setMinHeight(Ink.dp(32));
             all.setPadding(Ink.dp(12), 0, Ink.dp(12), 0);
-            Ui.touch(all, Ink.paper, Ink.ink, 999);
+            Ui.touch(all, Ink.surface, Ink.line, 999);
             Runnable label = () -> {
                 boolean o = open.contains(it.h);
                 all.setText(o ? "Fold" : "All " + p.chars.length + " ›");

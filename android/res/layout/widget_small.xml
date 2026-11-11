@@ -29,7 +29,7 @@
             android:text="REVIEW"
             android:textSize="11sp"
             android:letterSpacing="0.12"
-            android:fontFamily="@font/mono_medium"
+            android:fontFamily="serif" android:textStyle="bold"
             android:textColor="@color/ink2" />
         <TextView
             android:id="@+id/count"
@@ -37,7 +37,7 @@
             android:layout_height="wrap_content"
             android:text="4"
             android:textSize="13sp"
-            android:fontFamily="@font/mono_medium"
+            android:fontFamily="serif" android:textStyle="bold"
             android:textColor="@color/ink" />
         <TextView
             android:id="@+id/count_word"
@@ -45,7 +45,7 @@
             android:layout_height="wrap_content"
             android:text=" due"
             android:textSize="13sp"
-            android:fontFamily="@font/mono"
+            android:fontFamily="serif"
             android:textColor="@color/ink2" />
     </LinearLayout>
 
@@ -65,7 +65,7 @@
             android:includeFontPadding="false"
             android:text="人"
             android:textSize="52sp"
-            android:fontFamily="serif"
+            android:fontFamily="@font/han"
             android:textColor="@color/ink" />
     </FrameLayout>
 

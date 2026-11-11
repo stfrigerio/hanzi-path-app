@@ -89,7 +89,7 @@ final class Apart {
 
         LinearLayout r = Ui.row(m, 8);
         r.setGravity(Gravity.CENTER);
-        r.addView(Ui.text(m, it.py.length > 0 ? Ui.pinyin(it.py[0]) : "—", 22, Ink.monoMedium, Ink.ink));
+        r.addView(Ui.text(m, it.py.length > 0 ? Ui.pinyin(it.py[0]) : "—", 22, Ink.serifBold, Ink.ink));
         if (it.py.length > 0) r.addView(Ui.speaker(m, v -> m.say(it.h)));
         c.addView(r, new LinearLayout.LayoutParams(-1, -2));
         TextView en = Ui.text(m, it.en, 15, Ink.sans, Ink.ink);
@@ -97,7 +97,7 @@ final class Apart {
         c.addView(en, new LinearLayout.LayoutParams(-1, -2));
 
         if (it.parts.length == 0) {
-            TextView one = Ui.text(m, "no smaller parts", 12, Ink.mono, Ink.ink2);
+            TextView one = Ui.text(m, "no smaller parts", 12, Ink.serif, Ink.ink2);
             one.setGravity(Gravity.CENTER);
             c.addView(one, new LinearLayout.LayoutParams(-1, -2));
         } else {

@@ -164,7 +164,7 @@ final class Sentences {
         boolean[] mk = marks(s, h);
         int at = 0;
         for (int i = 0; i < s.py.length; i++) {
-            if (mk[i]) b.setSpan(new TypefaceSpan(Ink.monoMedium), at, at + s.py[i].length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            if (mk[i]) b.setSpan(new TypefaceSpan(Ink.serifBold), at, at + s.py[i].length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             at += s.py[i].length() + 1;
         }
         return b;
@@ -184,7 +184,7 @@ final class Sentences {
         zh.setLineSpacing(0, 1.1f);
         Taps.link(m, zh, h);   // every character opens its card, but the card's own
         t.addView(zh);
-        t.addView(Ui.text(m, pinyin(s, h), 14, Ink.mono, Ink.ink));
+        t.addView(Ui.text(m, pinyin(s, h), 14, Ink.serif, Ink.ink));
         TextView en = Ui.text(m, s.en, 14, Ink.sans, Ink.ink2);
         en.setPadding(0, Ink.dp(2), 0, 0);
         t.addView(en);

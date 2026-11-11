@@ -18,14 +18,14 @@ final class Cards {
 
     static View tag(Main m, Item it) {
         LinearLayout r = Ui.row(m, 8);
-        TextView kind = Ui.text(m, it.isPart() ? "PART" : "CHARACTER", 11, Ink.mono, Ink.ink2);
+        TextView kind = Ui.text(m, it.isPart() ? "PART" : "CHARACTER", 11, Ink.serif, Ink.ink2);
         kind.setLetterSpacing(0.1f);
         kind.setPadding(Ink.dp(10), Ink.dp(2), Ink.dp(10), Ink.dp(2));
         kind.setBackground(Ui.shape(0, Ink.ink2, 999, it.isPart()));
         r.addView(kind);
         r.addView(Ui.spacer(m));
         TextView pos = Ui.text(m, (it.strokes + (it.strokes == 1 ? " stroke" : " strokes") + " · no. " + (it.at + 1) + " of " + PathData.items.size()).toUpperCase(),
-                11, Ink.mono, Ink.ink2);
+                11, Ink.serif, Ink.ink2);
         pos.setLetterSpacing(0.08f);
         r.addView(pos);
         return r;
@@ -49,7 +49,7 @@ final class Cards {
     static TextView stepper(Main m, HanziView hv) {
         if (hv.glyph == null || hv.fill.length < 2) return null;
         TextView t = Ui.small(m, hv.stepLabel(), v -> hv.step());
-        t.setTypeface(Ink.monoMedium);   // "3 / 7": figures, in the mono
+        t.setTypeface(Ink.serifBold);   // "3 / 7": figures, in the mono
         t.setMinWidth(Ink.dp(96));
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, -2);
         lp.gravity = Gravity.CENTER_HORIZONTAL;
@@ -71,10 +71,10 @@ final class Cards {
         c.setGravity(Gravity.CENTER_HORIZONTAL);
         LinearLayout r = Ui.row(m, 10);
         r.setGravity(Gravity.CENTER);
-        TextView py = Ui.text(m, it.py.length > 0 ? Ui.pinyin(it.py[0]) : "—", 26, Ink.monoMedium, Ink.ink);
+        TextView py = Ui.text(m, it.py.length > 0 ? Ui.pinyin(it.py[0]) : "—", 26, Ink.serifBold, Ink.ink);
         r.addView(py);
         if (it.py.length > 0) r.addView(Ui.speaker(m, v -> m.say(it.h)));
-        if (it.py.length > 1) r.addView(Ui.text(m, "also " + it.py[1], 15, Ink.mono, Ink.ink2));
+        if (it.py.length > 1) r.addView(Ui.text(m, "also " + it.py[1], 15, Ink.serif, Ink.ink2));
         c.addView(r);
         TextView en = Ui.text(m, it.en, 19, Ink.sans, Ink.ink);
         en.setGravity(Gravity.CENTER);
@@ -174,7 +174,7 @@ final class Cards {
                 b.append("  HSK ").append(w[3]);
                 b.setSpan(new ForegroundColorSpan(Ink.ink2), at, b.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
-            t.addView(Ui.text(m, b, 14, Ink.mono, Ink.ink));
+            t.addView(Ui.text(m, b, 14, Ink.serif, Ink.ink));
             t.addView(Ui.text(m, w[2], 13, Ink.sans, Ink.ink2));
             r.addView(t, Ui.weight(1));
             r.setOnClickListener(v -> m.say(w[0]));
@@ -187,14 +187,14 @@ final class Cards {
     /** A word's tag: WORD, and its level on the right ("HSK 3", or nothing for CC-CEDICT's). */
     static View wordTag(Main m, String[] w) {
         LinearLayout r = Ui.row(m, 8);
-        TextView kind = Ui.text(m, "WORD", 11, Ink.mono, Ink.ink2);
+        TextView kind = Ui.text(m, "WORD", 11, Ink.serif, Ink.ink2);
         kind.setLetterSpacing(0.1f);
         kind.setPadding(Ink.dp(10), Ink.dp(2), Ink.dp(10), Ink.dp(2));
         kind.setBackground(Ui.shape(0, Ink.ink2, 999, false));
         r.addView(kind);
         r.addView(Ui.spacer(m));
         String lv = Words.level(w);
-        TextView pos = Ui.text(m, (Words.chars(w[0]).length + " characters" + (lv.isEmpty() ? "" : " · " + lv)).toUpperCase(), 11, Ink.mono, Ink.ink2);
+        TextView pos = Ui.text(m, (Words.chars(w[0]).length + " characters" + (lv.isEmpty() ? "" : " · " + lv)).toUpperCase(), 11, Ink.serif, Ink.ink2);
         pos.setLetterSpacing(0.08f);
         r.addView(pos);
         return r;
@@ -219,7 +219,7 @@ final class Cards {
         c.setGravity(Gravity.CENTER_HORIZONTAL);
         LinearLayout r = Ui.row(m, 10);
         r.setGravity(Gravity.CENTER);
-        r.addView(Ui.text(m, Ui.pinyin(w[1]), 26, Ink.monoMedium, Ink.ink));
+        r.addView(Ui.text(m, Ui.pinyin(w[1]), 26, Ink.serifBold, Ink.ink));
         r.addView(Ui.speaker(m, v -> m.say(w[0])));
         c.addView(r);
         TextView en = Ui.text(m, w[2], 19, Ink.sans, Ink.ink);

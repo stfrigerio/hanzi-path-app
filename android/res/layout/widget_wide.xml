@@ -27,7 +27,7 @@
             android:text="REVIEW"
             android:textSize="11sp"
             android:letterSpacing="0.12"
-            android:fontFamily="@font/mono_medium"
+            android:fontFamily="serif" android:textStyle="bold"
             android:textColor="@color/ink2" />
         <FrameLayout
             android:layout_width="match_parent"
@@ -45,7 +45,7 @@
                 android:includeFontPadding="false"
                 android:text="人"
                 android:textSize="52sp"
-                android:fontFamily="serif"
+                android:fontFamily="@font/han"
                 android:textColor="@color/ink" />
         </FrameLayout>
         <include layout="@layout/widget_pinyin" />
@@ -82,7 +82,7 @@
             android:text="DUE NOW"
             android:textSize="11sp"
             android:letterSpacing="0.12"
-            android:fontFamily="@font/mono_medium"
+            android:fontFamily="serif" android:textStyle="bold"
             android:textColor="@color/ink2" />
         <TextView
             android:id="@+id/count"
@@ -91,7 +91,7 @@
             android:maxLines="1"
             android:text="4"
             android:textSize="34sp"
-            android:fontFamily="@font/mono_medium"
+            android:fontFamily="serif" android:textStyle="bold"
             android:textColor="@color/ink" />
         <FrameLayout
             android:layout_width="match_parent"
@@ -106,7 +106,7 @@
             android:text="NEXT TO LEARN"
             android:textSize="11sp"
             android:letterSpacing="0.12"
-            android:fontFamily="@font/mono_medium"
+            android:fontFamily="serif" android:textStyle="bold"
             android:textColor="@color/ink2" />
         <TextView
             android:id="@+id/then"
@@ -117,7 +117,7 @@
             android:ellipsize="end"
             android:text="口 日 月 山 水"
             android:textSize="22sp"
-            android:fontFamily="serif"
+            android:fontFamily="@font/han"
             android:textColor="@color/ink" />
     </LinearLayout>
 </LinearLayout>

@@ -16,9 +16,9 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 /**
- * The scrapbook look's pieces, made in code: pills (a hairline of ink, round ends), the
- * card (a hairline, 20 dp corners), labels in the mono face, chips, pinyin in the tones'
- * inks. Every screen is built from these.
+ * Ink on paper's pieces, made in code: pills (a line round them, round ends; the main way on
+ * in vermilion), the card (a shade lighter than the page, a soft edge, 20 dp corners), labels
+ * in serif capitals, chips, pinyin in the tones' inks. Every screen is built from these.
  */
 final class Ui {
     private Ui() {}
@@ -137,10 +137,10 @@ final class Ui {
         return t;
     }
 
-    /** A small uppercase label, letter-spaced: section heads, counts. */
+    /** A small label in serif capitals, letter-spaced: section heads, counts. */
     static TextView label(Context c, String s) {
-        TextView t = text(c, s.toUpperCase(), 12, Ink.monoMedium, Ink.ink2);
-        t.setLetterSpacing(0.12f);
+        TextView t = text(c, s.toUpperCase(), 12, Ink.serifBold, Ink.ink2);
+        t.setLetterSpacing(0.14f);
         return t;
     }
 
@@ -210,8 +210,8 @@ final class Ui {
     }
 
     static void style(TextView t, int kind) {
-        int fill = kind == SOLID ? Ink.ink : kind == HIGHLIGHT ? Ink.hl : Ink.paper;
-        int stroke = kind == HIGHLIGHT ? Ink.hlInk : Ink.ink;
+        int fill = kind == SOLID ? Ink.accent : kind == HIGHLIGHT ? Ink.hl : Ink.surface;
+        int stroke = kind == SOLID ? Ink.accent : kind == HIGHLIGHT ? Ink.mix(Ink.hl, Ink.hlInk, 0.3f) : Ink.line;
         touch(t, fill, stroke, 999);
         t.setTextColor(kind == SOLID ? Ink.paper : kind == HIGHLIGHT ? Ink.hlInk : Ink.ink);
     }
@@ -268,7 +268,7 @@ final class Ui {
         t.setTypeface(Ink.sans);
         t.setTextColor(Ink.ink);
         t.setGravity(Gravity.CENTER);
-        touch(t, Ink.paper, Ink.ink, 999);
+        touch(t, Ink.surface, Ink.line, 999);
         t.setLayoutParams(new LinearLayout.LayoutParams(Ink.dp(40), Ink.dp(40)));
         t.setContentDescription("Back to the path");
         t.setOnClickListener(on);
@@ -301,7 +301,7 @@ final class Ui {
                 k.restore();
             }
         };
-        touch(v, Ink.paper, Ink.ink, 999);
+        touch(v, Ink.surface, Ink.line, 999);
         v.setLayoutParams(new LinearLayout.LayoutParams(Ink.dp(34), Ink.dp(34)));
         v.setContentDescription("Say it");
         v.setOnClickListener(on);
@@ -321,7 +321,7 @@ final class Ui {
 
     static LinearLayout card(Context c) {
         LinearLayout l = column(c, 16);
-        l.setBackground(shape(Ink.paper, Ink.ink, 20, false));
+        l.setBackground(shape(Ink.surface, Ink.edge, 20, false));
         l.setPadding(Ink.dp(18), Ink.dp(20), Ink.dp(18), Ink.dp(20));
         return l;
     }

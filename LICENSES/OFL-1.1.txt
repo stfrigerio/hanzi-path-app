@@ -1,8 +1,13 @@
-IBM Plex Mono and IBM Plex Sans (android/fonts/mono*.ttf, sans*.ttf):
+IBM Plex Sans (android/fonts/sans*.ttf):
 Copyright © 2017 IBM Corp. with Reserved Font Name "Plex"
 
 Ma Shan Zheng (android/fonts/brush.ttf, cut to 汉字之路好行练):
 Copyright 2018 The Ma Shan Zheng Project Authors (https://github.com/googlefonts/mashanzheng)
+
+Path Kai (android/fonts/han.ttf): LXGW WenKai v1.530, cut to the characters the app shows
+(tools/cut-han) and so renamed, as its Reserved Font Names ask of a Modified Version:
+Copyright 2021-2026 LXGW (https://github.com/lxgw/LxgwWenKai), with Reserved Font Name '霞鹜', '霞鶩', '落霞孤鹜', '落霞孤鶩' and 'LXGW'.
+Copyright 2020 The Klee Project Authors (https://github.com/fontworks-fonts/Klee)
 
 This Font Software is licensed under the SIL Open Font License, Version 1.1.
 This license is copied below, and is also available with a FAQ at:

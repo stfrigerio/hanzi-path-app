@@ -211,7 +211,7 @@ class Stats {
         hans.add(han);
         r.addView(han);
         LinearLayout t = Ui.column(m, 2);
-        if (!py.isEmpty()) t.addView(Ui.text(m, Ui.pinyin(py), 15, Ink.monoMedium, Ink.ink));
+        if (!py.isEmpty()) t.addView(Ui.text(m, Ui.pinyin(py), 15, Ink.serifBold, Ink.ink));
         TextView en = Ui.text(m, mean, 14, Ink.sans, Ink.ink2);
         en.setMaxLines(1);
         en.setEllipsize(TextUtils.TruncateAt.END);
@@ -241,7 +241,7 @@ class Stats {
         if (!a.reading().isEmpty()) py.append(Ui.pinyin(a.reading()));
         if (!a.reading().isEmpty() && !b.reading().isEmpty()) py.append(" / ");
         if (!b.reading().isEmpty()) py.append(Ui.pinyin(b.reading()));
-        if (py.length() > 0) t.addView(Ui.text(m, py, 15, Ink.monoMedium, Ink.ink2));
+        if (py.length() > 0) t.addView(Ui.text(m, py, 15, Ink.serifBold, Ink.ink2));
         TextView en = Ui.text(m, Apart.meaning(a.h) + " / " + Apart.meaning(b.h), 14, Ink.sans, Ink.ink2);
         en.setMaxLines(1);
         en.setEllipsize(TextUtils.TruncateAt.END);
@@ -356,7 +356,7 @@ class Stats {
             num.setTextAlign(Paint.Align.CENTER);
             num.setTextSize(Ink.px(c, 12));
             axis.setTextSize(Ink.px(c, 10));
-            axis.setTypeface(Ink.mono);
+            axis.setTypeface(Ink.serif);
         }
 
         void set(double[] v, String[] labels, int current) {
@@ -417,14 +417,14 @@ class Stats {
                     line.setColor(Ink.hlInk);
                     c.drawCircle(xs[i], ys[i], r, line);
                 }
-                num.setTypeface(now ? Ink.monoMedium : Ink.mono);
+                num.setTypeface(now ? Ink.serifBold : Ink.serif);
                 num.setColor(Ink.ink);
                 c.drawText(Math.round(v[i] * 100) + "%", xs[i], ys[i] - r - Ink.dp(5) - nf.descent, num);
                 axis.setTextAlign(Paint.Align.CENTER);
-                axis.setTypeface(now ? Ink.monoMedium : Ink.mono);
+                axis.setTypeface(now ? Ink.serifBold : Ink.serif);
                 axis.setColor(now ? Ink.ink : Ink.ink2);
                 c.drawText(labels[i], xs[i], base + Ink.dp(10) - af.ascent, axis);
-                axis.setTypeface(Ink.mono);
+                axis.setTypeface(Ink.serif);
             }
         }
     }

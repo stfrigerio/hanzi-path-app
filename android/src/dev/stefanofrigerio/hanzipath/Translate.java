@@ -212,7 +212,7 @@ class Translate {
         t.setMinHeight(Ink.dp(44));
         t.setMinWidth(Ink.dp(44));
         t.setPadding(Ink.dp(10), 0, Ink.dp(10), 0);
-        Ui.touch(t, Ink.paper, Ink.ink, 12);
+        Ui.touch(t, Ink.surface, Ink.line, 12);
         return t;
     }
 
@@ -276,7 +276,7 @@ class Translate {
         }
         LinearLayout pr = Ui.row(m, 10);
         pr.setGravity(Gravity.CENTER);
-        TextView py = Ui.text(m, Sentences.pinyin(s, null), 17, Ink.mono, Ink.ink);
+        TextView py = Ui.text(m, Sentences.pinyin(s, null), 17, Ink.serif, Ink.ink);
         py.setGravity(Gravity.CENTER);
         pr.addView(py, new LinearLayout.LayoutParams(0, -2, 1));
         View say = Ui.speaker(m, v -> m.say(s.zh));

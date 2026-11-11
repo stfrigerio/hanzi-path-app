@@ -285,7 +285,7 @@ class Quiz {
         c.setGravity(Gravity.CENTER_HORIZONTAL);
         c.setPadding(0, Ink.dp(12), 0, Ink.dp(12));
         if (!py(h).isEmpty()) {
-            TextView py = Ui.text(m, Ui.pinyin(py(h)), 30, Ink.monoMedium, Ink.ink);
+            TextView py = Ui.text(m, Ui.pinyin(py(h)), 30, Ink.serifBold, Ink.ink);
             py.setGravity(Gravity.CENTER);
             if (picked == null) c.addView(py);
             else {
@@ -294,7 +294,7 @@ class Quiz {
                 r.addView(py);
                 r.addView(Ui.speaker(m, v -> m.say(h)));
                 Item it = PathData.get(h);
-                if (it != null && it.py.length > 1) r.addView(Ui.text(m, "also " + it.py[1], 15, Ink.mono, Ink.ink2));
+                if (it != null && it.py.length > 1) r.addView(Ui.text(m, "also " + it.py[1], 15, Ink.serif, Ink.ink2));
                 c.addView(r);
             }
         }
@@ -312,7 +312,7 @@ class Quiz {
         View sp = Ui.speaker(m, v -> m.say(h));
         sp.setContentDescription("Say it again");
         c.addView(sp, new LinearLayout.LayoutParams(Ink.dp(88), Ink.dp(88)));
-        TextView t = Ui.text(m, "tap to hear it again", 13, Ink.mono, Ink.ink2);
+        TextView t = Ui.text(m, "tap to hear it again", 13, Ink.serif, Ink.ink2);
         t.setGravity(Gravity.CENTER);
         c.addView(t);
         return c;
@@ -357,7 +357,7 @@ class Quiz {
         v.setContentDescription(picked == null ? place
                 : place + ": " + o + ", " + spoken(o) + (o.equals(h) ? ", the right one" : o.equals(picked) ? ", your pick" : ""));
         if (picked == null) {
-            Ui.touch(v, Ink.paper, Ink.ink, 16);
+            Ui.touch(v, Ink.surface, Ink.line, 16);
             v.setOnClickListener(x -> pick(o));
         } else mark(v, o, h, 16);
         return v;
@@ -382,7 +382,7 @@ class Quiz {
         SpannableStringBuilder b = new SpannableStringBuilder();
         if (!py.isEmpty()) {
             b.append(Ui.pinyin(py));
-            b.setSpan(new TypefaceSpan(Ink.monoMedium), 0, b.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            b.setSpan(new TypefaceSpan(Ink.serifBold), 0, b.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             b.append("   ");
         }
         b.append(en);

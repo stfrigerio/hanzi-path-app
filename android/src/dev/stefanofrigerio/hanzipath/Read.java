@@ -195,7 +195,7 @@ class Read {
             answer.setBackground(Home.topRule());
             LinearLayout pr = Ui.row(m, 10);
             pr.setGravity(Gravity.CENTER);
-            TextView py = Ui.text(m, Sentences.pinyin(s, null), 17, Ink.mono, Ink.ink);
+            TextView py = Ui.text(m, Sentences.pinyin(s, null), 17, Ink.serif, Ink.ink);
             py.setGravity(Gravity.CENTER);
             pr.addView(py, new LinearLayout.LayoutParams(0, -2, 1));
             View say = Ui.speaker(m, v -> m.say(s.zh));
