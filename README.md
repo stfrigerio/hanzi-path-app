@@ -15,7 +15,7 @@ permission: your progress stays on the phone.
   <img src="shots/home.png" width="180" alt="Home: today in four lines, the week's reviews, and the path as a garden of characters, coloured by how well each is known">
   <img src="shots/character.png" width="180" alt="A character card: 作 zuò, to do, made of 亻 person and 乍, why it looks like this, and the words you can now read">
   <img src="shots/family.png" width="180" alt="The family tree of 想: 相, made of 木 and 目, over 心, down to the strokes">
-  <img src="shots/question.png" width="180" alt="A question: which one is 一? Four readings and meanings to pick from">
+  <img src="shots/question.png" width="180" alt="A question: which one is 十? Four readings and meanings to pick from">
 </p>
 <p>
   <img src="shots/write.png" width="180" alt="Writing 厂 chǎng, factory, from memory, stroke by stroke">
@@ -24,7 +24,7 @@ permission: your progress stays on the phone.
   <img src="shots/stats.png" width="180" alt="Stats: reviews per day, answers right week by week, the path, the hardest characters">
 </p>
 <p>
-  <img src="shots/home-night.png" width="180" alt="Home at night, on navy">
+  <img src="shots/home-night.png" width="180" alt="Home at night: the paper turned black lacquer">
   <img src="shots/written-night.png" width="180" alt="我 wǒ written from memory, at night">
   <img src="shots/translate-night.png" width="180" alt="Translating into Chinese: the sentence's words on tiles, tapped in order">
   <img src="shots/parts-night.png" width="180" alt="The parts, each with how many characters it builds, at night">
