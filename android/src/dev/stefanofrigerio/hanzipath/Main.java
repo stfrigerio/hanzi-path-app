@@ -139,7 +139,7 @@ public class Main extends Activity {
         ScrollView sv = new ScrollView(this);
         sv.setFillViewport(true);
         sv.setOverScrollMode(View.OVER_SCROLL_NEVER);
-        LinearLayout col = Ui.column(this, 16);
+        LinearLayout col = Ui.column(this, 24);   // the page's blocks: room between them
         int side = side();
         col.setPadding(side, Ink.dp(20), side, Ink.dp(48));
         sv.addView(col, new FrameLayout.LayoutParams(-1, -2));

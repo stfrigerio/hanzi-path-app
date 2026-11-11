@@ -293,10 +293,11 @@ final class Home {
         return out;
     }
 
-    /** A ledger line: what on the left, the figure on the right, a faint rule above. */
+    /** A ledger line: what on the left, the figure on the right (its first number large, as a
+     *  ledger's sum: read at a glance), a faint rule above. */
     static View line(Main m, String what, String value, boolean rule) {
-        Ui.Pair r = Ui.pair(m, 12, Ui.text(m, what, 15, Ink.sans, Ink.ink), stat(m, value));
-        r.setMinimumHeight(Ink.dp(38));
+        Ui.Pair r = Ui.pair(m, 12, Ui.text(m, what, 15, Ink.sans, Ink.ink), stat(m, value, true));
+        r.setMinimumHeight(Ink.dp(46));
         if (rule) r.setBackground(topRule(Ink.grid));
         r.setContentDescription(what + ": " + value);   // one line for TalkBack, not two
         r.setScreenReaderFocusable(true);
@@ -311,12 +312,16 @@ final class Home {
     }
 
     /** "12 known · 30 of 700 met": the numbers in ink, the words muted. */
-    static TextView stat(Main m, String s) {
+    static TextView stat(Main m, String s) { return stat(m, s, false); }
+
+    /** The same, its first number half as large again (a ledger line's sum) when big. */
+    static TextView stat(Main m, String s, boolean big) {
         SpannableStringBuilder b = new SpannableStringBuilder(s);
         java.util.regex.Matcher x = java.util.regex.Pattern.compile("\\d+").matcher(s);
-        while (x.find()) {
+        for (boolean first = true; x.find(); first = false) {
             b.setSpan(new ForegroundColorSpan(Ink.ink), x.start(), x.end(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             b.setSpan(new TypefaceSpan(Ink.serifBold), x.start(), x.end(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            if (big && first) b.setSpan(new android.text.style.RelativeSizeSpan(1.5f), x.start(), x.end(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
         return Ui.text(m, b, 14, Ink.serif, Ink.ink2);
     }

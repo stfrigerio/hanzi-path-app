@@ -30,7 +30,7 @@ import static org.junit.Assert.*;
 /**
  * The design rules on every main screen, light and dark: the bar's
  * label, every label the same (12 sp serif bold capitals, 0.14, ink2), every section on a page
- * with its hairline, every "›" row alike, two pill sizes, figures in the serif, notes in one style,
+ * with its hairline and its title (13 sp serif bold capitals, 0.16, ink), every "›" row alike, two pill sizes, figures in the serif, notes in one style,
  * the round's end with its seal, and no colour that isn't Ink's (none of the faint ones on
  * words). Renders d*.png (dn*.png at night).
  */
@@ -144,7 +144,27 @@ public class DesignTest {
         return t.getLetterSpacing() > 0.11f && !t.getText().toString().equals("HANZI PATH");
     }
 
+    /** A section's title (Ui.title): 13 sp serif bold capitals, 0.16, in ink, only as the
+     *  head of a section on a page (sections() checks that every head is one). */
+    static boolean title(TextView t) {
+        return Math.abs(t.getTextSize() - Ink.px(t.getContext(), 13)) < 0.5f && t.getLetterSpacing() > 0.15f;
+    }
+
+    void titleStyle(TextView t, String where) {
+        String s = where + ": title '" + t.getText() + "'";
+        assertEquals(s + " is 13 sp", Ink.px(t.getContext(), 13), t.getTextSize(), 0.5f);
+        assertEquals(s + " is spaced 0.16", 0.16f, t.getLetterSpacing(), 0.001f);
+        assertSame(s + " is the serif bold", Ink.serifBold, t.getTypeface());
+        assertEquals(s + " is in ink", Ink.ink, t.getCurrentTextColor());
+        String text = t.getText().toString();
+        assertTrue(s + " is in capitals", text.equals(text.toUpperCase()));
+        View sec = (View) t.getParent();
+        if (sec instanceof Ui.Pair) sec = (View) sec.getParent();
+        assertEquals(s + " heads a section (a hairline in Ink.rule above)", Ink.rule, rule(sec.getBackground()));
+    }
+
     void labelStyle(TextView t, String where) {
+        if (title(t)) { titleStyle(t, where); return; }
         String s = where + ": label '" + t.getText() + "'";
         assertEquals(s + " is 12 sp", Ink.px(t.getContext(), 12), t.getTextSize(), 0.5f);
         assertEquals(s + " is spaced 0.14", 0.14f, t.getLetterSpacing(), 0.001f);
@@ -155,7 +175,7 @@ public class DesignTest {
         assertTrue(s + " is in capitals", t.isAllCaps() || text.equals(text.toUpperCase()));
     }
 
-    /** Every section straight on a page: a hairline in Ink.rule above, 14 dp over its label. */
+    /** Every section straight on a page: a hairline in Ink.rule above, 18 dp over its title. */
     void sections(LinearLayout col, String where) {
         for (int i = 0; i < col.getChildCount(); i++) {
             View v = col.getChildAt(i);
@@ -168,7 +188,8 @@ public class DesignTest {
             if (head == null || !label(head)) continue;
             String s = where + ": section " + head.getText();
             seen.add(s);
-            assertEquals(s + " has 14 dp over its label", Ink.dp(14), v.getPaddingTop());
+            assertEquals(s + " has 18 dp over its title", Ink.dp(18), v.getPaddingTop());
+            titleStyle(head, where);
             assertEquals(s + " has a hairline in Ink.rule", Ink.rule, rule(v.getBackground()));
         }
     }

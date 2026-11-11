@@ -144,14 +144,22 @@ final class Ui {
         return t;
     }
 
-    /** A section on a page: a hairline above, its label, its figure at the right (null: none;
-     *  Home.small's serif figures), then what it shows, 10 dp apart. Inside a card a label
-     *  stands alone (the card's gap above it, no hairline). */
+    /** A section's title on a page: the label's serif capitals, a size up, in ink: above a
+     *  card's muted labels, the page's own heads. */
+    static TextView title(Context c, String s) {
+        TextView t = text(c, s.toUpperCase(), 13, Ink.serifBold, Ink.ink);
+        t.setLetterSpacing(0.16f);
+        return t;
+    }
+
+    /** A section on a page: a hairline above, 18 dp over its title, its figure at the right
+     *  (null: none; Home.small's serif figures), then what it shows, 12 dp apart. Inside a
+     *  card a label stands alone (the card's gap above it, no hairline). */
     static LinearLayout section(Context c, String title, View figure) {
-        LinearLayout s = column(c, 10);
-        s.setPadding(0, Ink.dp(14), 0, 0);
+        LinearLayout s = column(c, 12);
+        s.setPadding(0, Ink.dp(18), 0, 0);
         s.setBackground(topRule(Ink.rule));
-        s.addView(figure == null ? label(c, title) : pair(c, 12, label(c, title), figure));
+        s.addView(figure == null ? title(c, title) : pair(c, 12, title(c, title), figure));
         return s;
     }
 
