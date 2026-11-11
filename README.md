@@ -1,3 +1,5 @@
+<img src="shots/icon.png" width="96" align="right" alt="The icon: 字 in brush, over a yellow highlighter">
+
 # 汉字之路 hanzi path
 
 Learn Chinese characters the way they're built: every part before the first
