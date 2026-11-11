@@ -12,7 +12,7 @@ import java.text.DateFormat;
 import java.util.Date;
 
 /**
- * Settings and progress, in sections as Stats has them (a mono label under a hairline):
+ * Settings and progress, in sections as Stats has them (a serif label under a hairline):
  * Learning (how much is new at a time and per day, how many reviews a round, how often a
  * review asks you to write), Voice (said
  * aloud or not, its speed, the line when the phone has no Chinese voice), Reminder (the time,

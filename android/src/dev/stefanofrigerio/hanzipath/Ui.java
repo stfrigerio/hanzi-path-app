@@ -145,7 +145,7 @@ final class Ui {
     }
 
     /** A section on a page: a hairline above, its label, its figure at the right (null: none;
-     *  Home.small's mono figures), then what it shows, 10 dp apart. Inside a card a label
+     *  Home.small's serif figures), then what it shows, 10 dp apart. Inside a card a label
      *  stands alone (the card's gap above it, no hairline). */
     static LinearLayout section(Context c, String title, View figure) {
         LinearLayout s = column(c, 10);

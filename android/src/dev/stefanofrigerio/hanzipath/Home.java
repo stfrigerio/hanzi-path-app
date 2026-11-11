@@ -303,7 +303,7 @@ final class Home {
         return r;
     }
 
-    /** A section's figure beside its label: mono, small, muted. */
+    /** A section's figure beside its label: serif, small, muted. */
     static TextView small(Main m, String s) {
         TextView t = stat(m, s);
         t.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 12);
